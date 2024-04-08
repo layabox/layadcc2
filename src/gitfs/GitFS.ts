@@ -1,3 +1,4 @@
+import { Config } from "./Config";
 import { FileNode } from "./FSData";
 import { CommitInfo, GitCommit } from "./GitCommit";
 import { shasum, toHex } from "./GitFSInit";
@@ -208,7 +209,7 @@ export class GitFS {
             console.log('download error:', strid);
             throw new Error('download error:'+strid);
         }
-        let buff = this.frw.unzip(treebuff);
+        let buff = Config.zip?this.frw.unzip(treebuff):treebuff;
 
         //下载文件最好不校验。影响速度。
         if(this.checkDownload){

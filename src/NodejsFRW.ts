@@ -10,6 +10,9 @@ export class NodejsFRW implements IFileRW{
         this._baseDir=basedir;
     }
     async read(url:string, encode:'utf8'|'buffer') {
+        if(!path.isAbsolute(url)){
+            url = path.join(this._baseDir,url);
+        }
         if (encode === 'buffer') {
             const buffer = await promisify(fs.readFile)(url);
             return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);

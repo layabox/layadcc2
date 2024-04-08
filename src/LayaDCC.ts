@@ -81,6 +81,27 @@ export class LayaDCC {
         debugger;
     }
 
+    private mergeSmallFile(){
+        //合并小文件
+        //直接遍历objects目录，顺序合并
+        //结果记录下来即可
+    }
+
+    async checkoutTest(p: string,head:string){
+        let dccout =  path.resolve(p, this._dccout)
+        this.frw  = new NodejsFRW(dccout);
+        this.gitfs = new GitFS(dccout,'',this.frw);
+        let headstr = await this.frw.read(head,'utf8') as string;
+        try{
+            let headobj = JSON.parse(headstr) as RootDesc;
+            let rootobj = await this.gitfs.getTreeNode(headobj.root,null)
+            debugger;
+        }catch(e:any){
+            debugger;
+        }
+        debugger;
+    }
+
     private async walkDirectory(dir: string, ignorePatterns: string[] = []): Promise<string[]> {
         let files: string[] = [];
         const dirents = await promisify(fs.readdir)(dir, { withFileTypes: true });
@@ -170,7 +191,7 @@ export class LayaDCC {
                 files.push(res);
             }
         }
-        let buff = await node.toObject(this.frw,false);
+        let buff = await node.toObject(this.frw);
         this.gitfs.saveObject(node.sha!,buff);
         return files;
     }    

@@ -1,6 +1,7 @@
 //import { toHex } from "../utils/shasum";
 //import { readUTF8, writeUTF8 } from "./GitIndex";
 
+import { Config } from "./Config";
 import { GitFS, IFileRW } from "./GitFS";
 import { hashToArray, readUTF8, shasum, toHex, writeUTF8 } from "./GitFSInit";
 
@@ -279,7 +280,12 @@ export class TreeNode{
 
 	parseBuffer(zippedbuffer: Uint8Array, frw:IFileRW) {
 		this.buff=zippedbuffer;
-        let buffer = new Uint8Array(frw.unzip(zippedbuffer));
+		let buffer:Uint8Array;
+		if(Config.zip){
+			buffer = new Uint8Array(frw.unzip(zippedbuffer.buffer));
+		}else{
+			buffer = new Uint8Array(zippedbuffer.buffer);
+		}
 
 		let entries = this._entries;//: TreeEntry[] = []
 		entries.length=0;
@@ -295,7 +301,7 @@ export class TreeNode{
 	}	
 
 	// 保存成一个buffer
-	async toObject(frw:IFileRW, zip = true) {
+	async toObject(frw:IFileRW) {
 		// Adjust the sort order to match git's
 		const entries = this._entries?[...this._entries]:[];
 		entries.sort(compareTreeEntryPath)
@@ -338,7 +344,7 @@ export class TreeNode{
 			cursor += 20;
 		});
 
-		if (frw && zip) {
+		if (frw && Config.zip) {
 			retbuf = new Uint8Array(frw.zip(retbuf.buffer));
 		}
 		this.sha = await shasum(retbuf,true) as string;
