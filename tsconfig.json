@@ -6,6 +6,7 @@
         "strict": true,
         "forceConsistentCasingInFileNames": true, // 强制文件名大小写一致性
         "strictPropertyInitialization": false,  //不强制必须初始化成员
+        "sourceMap": true,
     },
     "include": [
         "./src/**/*"                            // 包含当前目录及子目录下的所有文件

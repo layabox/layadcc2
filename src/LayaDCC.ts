@@ -4,6 +4,8 @@ import { TreeNode } from "./gitfs/GitTree";
 import * as fs from 'fs'
 import { promisify } from "util";
 import { GitFS } from "./gitfs/GitFS";
+import { RootDesc } from "./RootDesc";
+import { shasum } from "./gitfs/GitFSInit";
 
 
 class FSInterface {
@@ -65,6 +67,15 @@ export class LayaDCC {
         let files = await this.walkDirectory1(p,rootNode,false,['.git','.gitignore','dccout']);
         console.log(files.length)
         console.log(files)
+        //创建头文件
+        let head = new RootDesc();
+        head.root = rootNode.sha!;
+        head.fileCounts = files.length;
+        head.objPackages=[];
+        //let headbuff = this.frw.textencode(JSON.stringify(head))
+        //shasum(new Uint8Array(headbuff),true)
+        await this.frw.writeToCommon('head.json',JSON.stringify(head),true);
+        
         debugger;
     }
 
@@ -118,9 +129,6 @@ export class LayaDCC {
             let filename = dirent.name;
             const res = path.resolve(dir, filename);
             let entry = node.getEntry(filename);
-            if(!entry){
-                //TODO 创建
-            }
 
             // 如果路径符合忽略模式，则跳过此路径
             if (ignorePatterns && ignorePatterns.some(pattern => filename==pattern)) {
@@ -160,6 +168,8 @@ export class LayaDCC {
                 files.push(res);
             }
         }
+        let buff = await node.toObject(this.frw,false);
+        this.gitfs.saveObject(node.sha!,buff);
         return files;
     }    
 

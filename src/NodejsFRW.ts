@@ -41,7 +41,7 @@ export class NodejsFRW implements IFileRW{
         let absfile = path.resolve(this._baseDir,url);
         let abspath = path.resolve(this._baseDir,paths.join('/'))
         try{
-            if(fs.existsSync(absfile))
+            if(!overwrite && fs.existsSync(absfile))
                 return;
             await promisify(fs.access)(abspath)
         }catch(e:any){

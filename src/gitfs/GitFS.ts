@@ -22,7 +22,7 @@ export interface IFileRW {
     readSource(rurl:string, encode: 'utf8' | 'buffer'):Promise<string|ArrayBuffer>;
     write(url: string, content: string | ArrayBuffer, overwrite?:boolean): Promise<any>;
     //这个是给layame用的，本地无实际用途，直接写即可
-    writeToCommon(url: string, content: string | ArrayBuffer, overwrite?:boolean): Promise<any>;
+    writeToCommon(url: string, content: ArrayBuffer, overwrite?:boolean): Promise<any>;
     isFileExist(url: string):Promise<boolean>;
     unzip(buff: ArrayBuffer): ArrayBuffer;
     zip(buff: ArrayBuffer): ArrayBuffer;
@@ -316,8 +316,7 @@ export class GitFS {
         return null;
     }
 
-    async setBlobNode(objid: string, content: ArrayBuffer, refname:string|null) {
-        let treepath = this.getObjUrl(objid,GitFS.OBJSUBDIRNUM,true);
+    async saveBlobNode(objid: string, content: ArrayBuffer, refname:string|null) {
         /*
         let exist = await this.frw.isFileExist(treepath);
         if(exist ){ 
@@ -325,15 +324,19 @@ export class GitFS {
             return ;
         }
         */
-        
-        if((content as any).buffer) content = (content as any).buffer;
-        if(content.byteLength > GitFS.MAXFILESIZE){
-            alert('文件太大，无法上传：'+refname+'\n限制为：'+GitFS.MAXFILESIZE/1024/1024+'M');
-            return false;
+       
+       if(content.byteLength > GitFS.MAXFILESIZE){
+           alert('文件太大，无法上传：'+refname+'\n限制为：'+GitFS.MAXFILESIZE/1024/1024+'M');
+           return false;
         }
-        //let ret = await this.frw.write(treepath, content);
-        await this.frw.writeToCommon(treepath,content);
+        await this.saveObject(objid,content);
         return true;
+    }
+
+    async saveObject(objid: string, content: ArrayBuffer){
+        let treepath = this.getObjUrl(objid,GitFS.OBJSUBDIRNUM,true);
+        //let ret = await this.frw.write(treepath, content);
+        await this.frw.writeToCommon(treepath,content as ArrayBuffer);
     }
 
     /**
@@ -457,7 +460,7 @@ export class GitFS {
             entry = node.addEntry(name, false, oid);
         }
         console.log('[gitfs] 提交变化文件:',node.fullPath+'/'+name);
-        if(!await this.setBlobNode(hash, buff, node.fullPath+'/'+name)){
+        if(!await this.saveBlobNode(hash, buff, node.fullPath+'/'+name)){
             // 上传失败。设置一个无效的oid。避免形成永久性错误。
             entry.oid!.fill(0);  
         }
@@ -484,7 +487,7 @@ export class GitFS {
 
         //let zipedbuff = this.frw.zip(buff);
         // 计算文件的sha值
-        let oid = await shasum(new Uint8Array(buff), false) as Uint8Array;
+        let oid = await shasum(new Uint8Array(buff), false);
         let hash = toHex(oid);
 
         let pathes = path.split('/');
@@ -535,7 +538,7 @@ export class GitFS {
                 }
 
                 // 文件没有treeNode属性需要特殊处理。由于oid已经设置成最新的了，下面 updateSha会忽略他
-                await this.setBlobNode(hash, buff, entry.path);
+                await this.saveBlobNode(hash, buff, entry.path);
                 // 记录需要上传的文件。是否需要立即上传
                 // 修改所有节点的sha。记录变化的节点。这个最后push的时候再做
                 // await this.treeRoot.updateAllSha(this.frw,this.allchanges);
@@ -871,7 +874,7 @@ export class GitFS {
             // 上传变化的节点
             console.log('[gitfs] 提交变化目录:', cchange.fullPath, cchange.sha);
             // buff在updateAllSha的时候已经创建了。
-            await this.setBlobNode(cchange.sha!, cchange.buff!.buffer, cchange.fullPath);
+            await this.saveBlobNode(cchange.sha!, cchange.buff!.buffer, cchange.fullPath);
             //cchange.needCommit=true;
         }
         //
@@ -886,7 +889,7 @@ export class GitFS {
         if(!buff) return;
         console.log('[gitfs] 提交commit',this.curCommit.sha);
         // 写文件
-        await this.setBlobNode(this.curCommit.sha, buff.buffer, 'commit');
+        await this.saveBlobNode(this.curCommit.sha, buff.buffer, 'commit');
 
         let recent=this.recentCommits;
         if(!recent){

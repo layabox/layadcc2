@@ -323,15 +323,23 @@ export class TreeNode{
 			retbuf[cursor] = 0x20; cursor += 1;
 			cursor += writeUTF8(retbuf, entry.path, cursor);
 			retbuf[cursor] = 0; cursor += 1;
-			if(!(entry.oid instanceof Uint8Array)){
-				throw 'oid type error';
+			if(entry.oid){
+				if(!(entry.oid instanceof Uint8Array)){
+					throw 'oid type error';
+				}
+				retbuf.set(entry.oid, cursor);
+			}else if(entry.treeNode?.sha){
+				let oid = hashToArray(entry.treeNode.sha);
+				if(oid.byteLength!=20){
+					throw 'oid length error'
+				}
+				retbuf.set(oid,cursor);
 			}
-			retbuf.set(entry.oid, cursor);
 			cursor += 20;
 		});
 
 		if (frw && zip) {
-			retbuf = new Uint8Array(frw.zip(retbuf));
+			retbuf = new Uint8Array(frw.zip(retbuf.buffer));
 		}
 		this.sha = await shasum(retbuf,true) as string;
 		this.buff = retbuf;
