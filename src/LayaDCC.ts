@@ -72,6 +72,8 @@ export class LayaDCC {
         head.root = rootNode.sha!;
         head.fileCounts = files.length;
         head.objPackages=[];
+        head.time = new Date();
+        head.last='00';
         //let headbuff = this.frw.textencode(JSON.stringify(head))
         //shasum(new Uint8Array(headbuff),true)
         await this.frw.writeToCommon('head.json',JSON.stringify(head),true);

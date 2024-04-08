@@ -35,10 +35,11 @@ export function toHex(buffer:Uint8Array) {
 }
 
 export function hashToArray(hash:string){
-    let len = hash.length/2;
-    let ret = new Uint8Array(len);
-    for(let i=0; i<len; i++){
-        ret[i]= parseInt( hash.substr(i*2,2),16);
+	const paddedHex = hash.padStart(40, '0');
+    //let len = hash.length/2;
+    let ret = new Uint8Array(20);
+    for(let i=0; i<20; i++){
+        ret[i]= parseInt( paddedHex.substring(i*2,i*2+2),16);
     }
     return ret;
 }

@@ -85,7 +85,7 @@ export class GitFS {
      */
     getObjUrl(objid: string,subdirnum:number, reltocommon:boolean){
         let ret = reltocommon?'':this.remoteRepoUrl;
-        ret += 'gitfs/objects/';
+        ret += 'objects/';
         let ostr = objid;
         for(let i=0; i<subdirnum;i++){
             let dir = ostr.substring(0,2);
