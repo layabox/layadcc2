@@ -30,12 +30,13 @@ export class TreeEntry {
 	}
 	static dirMode='040000';
 	static blobMode = '100644';
+	static InvalidOID= new Uint8Array(20);
 	
 	constructor(path:string, mode:string, oid:Uint8Array|null){
 		this.path=path;
 		this.mode=mode;
 		this.type = mode2type(mode);
-		this.oid=oid?new Uint8Array(oid):new Uint8Array(20);
+		this.oid=oid?new Uint8Array(oid):TreeEntry.InvalidOID;
 	}
 
 	// 为了调试方便，在命令行获取这个值就触发openNode
@@ -208,7 +209,6 @@ export class TreeNode{
 		return this.sha!;
 	}
 
-
 	parse_tree(buffer:Uint8Array){
 		let entries = this._entries		
 		let cursor = 5;	// 从 'tree '后开始
@@ -220,6 +220,8 @@ export class TreeNode{
 		let strLen = readUTF8(new Uint8Array(buffer.buffer.slice(cursor, nullchar)));
 		let len = parseInt(strLen);
 		cursor = nullchar + 1;
+		//对齐
+		cursor = (cursor + 3) & ~3
 	
 		while (cursor < buffer.length) {
 			// mode name\0hash 所以先找空格，再找\0
@@ -242,7 +244,15 @@ export class TreeNode{
 
 			const oid = new Uint8Array(buffer.buffer.slice(nullchar + 1, nullchar + 21));
 			cursor = nullchar + 21;
+			//time
+			cursor = (cursor + 3) & ~3;
+			let tmArray = new Uint32Array(buffer.buffer,cursor,2);
+			let high = tmArray[0];
+			let low = tmArray[1];
+			let time = new Date(high * 0x100000000+low);
+			cursor += 8;
 			let entry = new TreeEntry(path,mode,oid);
+			entry.fileMTime = time;
 			entry.owner=this;
 			entry.type=type;
 			//entry.treeNode=this;
@@ -252,19 +262,6 @@ export class TreeNode{
 		// 根据路径排序
 		//entries.sort(comparePath)
 		return entries
-	}
-
-	/**
-	 * 
-	 * @param buffer 
-	 */
-	parse_Tree(buffer:Uint8Array){
-		let cursor = 8; 	//'Tree    '
-		let wreader = new DataView(buffer.buffer);
-		let len = wreader.getUint32(cursor,true);	// len:uint32
-		// mode: uint32
-		// oid: char[20]
-		// path: len:uint16, ...
 	}
 
 	parseBuffer(zippedbuffer: Uint8Array, frw:IFileRW) {
@@ -283,10 +280,6 @@ export class TreeNode{
 		if ((buffer[0] == 0x74 && buffer[1] == 0x72 && buffer[2] == 0x65 && buffer[3] == 0x65 && buffer[4] == 0x20)) {//'tree '
 			return this.parse_tree(buffer);
 		}
-		if ((buffer[0] == 84 && buffer[1] == 0x72 && buffer[2] == 0x65 && buffer[3] == 0x65 && buffer[4] == 0x20)) {//'Tree '
-			return this.parse_Tree(buffer);
-		}
-
 	}	
 
 	// 保存成一个buffer
@@ -306,19 +299,26 @@ export class TreeNode{
 			entrylen += length;//entry.path.length;
 			entrylen += 1;//0
 			entrylen += 20;
+			//对齐
+			entrylen = (entrylen + 3) & ~3
+			entrylen += 8;	//time
 		});
-		totallen = 5 + entrylen.toString().length + 1 + entrylen;
+		totallen = (5 + entrylen.toString().length + 1);
+		//对齐
+		totallen = ((totallen + 3) & ~3) + entrylen;
 		let retbuf = new Uint8Array(totallen);
 		let cursor = writeUTF8(retbuf, 'tree ', 0);
 		cursor += writeUTF8(retbuf, entrylen.toString(), cursor);
 		retbuf[cursor] = 0; cursor += 1;
+		//对齐
+		cursor=(cursor + 3) & ~3
 		entries.map(entry => {
 			let mode = entry.mode.replace(/^0/, '');
 			cursor += writeUTF8(retbuf, mode, cursor);
 			retbuf[cursor] = 0x20; cursor += 1;
 			cursor += writeUTF8(retbuf, entry.path, cursor);
 			retbuf[cursor] = 0; cursor += 1;
-			if(entry.oid){
+			if(entry.oid && entry.oid!=TreeEntry.InvalidOID){
 				if(!(entry.oid instanceof Uint8Array)){
 					throw 'oid type error';
 				}
@@ -331,6 +331,16 @@ export class TreeNode{
 				retbuf.set(oid,cursor);
 			}
 			cursor += 20;
+			//对齐一下
+			cursor = (cursor + 3) & ~3;
+			// 使用位操作将64位时间戳拆分为两个32位的数值
+			let mtime = entry.fileMTime?entry.fileMTime.valueOf():0;
+			let high = Math.floor(mtime / 0x100000000); // 获取高32位
+			let low = mtime & 0xFFFFFFFF; // 获取低32位		
+			let timeArr = new Uint32Array(retbuf.buffer,cursor,2);
+			timeArr[0]=high;
+			timeArr[1]=low;	
+			cursor+=8;
 		});
 
 		if (frw && Config.zip) {
@@ -340,65 +350,6 @@ export class TreeNode{
 		this.buff = retbuf;
 		return retbuf;
 	}
-
-	/**
-	 * 限制每个文件占用<40字节
-	 * 兼容性考虑：需要满足向上兼容，老版本也要能打开新版数据，维持链的完整
-	 * @param frw 
-	 * @param zip 
-	 * @returns 
-	 */
-	async toBuffer(frw:IFileRW, zip = true) {
-		const entries = this._entries;
-		//entries.sort(compareTreeEntryPath)
-
-		let totallen = 8+4;	// 'Tree   '+totalLen
-		let entrylen = entries.length;	// 用写这个么？
-
-		// 基本块：entries
-		// nameid, start, length
-		// 
-
-		entries.map(entry => {
-			totallen+=4;	//mode:uint32
-			totallen+=20;	//oid:char[20]
-			totallen+=2;	//pathlen:u16
-            totallen += new TextEncoder().encode(entry.path).length;
-		});
-		let retbuf = new Uint8Array(totallen);
-		let bufw = new DataView(retbuf.buffer);
-		writeUTF8(retbuf, 'Tree    ', 0);
-		bufw.setUint32(8,totallen,true);
-		let cursor=12;
-
-		entries.map(entry => {
-			// mode
-			bufw.setUint32(cursor, entry.modeToInt(), true);
-			cursor+=4;
-			if(!(entry.oid instanceof Uint8Array)){
-				throw 'oid type error';
-			}
-			// hash
-			retbuf.set(entry.oid,cursor);
-			cursor+=20;
-
-			// pathlen
-			let pathlen = entry.path.length;
-			bufw.setUint16(cursor,pathlen,true);
-			cursor+=2;
-
-			// path
-			cursor += writeUTF8(retbuf, entry.path, cursor);
-			cursor+=pathlen;
-		});
-
-		if (frw && zip) {
-			retbuf = new Uint8Array(frw.zip(retbuf));
-		}
-		this.sha = await shasum(retbuf,true) as string;
-		this.buff = retbuf;
-		return retbuf;
-	}	
 }
 
 function compareStrings(a: string, b: string) {

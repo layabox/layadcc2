@@ -16,6 +16,7 @@ class Params{
     mergedFileSize=1000*1024;
     dccout = "dccout";
     outfile='version'
+    fast=true;
 }
 
 export class LayaDCC {
@@ -71,7 +72,7 @@ export class LayaDCC {
             //TODO 绝对路径的情况
             fs.mkdirSync(dccout);
         }
-        let files = await this.walkDirectory(p,rootNode,false,['.git','.gitignore','dccout']);
+        let files = await this.walkDirectory(p,rootNode,this.config.fast,['.git','.gitignore','dccout']);
         console.log(files.length)
         console.log(files)
         //创建头文件
@@ -94,7 +95,7 @@ export class LayaDCC {
         await this.frw.writeToCommon(`${this.config.outfile}.json`,JSON.stringify(head),true);
 
         await this.mergeSmallFile(rootNode);
-        debugger;
+        //debugger;
     }
 
     private async saveTreePack(buff:ArrayBuffer,lenth:number,indexInfo:{id:string,start:number,length:number}[]){
@@ -109,7 +110,7 @@ export class LayaDCC {
         await this.frw.write(indexfile,this.frw.textencode(JSON.stringify(indexInfo)),true);
         return packfile;
     }
-    
+
     private async mergeSmallFile(rootNode:TreeNode){
         let dccout = this.dccout;
         let frw = this.frw;
@@ -148,7 +149,6 @@ export class LayaDCC {
         treeSize=0;
         objInPacks.length=0;
 
-        debugger;
 
         //
         //合并小文件

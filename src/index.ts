@@ -15,7 +15,10 @@ class LayaDCCCmd{
         this._dir = path.join(cwd(),v);
     }
     async run(){
-        this.dcc.genDCC(this._dir);
+        let st = Date.now();
+        await this.dcc.genDCC(this._dir);
+        let dt = Date.now()-st;
+        console.log('Time:',dt/1000)
         //this.dcc.checkoutTest(this._dir,'head.json')
     }
 }
