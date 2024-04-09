@@ -17,7 +17,7 @@ export class TreeEntry {
 	oid: Uint8Array;	// 长度为20. null表示还不知道。 TODO 修改：刚开始是buffer，一旦下载了，就变成treeNode对象了，这样就不用维护两个东西
 	packid:Uint8Array|null=null;	// 保留
 	treeNode:TreeNode|null=null;	// 如果是目录的话，且目录被下载了，则指向目录的的treeNode
-	owner!:TreeNode;	// 属于哪个Node
+	owner:TreeNode;	// 属于哪个Node
 	type: EntryType;				// mode 对应的字符串， 
 	flags=0;			// 一些标记。例如是否压缩，
 	touchFlag=0;		// 同步时做删除标记用。运行时数据，随时在变
@@ -35,7 +35,7 @@ export class TreeEntry {
 		this.path=path;
 		this.mode=mode;
 		this.type = mode2type(mode);
-		this.oid=oid?new Uint8Array(oid):null;
+		this.oid=oid?new Uint8Array(oid):new Uint8Array(20);
 	}
 
 	// 为了调试方便，在命令行获取这个值就触发openNode
@@ -341,14 +341,6 @@ export class TreeNode{
 		return retbuf;
 	}
 
-	/**
-	 * 如果所有的子加起来不到100k，则都加到一起
-	 * 
-	 */
-	async mergeChild(){
-
-	}
-	
 	/**
 	 * 限制每个文件占用<40字节
 	 * 兼容性考虑：需要满足向上兼容，老版本也要能打开新版数据，维持链的完整

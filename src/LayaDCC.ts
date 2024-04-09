@@ -5,14 +5,14 @@ import * as fs from 'fs'
 import { promisify } from "util";
 import { GitFS } from "./gitfs/GitFS";
 import { RootDesc } from "./RootDesc";
-import { toHex } from "./gitfs/GitFSUtils";
+import { shasum, toHex } from "./gitfs/GitFSUtils";
 
 class Params{
     //如果为true则head.json会把版本号加到后面
     increaseFileName=false;
     //小于这个文件的合并
     fileToMerge=100*1024;
-    //合并后的最大文件大小
+    //合并后的最大文件大小，不允许超过。
     mergedFileSize=1000*1024;
     dccout = "dccout";
     outfile='version'
@@ -22,6 +22,7 @@ export class LayaDCC {
     private frw:NodejsFRW;
     private gitfs:GitFS;
     private config = new Params();
+    private dccout:string;
     constructor() {
 
     }
@@ -45,7 +46,7 @@ export class LayaDCC {
      * @param p 
      */
     async genDCC(p: string) {
-        let dccout =  path.resolve(p, this.config.dccout)
+        let dccout = this.dccout =  path.resolve(p, this.config.dccout)
         this.frw  = new NodejsFRW(dccout);
         this.gitfs = new GitFS(dccout,'',this.frw);
         
@@ -91,11 +92,65 @@ export class LayaDCC {
         //let headbuff = this.frw.textencode(JSON.stringify(head))
         //shasum(new Uint8Array(headbuff),true)
         await this.frw.writeToCommon(`${this.config.outfile}.json`,JSON.stringify(head),true);
-        
+
+        await this.mergeSmallFile(rootNode);
         debugger;
     }
 
-    private mergeSmallFile(){
+    private async saveTreePack(buff:ArrayBuffer,lenth:number,indexInfo:{id:string,start:number,length:number}[]){
+        let dccout = this.dccout;
+        let sha = await shasum(new Uint8Array(buff,lenth),true);
+        let packfile = path.join(dccout,'packfile',`tree-${sha}.pack`);
+        let indexfile = path.join(dccout,'packfile',`tree-${sha}.idx`);
+        if(!fs.existsSync(path.join(dccout,'packfile'))){
+            fs.mkdirSync(path.join(dccout,'packfile'));
+        }
+        await this.frw.write(packfile,buff.slice(0,lenth),true);
+        await this.frw.write(indexfile,this.frw.textencode(JSON.stringify(indexInfo)),true);
+        return packfile;
+    }
+    
+    private async mergeSmallFile(rootNode:TreeNode){
+        let dccout = this.dccout;
+        let frw = this.frw;
+        let gitfs = this.gitfs;
+        let treeNodes:string[]=[];
+        let blobNodes:string[]=[];
+        let tree_packs:string[]=[];
+        let blob_packs:string[]=[];
+
+        //统计所有的treenode和blobnode,他们要分别打包
+        await gitfs.visitAll(rootNode,(cnode)=>{
+            treeNodes.push(cnode.sha!);
+        },(entry)=>{
+            blobNodes.push(toHex(entry.oid));
+        })
+
+        let treeSize=0;
+        let reservBuff = new Uint8Array(this.config.mergedFileSize);
+        let objInPacks:{id:string,start:number,length:number}[]=[];
+        for(let i of treeNodes){
+            let commitobjFile = gitfs.getObjUrl(i, GitFS.OBJSUBDIRNUM, false);
+            let buff = await frw.read(commitobjFile, 'buffer') as ArrayBuffer;
+            let size = buff.byteLength;
+            if(treeSize+size<this.config.mergedFileSize){
+                objInPacks.push({id:i,start:treeSize,length:size});
+                reservBuff.set(new Uint8Array(buff),treeSize);
+                treeSize+=size;
+            }else{
+                tree_packs.push(await this.saveTreePack(reservBuff,treeSize,objInPacks));
+                treeSize=0;
+                objInPacks.length=0;
+            }
+        }
+        //剩下的写文件，计算hash
+        tree_packs.push(await this.saveTreePack(reservBuff,treeSize,objInPacks));
+        treeSize=0;
+        objInPacks.length=0;
+
+        debugger;
+
+        //
         //合并小文件
         //直接遍历objects目录，顺序合并
         //结果记录下来即可

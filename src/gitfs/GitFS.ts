@@ -241,23 +241,25 @@ export class GitFS {
         }
         // 没有treeNode表示还没有下载。下载构造新的node
         try{
-            let nodebuff = await this.getBlobNode(node.idstring, 'buffer') as Uint8Array;
-            let ret = new TreeNode(nodebuff, node.owner.parent, this.frw);
-            node.treeNode=ret;
-            ret.parent = node.owner;
-            ret.sha = toHex(node.oid!);
-            return ret;
+            if(node.isDir){
+                let ret = await this.getTreeNode(node.idstring,null);
+                node.treeNode = ret;
+                ret.parent = node.owner;
+                return ret;
+            }
         }catch(e){
             throw "open node error"
         }
     }
 
-    async visitAll(node:TreeNode, cb:(cnode:TreeNode)=>void){
-        cb(node);
+    async visitAll(node:TreeNode, treecb:(cnode:TreeNode)=>void, blobcb:(entry:TreeEntry)=>void){
+        treecb(node);
 		for await (const entry of node.entries) {
             if(entry.isDir){
                 if(!entry.treeNode) await this.openNode(entry);
-                await this.visitAll(entry.treeNode!, cb);
+                await this.visitAll(entry.treeNode!, treecb,blobcb);
+            }else{
+                blobcb(entry);
             }
 		}
     }
