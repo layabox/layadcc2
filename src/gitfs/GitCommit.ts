@@ -1,5 +1,5 @@
 import { IFileRW } from "./GitFS";
-import { shasum, toHex } from "./GitFSInit";
+import { shasum, toHex } from "./GitFSUtils";
 
 export class CommitInfo{
     tree:string;   //20byte

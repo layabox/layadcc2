@@ -5,7 +5,7 @@ import * as fs from 'fs'
 import { promisify } from "util";
 import { GitFS } from "./gitfs/GitFS";
 import { RootDesc } from "./RootDesc";
-import { shasum } from "./gitfs/GitFSInit";
+import { shasum, toHex } from "./gitfs/GitFSUtils";
 
 
 class FSInterface {
@@ -53,11 +53,20 @@ export class LayaDCC {
         let dccout =  path.resolve(p, this._dccout)
         this.frw  = new NodejsFRW(dccout);
         this.gitfs = new GitFS(dccout,'',this.frw);
+        
         console.log('v=', p);
         //得到最后一次提交的根
         //TODO 找到提交
         //先直接操作目录
-        let rootNode = new TreeNode(null,null,this.frw);
+        let rootNode:TreeNode;
+        try{
+            let headstr = await this.frw.read('head.json','utf8') as string;
+            let headobj = JSON.parse(headstr) as RootDesc;
+            rootNode = await this.gitfs.getTreeNode(headobj.root,null)
+        }catch(e:any){
+            rootNode = new TreeNode(null,null,this.frw);
+        }
+
         //rootNode.
 
         if(!fs.existsSync( dccout)){
@@ -91,8 +100,8 @@ export class LayaDCC {
         let dccout =  path.resolve(p, this._dccout)
         this.frw  = new NodejsFRW(dccout);
         this.gitfs = new GitFS(dccout,'',this.frw);
-        let headstr = await this.frw.read(head,'utf8') as string;
         try{
+            let headstr = await this.frw.read(head,'utf8') as string;
             let headobj = JSON.parse(headstr) as RootDesc;
             let rootobj = await this.gitfs.getTreeNode(headobj.root,null)
             debugger;
@@ -166,6 +175,11 @@ export class LayaDCC {
                     let cNode = new TreeNode(null, node, this.frw);
                     // 在当前node添加entry
                     entry.treeNode = cNode;
+                }else{
+                    if(!entry.treeNode){
+                        //有entry没有treenode，则表示可以加载
+                        entry.treeNode = await this.gitfs.getTreeNode(toHex(entry.oid),null);
+                    }
                 }
 
                 entry.touchFlag = 0;
@@ -238,7 +252,7 @@ export class LayaDCC {
             let entry = node.getEntry(name);
             if (hChild.kind === "directory") {
                 if (name === '.git') continue;
-                if (name === PROJINFO) continue;
+                //if (name === PROJINFO) continue;
                 let cNode: TreeNode;
                 if (entry) {
                     //let shastr = toHex(entry.oid);

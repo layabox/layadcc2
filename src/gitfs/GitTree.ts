@@ -3,7 +3,7 @@
 
 import { Config } from "./Config";
 import { GitFS, IFileRW } from "./GitFS";
-import { hashToArray, readUTF8, shasum, toHex, writeUTF8 } from "./GitFSInit";
+import { hashToArray, readUTF8, shasum, toHex, writeUTF8 } from "./GitFSUtils";
 
 export enum EntryType{
 	TREE='tree',
@@ -14,7 +14,7 @@ export enum EntryType{
 export class TreeEntry {
 	mode: string;
 	path: string;
-	oid: Uint8Array|null=null;	// 长度为20. null表示还不知道。 TODO 修改：刚开始是buffer，一旦下载了，就变成treeNode对象了，这样就不用维护两个东西
+	oid: Uint8Array;	// 长度为20. null表示还不知道。 TODO 修改：刚开始是buffer，一旦下载了，就变成treeNode对象了，这样就不用维护两个东西
 	packid:Uint8Array|null=null;	// 保留
 	treeNode:TreeNode|null=null;	// 如果是目录的话，且目录被下载了，则指向目录的的treeNode
 	owner!:TreeNode;	// 属于哪个Node
@@ -65,17 +65,6 @@ export class TreeNode{
 	parent:TreeNode|null=null;
 	buff:Uint8Array|null=null; 	// 计算sha需要先转成buff。由于计算sha和提交都需要这个buff，所以，每次计算sha都会更新并保存这个buff。 如果有zip的话，这个是zip之后的
 	sha:string|null=null;				// null或者'' 表示没有计算，或者原来的失效了，需要重新计算
-	// 是否提交了。设置会变化的时候，会设置这个，提交完成后清理。避免重复统计和提交
-	// 统计变化的时候设为false， push之后再次恢复为true
-	//needCommit=true;
-	// 这个是不保存的。只是上层设置
-	candownload=true;
-	canupload=true;
-	//TODO 把当前的子目录也打包到这个node下
-	packSubTreeNode=false;
-	// 本节点建议预加载的节点。要同时下载
-	//preloadNodes:ArrayBuffer;
-
 
 	constructor(entries: Uint8Array|TreeEntry[] | null, parent:TreeNode|null, frw:IFileRW){
 		this.parent=parent;

@@ -1,7 +1,7 @@
 import { Config } from "./Config";
 import { FileNode } from "./FSData";
 import { CommitInfo, GitCommit } from "./GitCommit";
-import { shasum, toHex } from "./GitFSInit";
+import { shasum, toHex } from "./GitFSUtils";
 import { TreeEntry, TreeNode } from "./GitTree";
 
 export async function readBinFile(file: File) {
@@ -250,32 +250,6 @@ export class GitFS {
             throw "open node error"
         }
     }
-
-	/**
-	 * 把所有的子目录收集起来
-	 */
-     async collectChildNode( nodes:TreeNode[]){
-         this.visitAll(this.treeRoot, (node)=>{
-            nodes.push(node);
-         });
-
-         let nodeids:string[]=[];
-         let sum = 0;
-         nodes.forEach( cn=>{
-             sum += cn.buff!.byteLength;
-             nodeids.push(cn.sha!);
-         })
-
-         let buff = new Uint8Array(sum);
-         let st = 0;
-         nodes.forEach(cn => {
-             buff.set(cn.buff!, st);
-             st += cn.buff!.byteLength;
-         })
-
-         // node附加这个buffer不必重新计算sha。唯一的问题就是如果校验会通不过
-         // 读写带附加buffer的node都可以在这这个类里进行
-	}
 
     async visitAll(node:TreeNode, cb:(cnode:TreeNode)=>void){
         cb(node);

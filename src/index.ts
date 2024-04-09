@@ -15,8 +15,8 @@ class LayaDCCCmd{
         this._dir = path.join(cwd(),v);
     }
     async run(){
-        //this.dcc.genDCC(this._dir);
-        this.dcc.checkoutTest(this._dir,'head.json')
+        this.dcc.genDCC(this._dir);
+        //this.dcc.checkoutTest(this._dir,'head.json')
     }
 }
 //
