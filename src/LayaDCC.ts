@@ -58,11 +58,13 @@ export class LayaDCC {
         //得到最后一次提交的根
         //TODO 找到提交
         //先直接操作目录
+        let lastVer=-1;
         let rootNode:TreeNode;
         try{
             let headstr = await this.frw.read('head.json','utf8') as string;
             let headobj = JSON.parse(headstr) as RootDesc;
-            rootNode = await this.gitfs.getTreeNode(headobj.root,null)
+            lastVer = headobj.version||0;
+            rootNode = await this.gitfs.getTreeNode(headobj.root,null);
         }catch(e:any){
             rootNode = new TreeNode(null,null,this.frw);
         }
@@ -82,7 +84,15 @@ export class LayaDCC {
         head.fileCounts = files.length;
         head.objPackages=[];
         head.time = new Date();
-        head.last='00';
+        head.version = lastVer+1;
+        if(lastVer>=0){
+            //这个表示已经有记录了
+            try{
+                await this.frw.mv( path.join(dccout,'head.json'), path.join(dccout,`head_${lastVer}.json`));
+            }catch(e:any){
+                debugger;
+            }
+        }
         //let headbuff = this.frw.textencode(JSON.stringify(head))
         //shasum(new Uint8Array(headbuff),true)
         await this.frw.writeToCommon('head.json',JSON.stringify(head),true);

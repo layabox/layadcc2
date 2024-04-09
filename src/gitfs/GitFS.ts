@@ -31,6 +31,7 @@ export interface IFileRW {
     textdecode(buffer: ArrayBuffer, off: number): string;
     saveUserData(key:string, value:string):void;
     getUserData(key:string):string;
+    mv(src:string,dst:string):Promise<unknown>;
 }
 
 var PROJINFO = '.projinfo';

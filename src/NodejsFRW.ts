@@ -99,4 +99,8 @@ export class NodejsFRW implements IFileRW{
         console.log(`Getting user data for key: ${key}`);
         return '';
     }    
+
+    async mv(src:string, dst:string){
+        return promisify(fs.rename)(src,dst);
+    }
 }
