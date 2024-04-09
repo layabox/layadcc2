@@ -6,5 +6,5 @@ export class RootDesc{
     //文件总数。用于集中下载计算进度
     fileCounts=0;
     time:Date;
-    version=0;    //上一次的id
+    version=1;    //上一次的id
 }

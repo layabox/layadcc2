@@ -5,28 +5,23 @@ import * as fs from 'fs'
 import { promisify } from "util";
 import { GitFS } from "./gitfs/GitFS";
 import { RootDesc } from "./RootDesc";
-import { shasum, toHex } from "./gitfs/GitFSUtils";
+import { toHex } from "./gitfs/GitFSUtils";
 
-
-class FSInterface {
-    mkdir() { }
-    rmdir() { }
-    createFile() { }
-    rmFile() { }
-    readDir() { }
-    readFile() { }
-}
-
-
-//遍历节点树，决定合并策略并合并
-class FileObjectMerger {
-
+class Params{
+    //如果为true则head.json会把版本号加到后面
+    increaseFileName=false;
+    //小于这个文件的合并
+    fileToMerge=100*1024;
+    //合并后的最大文件大小
+    mergedFileSize=1000*1024;
+    dccout = "dccout";
+    outfile='version'
 }
 
 export class LayaDCC {
     private frw:NodejsFRW;
-    private _dccout='dccout';
     private gitfs:GitFS;
+    private config = new Params();
     constructor() {
 
     }
@@ -50,7 +45,7 @@ export class LayaDCC {
      * @param p 
      */
     async genDCC(p: string) {
-        let dccout =  path.resolve(p, this._dccout)
+        let dccout =  path.resolve(p, this.config.dccout)
         this.frw  = new NodejsFRW(dccout);
         this.gitfs = new GitFS(dccout,'',this.frw);
         
@@ -61,9 +56,9 @@ export class LayaDCC {
         let lastVer=-1;
         let rootNode:TreeNode;
         try{
-            let headstr = await this.frw.read('head.json','utf8') as string;
+            let headstr = await this.frw.read(this.config.outfile+'.json','utf8') as string;
             let headobj = JSON.parse(headstr) as RootDesc;
-            lastVer = headobj.version||0;
+            lastVer = headobj.version||1;
             rootNode = await this.gitfs.getTreeNode(headobj.root,null);
         }catch(e:any){
             rootNode = new TreeNode(null,null,this.frw);
@@ -75,7 +70,7 @@ export class LayaDCC {
             //TODO 绝对路径的情况
             fs.mkdirSync(dccout);
         }
-        let files = await this.walkDirectory1(p,rootNode,false,['.git','.gitignore','dccout']);
+        let files = await this.walkDirectory(p,rootNode,false,['.git','.gitignore','dccout']);
         console.log(files.length)
         console.log(files)
         //创建头文件
@@ -88,14 +83,14 @@ export class LayaDCC {
         if(lastVer>=0){
             //这个表示已经有记录了
             try{
-                await this.frw.mv( path.join(dccout,'head.json'), path.join(dccout,`head_${lastVer}.json`));
+                await this.frw.mv( path.join(dccout,`${this.config.outfile}.json`), path.join(dccout,`${this.config.outfile}_${lastVer}.json`));
             }catch(e:any){
                 debugger;
             }
         }
         //let headbuff = this.frw.textencode(JSON.stringify(head))
         //shasum(new Uint8Array(headbuff),true)
-        await this.frw.writeToCommon('head.json',JSON.stringify(head),true);
+        await this.frw.writeToCommon(`${this.config.outfile}.json`,JSON.stringify(head),true);
         
         debugger;
     }
@@ -107,7 +102,7 @@ export class LayaDCC {
     }
 
     async checkoutTest(p: string,head:string){
-        let dccout =  path.resolve(p, this._dccout)
+        let dccout =  path.resolve(p, this.config.dccout)
         this.frw  = new NodejsFRW(dccout);
         this.gitfs = new GitFS(dccout,'',this.frw);
         try{
@@ -121,28 +116,6 @@ export class LayaDCC {
         debugger;
     }
 
-    private async walkDirectory(dir: string, ignorePatterns: string[] = []): Promise<string[]> {
-        let files: string[] = [];
-        const dirents = await promisify(fs.readdir)(dir, { withFileTypes: true });
-
-        for (const dirent of dirents) {
-            const res = path.resolve(dir, dirent.name);
-
-            // 如果路径符合忽略模式，则跳过此路径
-            if (ignorePatterns.some(pattern => res.includes(pattern))) {
-                continue;
-            }
-
-            if (dirent.isDirectory()) {
-                files = files.concat(await this.walkDirectory(res, ignorePatterns));
-            } else {
-                files.push(res);
-            }
-        }
-
-        return files;
-    }
-
     /**
      * 
      * @param dir 
@@ -151,7 +124,7 @@ export class LayaDCC {
      * @param ignorePatterns 忽略目录或者文件，只是影响当前目录
      * @returns 
      */
-    private async walkDirectory1(dir: string, node:TreeNode,fast:boolean, ignorePatterns: string[]|null = null): Promise<string[]> {
+    private async walkDirectory(dir: string, node:TreeNode,fast:boolean, ignorePatterns: string[]|null = null): Promise<string[]> {
         let files: string[] = [];
         const dirents = await promisify(fs.readdir)(dir, { withFileTypes: true });
 
@@ -193,7 +166,7 @@ export class LayaDCC {
                 }
 
                 entry.touchFlag = 0;
-                let rets = await this.walkDirectory1(res,entry.treeNode!,fast,[]);
+                let rets = await this.walkDirectory(res,entry.treeNode!,fast,[]);
                 files = files.concat(rets);
             } else {
                 let check=true;
@@ -228,76 +201,5 @@ export class LayaDCC {
 
     }
 
-
-    /**
-     * 提交一个本地目录。
-     * 忽略本地目录的名字，直接把本地目录的子与node的子比较
-     * @param hnative 
-     * @param node  库中的根节点
-     */
-    private async commitDir(dir: string, node: TreeNode) {
-        node.entries.forEach(e => {
-            e.touchFlag = 1;
-        });
-
-        // 处理.ignore文件
-        let ignores: string[] = [];
-        let ignorePath = path.join(dir, '.ignore');
-        if (fs.existsSync(ignorePath)) {
-            let ignoresstr = fs.readFileSync(ignorePath, 'utf-8');
-            if (ignoresstr) {
-                ignoresstr.split('\n').forEach(ign => {
-                    if (ign.endsWith('\r')) ign = ign.substring(0, ign.length - 1);
-                    ignores.push(ign);
-                });
-            }
-        }
-
-
-        for await (const hChild of hnative.values()) {
-            let name = hChild.name;
-            if (ignores && ignores.length > 0 && ignores.includes(name))
-                continue;
-
-            let entry = node.getEntry(name);
-            if (hChild.kind === "directory") {
-                if (name === '.git') continue;
-                //if (name === PROJINFO) continue;
-                let cNode: TreeNode;
-                if (entry) {
-                    //let shastr = toHex(entry.oid);
-                    if (!entry.treeNode) {
-                        // 没有treeNode表示还没有下载。下载构造新的node
-                        cNode = await this.openNode(entry);
-                    } else {
-                        cNode = entry.treeNode;
-                    }
-                } else {
-                    // 如果目录不存在，创建一个
-                    // 在当前node下添entry
-                    entry = node.addEntry(name, true, null);
-                    cNode = new TreeNode(null, node, this.frw);
-                    // 在当前node添加entry
-                    entry.treeNode = cNode;
-                }
-                entry.touchFlag = 0;
-                await this.commitDir(hChild, cNode, gc);
-            } else {
-                //let fileH = await hnative.getFileHandle(name);
-                //let entry = await this.addNativeFileAtNode(fileH, node, name);
-                let entry = await this.addFileToNode(hChild, node, name);
-                entry.touchFlag = 0;
-            }
-        }
-
-        let rmFiles: string[] = [];
-        node.entries.forEach(e => {
-            if (e.touchFlag == 1)
-                rmFiles.push(e.path);
-        })
-        rmFiles.forEach(rmf => {
-            node.rmEntry(rmf);
-        });
-    }
 }
 
