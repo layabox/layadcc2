@@ -1,3 +1,6 @@
+import { LayaDCCClient } from "../assets/LayaDCC/common/LayaDCCClient";
+import { DCCUpdate } from "./DCCUpdate";
+
 const { regClass, property } = Laya;
 
 @regClass()
@@ -31,6 +34,8 @@ export class UpdateDCCScript extends Laya.Script {
 
     //鼠标点击后执行。与交互相关的还有onMouseDown等十多个函数，具体请参阅文档。
     onMouseClick(): void {
+        let dcc = new DCCUpdate();
+        dcc.update();
         debugger;
     }
 }

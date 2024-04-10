@@ -37,7 +37,7 @@ export class LayaDCC {
     async genDCC(p: string) {
         let dccout = this.dccout =  path.resolve(p, this.config.dccout)
         this.frw  = new NodejsFRW(dccout);
-        this.gitfs = new GitFS(dccout,'',this.frw);
+        this.gitfs = new GitFS(dccout,this.frw);
         
         console.log('v=', p);
         //得到最后一次提交的根

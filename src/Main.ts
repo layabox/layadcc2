@@ -1,4 +1,3 @@
-import { LayaDCCClient } from "../assets/LayaDCC/common/LayaDCCClient";
 
 const { regClass, property } = Laya;
 

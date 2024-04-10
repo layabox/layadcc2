@@ -45,7 +45,7 @@ var PROJINFO = '.projinfo';
 export class GitFS {
     // git库所在目录。里面有Objects目录。相当于git的.git目录
     private remoteRepoUrl: string;
-    private userUrl:string; //保存head等用户信息的地方，可以通过filerw写。从uid开始的相对路径
+    //private userUrl:string; //保存head等用户信息的地方，可以通过filerw写。从uid开始的相对路径
     treeRoot = new TreeNode(null,null,null);
     // 当前准备提交的commit
     private curCommit = new CommitInfo();
@@ -71,10 +71,9 @@ export class GitFS {
      * @param userFile 保存head等用户信息的地方，以用户id开始的相对目录。可以通过filerw写
      * @param filerw 
      */
-    constructor(repoUrl: string, userFile:string, filerw: IFileRW) {
+    constructor(repoUrl: string, filerw: IFileRW) {
         this.remoteRepoUrl = repoUrl;
         if (!repoUrl.endsWith('/')) this.remoteRepoUrl += '/';
-        this.userUrl=userFile;
         this.frw = filerw;
     }
 
@@ -108,8 +107,8 @@ export class GitFS {
      * @param commitHeadFile 
      */
     async initByLastCommit() {
-        let commitid = await this.getCommitHead(this.userUrl+'?'+Date.now());// await this.frw.read(commitFileUrl, 'utf8') as string;
-        return await this.initByCommitID(commitid);
+        // let commitid = await this.getCommitHead(this.userUrl+'?'+Date.now());// await this.frw.read(commitFileUrl, 'utf8') as string;
+        // return await this.initByCommitID(commitid);
     }
 
     async getCommitHead(url:string){
@@ -837,63 +836,63 @@ export class GitFS {
      * @param rootpash 通过同步本地文件执行的push，这时候需要记录一个head。如果是程序动态创建的，则不要记录head，否则会在提交资源的时候被冲掉
      */
     async push(commitmsg:string, rootpash:FileNode) {
-        await this.treeRoot.updateAllSha(this.frw,this.allchanges);
-        let allchanges = this.allchanges;
-        let n = allchanges.length;
-        if (n <= 0) return null;
+        // await this.treeRoot.updateAllSha(this.frw,this.allchanges);
+        // let allchanges = this.allchanges;
+        // let n = allchanges.length;
+        // if (n <= 0) return null;
 
-        let root = this.treeRoot;
-        let findroot = false;   // root必须包含在变化列表中
-        for (let i = 0; i < n; i++) {
-            let cchange = allchanges[i];
-            if (cchange == root) {
-                findroot = true;
-            }
-            // 上传变化的节点
-            console.log('[gitfs] 提交变化目录:', cchange.fullPath, cchange.sha);
-            // buff在updateAllSha的时候已经创建了。
-            await this.saveBlobNode(cchange.sha!, cchange.buff!.buffer, cchange.fullPath);
-            //cchange.needCommit=true;
-        }
-        //
-        if (!findroot) {
-            console.error('变换节点没有找到root！');
-        }
-        // 清零
-        this.allchanges.length = 0;
+        // let root = this.treeRoot;
+        // let findroot = false;   // root必须包含在变化列表中
+        // for (let i = 0; i < n; i++) {
+        //     let cchange = allchanges[i];
+        //     if (cchange == root) {
+        //         findroot = true;
+        //     }
+        //     // 上传变化的节点
+        //     console.log('[gitfs] 提交变化目录:', cchange.fullPath, cchange.sha);
+        //     // buff在updateAllSha的时候已经创建了。
+        //     await this.saveBlobNode(cchange.sha!, cchange.buff!.buffer, cchange.fullPath);
+        //     //cchange.needCommit=true;
+        // }
+        // //
+        // if (!findroot) {
+        //     console.error('变换节点没有找到root！');
+        // }
+        // // 清零
+        // this.allchanges.length = 0;
 
-        // 提交commit
-        let buff = await this.makeCommit(commitmsg);
-        if(!buff) return;
-        console.log('[gitfs] 提交commit',this.curCommit.sha);
-        // 写文件
-        await this.saveBlobNode(this.curCommit.sha, buff.buffer, 'commit');
+        // // 提交commit
+        // let buff = await this.makeCommit(commitmsg);
+        // if(!buff) return;
+        // console.log('[gitfs] 提交commit',this.curCommit.sha);
+        // // 写文件
+        // await this.saveBlobNode(this.curCommit.sha, buff.buffer, 'commit');
 
-        let recent=this.recentCommits;
-        if(!recent){
-            recent = this.recentCommits=[];
-        }
-        recent.splice(0,0,this.curCommit.sha);
-        if(recent.length>20)recent.length=20;
+        // let recent=this.recentCommits;
+        // if(!recent){
+        //     recent = this.recentCommits=[];
+        // }
+        // recent.splice(0,0,this.curCommit.sha);
+        // if(recent.length>20)recent.length=20;
 
-        //TEMP TODO 发版以后恢复
-        recent.length=1;
+        // //TEMP TODO 发版以后恢复
+        // recent.length=1;
 
-        console.log('[gitfs] 写head');
-        // 把当前commit提交。 先用覆盖的方式。这种是常态
-        let headfile = this.userUrl;    // 这个由于有cdn，需要通过源站访问。注意这里是相对的
-        let recentstr = recent.join('\n');
-        let ret = await this.frw.write(headfile, recentstr, true) as any;
-        if(ret.ret!=0){
-            // 覆盖失败了，创建
-            ret = await this.frw.write(headfile, recentstr, false) as any;
-            if(ret.ret!=0){
-                console.error('[gitfs] 上传head失败')
-            }
-        }
-        rootpash && await this.saveHeadToLocal(this.curCommit.sha!,rootpash);
-        console.log('同步完成! head=',this.curCommit.sha);
-        return this.curCommit.sha;
+        // console.log('[gitfs] 写head');
+        // // 把当前commit提交。 先用覆盖的方式。这种是常态
+        // let headfile = this.userUrl;    // 这个由于有cdn，需要通过源站访问。注意这里是相对的
+        // let recentstr = recent.join('\n');
+        // let ret = await this.frw.write(headfile, recentstr, true) as any;
+        // if(ret.ret!=0){
+        //     // 覆盖失败了，创建
+        //     ret = await this.frw.write(headfile, recentstr, false) as any;
+        //     if(ret.ret!=0){
+        //         console.error('[gitfs] 上传head失败')
+        //     }
+        // }
+        // rootpash && await this.saveHeadToLocal(this.curCommit.sha!,rootpash);
+        // console.log('同步完成! head=',this.curCommit.sha);
+        // return this.curCommit.sha;
     }
 
 
