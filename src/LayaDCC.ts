@@ -43,6 +43,18 @@ export class LayaDCC {
 
     }
 
+    getChangedList(){
+
+    }
+
+    isFileChanged(url:string){
+
+    }
+
+    injectToLayaDownloader(downloader:any){
+
+    }
+
     /**
      * 生成目录p的dcc信息
      * 默认保存在当前目录的.dcc目录下
