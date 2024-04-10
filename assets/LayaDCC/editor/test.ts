@@ -1,3 +1,7 @@
+import { cwd } from "process";
+import { LayaDCCCmd } from "../common";
+import * as path from 'path';
+
 export class testDCC{
     @IEditor.onLoad
     static init1(){
@@ -6,6 +10,8 @@ export class testDCC{
 
     @IEditor.menu('App/tool/LayaDCC')
     async testdcc(){
-        console.log('kkk')
+        let a = new LayaDCCCmd();
+        a.dir = path.join(Editor.projectPath,'release/web');
+        a.run();        
     }    
 }

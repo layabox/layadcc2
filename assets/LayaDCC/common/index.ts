@@ -1,18 +1,18 @@
 import { gzip,gunzip } from "zlib";
 import { LayaDCC } from "./LayaDCC";
 import { cwd } from "process";
-import path = require("path");
+import * as path from "path";
 
 const args = process.argv.slice(2);
 
-class LayaDCCCmd{
+export class LayaDCCCmd{
     private dcc = new LayaDCC();
     private _dir:string;
     constructor(){
 
     }
     set dir(v:string){
-        this._dir = path.join(cwd(),v);
+        this._dir = v;
     }
     async run(){
         let st = Date.now();
@@ -23,9 +23,7 @@ class LayaDCCCmd{
     }
 }
 //
-let a = new LayaDCCCmd();
-a.dir = args[0];
-a.run();
+
 
 //console.log('kk',a,args)
 
