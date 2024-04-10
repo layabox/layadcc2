@@ -5,10 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "command": "npm start",
-            "name": "Run npm start",
+            "type": "chrome",
             "request": "launch",
-            "type": "node-terminal"
-        },
+            "name": "LayaAir Debug",
+            "url": "http://localhost:18090",
+            "webRoot": "${workspaceFolder}/bin"
+        }
     ]
 }
