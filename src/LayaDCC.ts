@@ -16,6 +16,8 @@ class Params{
     mergedFileSize=1000*1024;
     dccout = "dccout";
     outfile='version'
+    //用户需要指定版本号，这样可以精确控制。如果已经存在注意提醒
+    version='1.0.1';  
     fast=true;
 }
 
@@ -55,19 +57,18 @@ export class LayaDCC {
         //得到最后一次提交的根
         //TODO 找到提交
         //先直接操作目录
-        let lastVer=-1;
+        let lastVer:string;
         let rootNode:TreeNode;
         try{
             let headstr = await this.frw.read(this.config.outfile+'.json','utf8') as string;
             let headobj = JSON.parse(headstr) as RootDesc;
-            lastVer = headobj.version||1;
+            lastVer = headobj.version||'1.0.0';
             rootNode = await this.gitfs.getTreeNode(headobj.root,null);
         }catch(e:any){
             rootNode = new TreeNode(null,null,this.frw);
         }
 
         //rootNode.
-
         if(!fs.existsSync( dccout)){
             //TODO 绝对路径的情况
             fs.mkdirSync(dccout);
@@ -81,18 +82,14 @@ export class LayaDCC {
         head.fileCounts = files.length;
         head.objPackages=[];
         head.time = new Date();
-        head.version = lastVer+1;
-        if(lastVer>=0){
-            //这个表示已经有记录了
-            try{
-                await this.frw.mv( path.join(dccout,`${this.config.outfile}.json`), path.join(dccout,`${this.config.outfile}_${lastVer}.json`));
-            }catch(e:any){
-                debugger;
-            }
-        }
+        head.version = this.config.version;
+
         //let headbuff = this.frw.textencode(JSON.stringify(head))
         //shasum(new Uint8Array(headbuff),true)
+        //头，固定文件名
         await this.frw.writeToCommon(`${this.config.outfile}.json`,JSON.stringify(head),true);
+        //版本文件
+        await this.frw.writeToCommon(`${this.config.outfile}.${this.config.version}.json`,JSON.stringify(head),true);
 
         await this.mergeSmallFile(rootNode);
         //debugger;
