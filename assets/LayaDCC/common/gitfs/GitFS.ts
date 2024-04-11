@@ -329,7 +329,6 @@ export class GitFS {
      */
     async pathToEntries(path:string, entrylist:TreeEntry[]){
         let pathes = path.split('/');
-        if(pathes[0]=='/')pathes.shift();
         let cNode = this.treeRoot;
         entrylist.length=0;
         // 定位到节点
