@@ -80,7 +80,8 @@ export class GitFS {
      * @param subdirnum  分成几个子目录
      * @returns 
      */
-    getObjUrl(objid: string,subdirnum:number){
+    getObjUrl(objid: string){
+        let subdirnum = GitFS.OBJSUBDIRNUM;
         let ret = 'objects/';
         let ostr = objid;
         for(let i=0; i<subdirnum;i++){
@@ -141,7 +142,7 @@ export class GitFS {
     }
 
     async getCommit(objid: string) {
-        let commitobjFile = this.getObjUrl(objid, GitFS.OBJSUBDIRNUM);// this.getObjUrl(objid);
+        let commitobjFile = this.getObjUrl(objid);
         let buff = await this.frw.read(commitobjFile, 'buffer') as ArrayBuffer;
         let cc:GitCommit;
         if(buff){
@@ -171,7 +172,7 @@ export class GitFS {
             // 创建空的
             return new TreeNode(null,null,this.frw);
         }
-        let treepath = this.getObjUrl(objid, GitFS.OBJSUBDIRNUM);// this.getObjUrl(objid);
+        let treepath = this.getObjUrl(objid);
         let buff = await this.frw.read(treepath, 'buffer') as ArrayBuffer;
         if(!buff) throw "no treepath";
         let treebuff = new Uint8Array(buff);
@@ -196,7 +197,7 @@ export class GitFS {
         if(typeof(objid)!='string'){
             strid=toHex(objid);
         }
-        let treepath = this.getObjUrl(strid, GitFS.OBJSUBDIRNUM);// this.getObjUrl(strid);
+        let treepath = this.getObjUrl(strid);
         let treebuff = await this.frw.read(treepath, 'buffer') as ArrayBuffer;
         if(!treebuff){
             console.log('download error:', strid);
@@ -304,7 +305,7 @@ export class GitFS {
     }
 
     async saveObject(objid: string, content: ArrayBuffer){
-        let treepath = this.getObjUrl(objid,GitFS.OBJSUBDIRNUM);
+        let treepath = this.getObjUrl(objid);
         //let ret = await this.frw.write(treepath, content);
         await this.frw.write(treepath,content as ArrayBuffer);
     }
@@ -359,7 +360,7 @@ export class GitFS {
         if(await this.pathToEntries(relUrl,entries)){
             let last = entries[entries.length-1];
             let objid = toHex(last.oid);
-            let path = this.getObjUrl(objid,GitFS.OBJSUBDIRNUM);
+            let path = this.getObjUrl(objid);
             return path;
         }else{
             return null;

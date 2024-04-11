@@ -114,7 +114,7 @@ export class LayaDCC {
         let reservBuff = new Uint8Array(this.config.mergedFileSize);
         let objInPacks:{id:string,start:number,length:number}[]=[];
         for(let i of treeNodes){
-            let commitobjFile = gitfs.getObjUrl(i, GitFS.OBJSUBDIRNUM);
+            let commitobjFile = gitfs.getObjUrl(i);
             let buff = await frw.read(commitobjFile, 'buffer') as ArrayBuffer;
             let size = buff.byteLength;
             if(treeSize+size<this.config.mergedFileSize){
