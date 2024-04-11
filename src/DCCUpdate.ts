@@ -4,10 +4,7 @@ import { LayaDCCClient as DCCClient } from "../assets/LayaDCC/common/LayaDCCClie
 
 export class DCCUpdate{
     dcc:DCCClient;
-    constructor(){
-        //this.dcc.urlBase=sv;
-    }
-
+    
     async update(){
         let dccurl = 'http://localhost:8899/dccout/'
         let headFile = 'http://localhost:8899/dccout/version.1.0.1.json';// Editor.serverURL;
