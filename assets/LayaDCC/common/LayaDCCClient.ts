@@ -98,6 +98,14 @@ export class LayaDCCClient{
         return this._frw.repoPath+objpath;
     }
 
+    clean(){
+        let gitfs = this._gitfs;
+        //统计所有树上的
+        gitfs.visitAll(gitfs.treeRoot,(tree)=>{},(blob)=>{})
+        //统计所有的本地保存的
+        //不在树上的全删掉
+    }
+
     mountURL(url: string) {
 
     }
