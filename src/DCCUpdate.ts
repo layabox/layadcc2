@@ -1,9 +1,9 @@
 import { DCCClientFS_web } from "../assets/LayaDCC/common/DCCClientFS_web";
 import { DCCDownloader } from "../assets/LayaDCC/common/DCCDownloader";
-import { LayaDCCClient } from "../assets/LayaDCC/common/LayaDCCClient";
+import { LayaDCCClient as DCCClient } from "../assets/LayaDCC/common/LayaDCCClient";
 
 export class DCCUpdate{
-    dcc:LayaDCCClient;
+    dcc:DCCClient;
     constructor(){
         //this.dcc.urlBase=sv;
     }
@@ -12,9 +12,7 @@ export class DCCUpdate{
         let dccurl = 'http://localhost:8899/dccout/'
         let headFile = 'http://localhost:8899/dccout/version.1.0.1.json';// Editor.serverURL;
 
-        let frw = new DCCClientFS_web();
-        await frw.init(dccurl);
-        let dcc = this.dcc = new LayaDCCClient( frw );
+        let dcc = this.dcc = new DCCClient( DCCClientFS_web,dccurl );
         dcc.onlyTransUrl=true;
 
         console.log('初始化dcc开始');

@@ -16,9 +16,11 @@ export class LayaDCCClient{
     private _gitfs:GitFS;
     //映射到dcc目录的地址头，如果没有，则按照http://*/算，所有的请求都裁掉主机地址
     private _pathMapToDCC='';
+    private _dccurl:string;
 
-    constructor(frw:IGitFSFileIO){
-        this._frw = frw;
+    constructor(frw:new ()=>IGitFSFileIO, dccurl:string){
+        this._dccurl=dccurl;
+        this._frw = new frw();
     }
 
     set pathMapToDCC(v:string){
@@ -34,6 +36,7 @@ export class LayaDCCClient{
         if(this._gitfs){
             throw '重复初始化'
         }
+        await this._frw.init(this._dccurl);
         this._headFile=headfile;
         //let frw = this._frw = new DCCClientFS_web_local();
         //下载head文件
