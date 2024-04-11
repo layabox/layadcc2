@@ -65,7 +65,19 @@ export class DCCDownloader extends Laya.Downloader{
         // } else {
         //     this.originDownloader.image.call(this.originDownloader,owner, url, originalUrl, onProgress, onComplete);
         // }
-        this.dcc.transUrl(url).then(transed=>{
+        let promise:Promise<string>;
+        if(this.dcc.onlyTransUrl){
+            promise = this.dcc.transUrl(url);
+        }else{
+            promise = (async ()=>{
+                    let buff = await this.dcc.readFile(url);
+                    if(!buff) return url;
+                    var blob = new Blob([buff], { type: 'application/octet-binary' });
+                    return window.URL.createObjectURL(blob); 
+                }
+            )();
+        }
+        promise.then(transed=>{
             this.originDownloader.image.call(this.originDownloader,owner, transed, originalUrl, onProgress, onComplete);
         });
     }    

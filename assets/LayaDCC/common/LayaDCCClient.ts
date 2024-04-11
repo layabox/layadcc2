@@ -66,6 +66,20 @@ export class LayaDCCClient{
         return this._onlyTransUrl;
     }
 
+    async readFile(url:string):Promise<ArrayBuffer|null>{
+        let gitfs = this._gitfs;
+        if(!gitfs)return null;
+        if(!this._pathMapToDCC){
+            url = (new URL(url)).pathname;;
+        }else{
+            if(!url.startsWith(this._pathMapToDCC)) return null;
+            url = url.substring(this._pathMapToDCC.length);
+        }
+
+        let buff = await gitfs.loadFileByPath(url,'buffer') as ArrayBuffer;
+        return buff;
+    }
+
     async transUrl(url:string){
         let gitfs = this._gitfs;
         if(!gitfs)return url;

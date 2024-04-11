@@ -10,7 +10,7 @@ export class DCCUpdate{
         let headFile = 'http://localhost:8899/dccout/version.1.0.1.json';// Editor.serverURL;
 
         let dcc = this.dcc = new DCCClient( DCCClientFS_web,dccurl );
-        dcc.onlyTransUrl=true;
+        dcc.onlyTransUrl=false;
 
         console.log('初始化dcc开始');
         let initok = await dcc.init(headFile);
