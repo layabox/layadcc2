@@ -41,7 +41,6 @@ export class LayaDCC {
         
         console.log('v=', p);
         //得到最后一次提交的根
-        //TODO 找到提交
         //先直接操作目录
         let lastVer:string;
         let rootNode:TreeNode;
@@ -56,7 +55,6 @@ export class LayaDCC {
 
         //rootNode.
         if(!fs.existsSync( dccout)){
-            //TODO 绝对路径的情况
             fs.mkdirSync(dccout);
         }
         let files = await this.walkDirectory(p,rootNode,this.config.fast,['.git','.gitignore','dccout']);

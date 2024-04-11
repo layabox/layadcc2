@@ -1,4 +1,3 @@
-import { Config } from "./Config";
 import { FileNode } from "./FSData";
 import { CommitInfo, GitCommit } from "./GitCommit";
 import { shasum, toHex } from "./GitFSUtils";
@@ -48,6 +47,9 @@ var PROJINFO = '.projinfo';
  * 可以与远端进行同步
  */
 export class GitFS {
+    static OBJSUBDIRNUM=1;
+    static MAXFILESIZE = 32*1024*1024;
+    static zip=false;
     //private userUrl:string; //保存head等用户信息的地方，可以通过filerw写。从uid开始的相对路径
     treeRoot = new TreeNode(null,null,null);
     // 当前准备提交的commit
@@ -57,8 +59,6 @@ export class GitFS {
     private allchanges: TreeNode[] = [];
     private recentCommits:string[];
 
-    static OBJSUBDIRNUM=1;
-    static MAXFILESIZE = 32*1024*1024;
 
     static touchID=0;   // 更新标记
     user: string;       // 用户名。提交用。
@@ -203,7 +203,7 @@ export class GitFS {
             console.log('download error:', strid);
             throw new Error('download error:'+strid);
         }
-        let buff = Config.zip?this.frw.unzip(treebuff):treebuff;
+        let buff = GitFS.zip?this.frw.unzip(treebuff):treebuff;
 
         //下载文件最好不校验。影响速度。
         if(this.checkDownload){

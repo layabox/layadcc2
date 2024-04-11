@@ -1,7 +1,3 @@
-//import { toHex } from "../utils/shasum";
-//import { readUTF8, writeUTF8 } from "./GitIndex";
-
-import { Config } from "./Config";
 import { GitFS, IGitFSFileIO } from "./GitFS";
 import { hashToArray, readUTF8, shasum, toHex, writeUTF8 } from "./GitFSUtils";
 
@@ -267,7 +263,7 @@ export class TreeNode{
 	parseBuffer(zippedbuffer: Uint8Array, frw:IGitFSFileIO) {
 		this.buff=zippedbuffer;
 		let buffer:Uint8Array;
-		if(Config.zip){
+		if(GitFS.zip){
 			buffer = new Uint8Array(frw.unzip(zippedbuffer.buffer));
 		}else{
 			buffer = new Uint8Array(zippedbuffer.buffer);
@@ -343,7 +339,7 @@ export class TreeNode{
 			cursor+=8;
 		});
 
-		if (frw && Config.zip) {
+		if (frw && GitFS.zip) {
 			retbuf = new Uint8Array(frw.zip(retbuf.buffer));
 		}
 		this.sha = await shasum(retbuf,true) as string;

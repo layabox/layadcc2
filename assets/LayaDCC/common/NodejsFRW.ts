@@ -1,8 +1,8 @@
 import { IGitFSFileIO } from "./gitfs/GitFS";
 import {promisify} from 'util'
 import * as fs from 'fs'
-import { gunzipSync, gzipSync } from "zlib";
 import * as path from "path";
+import { gunzipSync, gzipSync } from "zlib";
 
 export class NodejsFRW implements IGitFSFileIO{
     repoPath='';

@@ -1,11 +1,4 @@
-import { getVFS } from "./VFSRoot";
 
-/**
- * 
- * TODO
- *    挂点：只能挂到根目录下，如果是http地址的话，得到路径之后要反向找到挂点然后得到最终的绝对路径
- * 
- */
 export const enum FSType {
 	WEBFS,
 	REMOTEFS,
@@ -151,23 +144,6 @@ export class FileNode {
 			}
 		}
 		return null;
-	}
-
-	onFileChange() {
-		if(!this.ifWatchable())
-			return;
-		let vfs = getVFS();
-		if(!this.isDirectory){
-			//Loader.cacheResForce(this.getFullPath(),this.data);
-		}
-		vfs && vfs.enableWatch && vfs.event('FILECHANGE',this);
-	}
-
-	onFileRemove() {
-		let vfs = getVFS();
-		if(!this.isDirectory)
-			(window as any).Laya.Loader.clearRes(this.getFullPath());
-		vfs && vfs.enableWatch && vfs.event('FILEREMOVE',this);
 	}
 
 	*[Symbol.iterator]() {

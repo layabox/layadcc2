@@ -1,12 +1,9 @@
-import { DCCDownloader } from "./DCCDownloader";
 import { RootDesc } from "./RootDesc";
 import { GitFS, IGitFSFileIO } from "./gitfs/GitFS";
-import { TreeEntry } from "./gitfs/GitTree";
 
 function delay(ms:number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
 
 export class LayaDCCClient{
     private _headFile:string;
@@ -108,7 +105,4 @@ export class LayaDCCClient{
     isFileChanged(url:string){
 
     }
-
-
-
 }
