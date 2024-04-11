@@ -36,6 +36,5 @@ export class UpdateDCCScript extends Laya.Script {
     onMouseClick(): void {
         let dcc = new DCCUpdate();
         dcc.update();
-        debugger;
     }
 }

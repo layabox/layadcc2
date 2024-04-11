@@ -1,62 +1,87 @@
-import { DCCClientFS_web_local, DCCClientFS_web_remote } from "./DCCClientFS_web";
 import { DCCDownloader } from "./DCCDownloader";
 import { RootDesc } from "./RootDesc";
-import { GitFS } from "./gitfs/GitFS";
+import { GitFS, IGitFSFileIO } from "./gitfs/GitFS";
+import { TreeEntry } from "./gitfs/GitTree";
+
+function delay(ms:number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 
 export class LayaDCCClient{
-    private _urlBase:string;
     private _headFile:string;
-    //dcc数据的url，根据headfile获得
-    private _dccUrl:string;
-    private _oldDownloader:Laya.Downloader;
-    private _dccDownloader:Laya.Downloader;
-    private _frw:DCCClientFS_web_local;
+    private _frw:IGitFSFileIO;
+    //是否只把请求的url转换成hash
+    private _onlyTransUrl=false;
+    private _gitfs:GitFS;
+    //映射到dcc目录的地址头，如果没有，则按照http://*/算，所有的请求都裁掉主机地址
+    private _pathMapToDCC='';
 
-    set urlBase(v:string){
-        if(!v.endsWith('\\')&&!v.endsWith('/'))
-            v+='/';
-        this._urlBase=v;
+    constructor(frw:IGitFSFileIO){
+        this._frw = frw;
     }
 
-    get urlBase(){
-        return this._urlBase;
+    set pathMapToDCC(v:string){
+        this._pathMapToDCC=v;
     }
-
-    set headFile(url:string){
-        if(url.startsWith('https://')||url.startsWith('http://')){
-            this._headFile = url;
-        }else{
-            this._headFile = this.urlBase+url;
-        }
-        let p = this._headFile.lastIndexOf('/');
-        if(p>0){
-            this._dccUrl=this._headFile.substring(0,p+1);   //包含最后的/
-        }else{
-            throw 'bad headfile'
-        }
-    }
-
-    get headFile(){
-        return this._headFile;
+    
+    get pathMapToDCC(){
+        return this._pathMapToDCC;
     }
 
     //初始化，下载必须信息
-    async init(){
-        let frw = this._frw = new DCCClientFS_web_local();
-        let gitfs = new GitFS(this._dccUrl, new DCCClientFS_web_remote());
+    async init(headfile:string){
+        if(this._gitfs){
+            throw '重复初始化'
+        }
+        this._headFile=headfile;
+        //let frw = this._frw = new DCCClientFS_web_local();
         //下载head文件
         let headResp = await fetch(this._headFile);
+        let tryCount=0;        
         while(!headResp.ok){
             headResp = await fetch(this._headFile);
+            tryCount++;
+            if(tryCount>10){
+                return false;
+            }
+            delay(100);
+            
         }
         let headStr = await headResp.text();
         let dcchead = JSON.parse(headStr) as RootDesc;
+        let gitfs = this._gitfs = new GitFS( this._frw);
         //处理打包
         //TODO
-        //let rootTree = await gitfs.getTreeNode(dcchead.root,null);
         await gitfs.setRoot(dcchead.root);
+        //let rootTree = await gitfs.getTreeNode(dcchead.root,null);
         let bbb = await gitfs.loadFileByPath('atlas/comp.png','buffer')
-        debugger;
+        return true;
+    }
+
+    set onlyTransUrl(v:boolean){
+        this._onlyTransUrl=v;
+    }
+    get onlyTransUrl(){
+        return this._onlyTransUrl;
+    }
+
+    async transUrl(url:string){
+        let gitfs = this._gitfs;
+        if(!gitfs)return url;
+
+        if(!this._pathMapToDCC){
+            url = (new URL(url)).pathname;;
+        }else{
+            if(!url.startsWith(this._pathMapToDCC)) return url;
+            url = url.substring(this._pathMapToDCC.length);
+        }
+
+        let objpath = await gitfs.pathToObjPath(url);
+        if(!objpath){
+            return url;
+        }
+        return this._frw.repoPath+objpath;
     }
 
     mountURL(url: string) {
@@ -81,22 +106,6 @@ export class LayaDCCClient{
 
     }
 
-    injectToLayaDownloader(downloader:Laya.Downloader){
-        if(!this._oldDownloader){
-            this._oldDownloader = downloader;
-        }else{
-            if(downloader && downloader==this._dccDownloader)
-                return;
-        }
-        let dccDownloader =this._dccDownloader = new DCCDownloader(downloader);
-        Laya.Loader.downloader = dccDownloader;
-    }
 
-    removeInjection(){
-        if(Laya.Loader.downloader==this._dccDownloader){
-            Laya.Loader.downloader = this._oldDownloader;
-            this._oldDownloader=null;
-        }
-    }
 
 }

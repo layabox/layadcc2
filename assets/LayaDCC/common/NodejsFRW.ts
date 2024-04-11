@@ -1,17 +1,20 @@
-import { IFileRW } from "./gitfs/GitFS";
+import { IGitFSFileIO } from "./gitfs/GitFS";
 import {promisify} from 'util'
 import * as fs from 'fs'
 import { gunzipSync, gzipSync } from "zlib";
-import path = require("path");
+import * as path from "path";
 
-export class NodejsFRW implements IFileRW{
-    private _baseDir='';
+export class NodejsFRW implements IGitFSFileIO{
+    repoPath='';
     constructor(basedir:string){
-        this._baseDir=basedir;
+        this.repoPath=basedir;
+    }
+    async init(repoPath:string){
+        this.repoPath=repoPath;
     }
     async read(url:string, encode:'utf8'|'buffer') {
         if(!path.isAbsolute(url)){
-            url = path.join(this._baseDir,url);
+            url = path.join(this.repoPath,url);
         }
         if (encode === 'buffer') {
             const buffer = await promisify(fs.readFile)(url);
@@ -21,28 +24,11 @@ export class NodejsFRW implements IFileRW{
         } 
     }
 
-    async readSource(rurl:string, encode:'utf8'|'buffer') {
-        // Assumed same as read; adjust according to specific differences
-        return this.read(rurl, encode);
-    }
-
     async write(url: string, content: string | ArrayBuffer, overwrite?:boolean) {
-        if (!overwrite && fs.existsSync(url)) {
-            throw new Error("File already exists");
-        }
-
-        if (content instanceof ArrayBuffer) {
-            return promisify(fs.writeFile)(url, Buffer.from(content));
-        }
-
-        await promisify(fs.writeFile)(url, content);
-    }
-
-    async writeToCommon(url: string, content: string | ArrayBuffer, overwrite?:boolean) {
         let paths = url.split('/');
         paths.pop();
-        let absfile = path.resolve(this._baseDir,url);
-        let abspath = path.resolve(this._baseDir,paths.join('/'))
+        let absfile = path.resolve(this.repoPath,url);
+        let abspath = path.resolve(this.repoPath,paths.join('/'))
         try{
             if(!overwrite && fs.existsSync(absfile))
                 return;
@@ -50,7 +36,12 @@ export class NodejsFRW implements IFileRW{
         }catch(e:any){
             await promisify(fs.mkdir)(abspath,{recursive:true});
         }
-        await this.write( absfile, content, overwrite);
+
+        if (content instanceof ArrayBuffer) {
+            return promisify(fs.writeFile)(absfile, Buffer.from(content));
+        }
+
+        await promisify(fs.writeFile)(absfile, content);
     }
 
     async isFileExist(url: string) {
@@ -88,17 +79,6 @@ export class NodejsFRW implements IFileRW{
         }
         return Buffer.from(buffer).toString('utf-8', off);
     }
-
-    saveUserData(key:string, value:string) {
-        // Implement based on where you want to store the user data, e.g., an in-memory object, a file, or a database
-        console.log(`Saving user data: ${key} = ${value}`);
-    }
-
-    getUserData(key:string) {
-        // Implement based on where you are storing user data
-        console.log(`Getting user data for key: ${key}`);
-        return '';
-    }    
 
     async mv(src:string, dst:string){
         return promisify(fs.rename)(src,dst);

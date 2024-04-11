@@ -37,7 +37,7 @@ export class LayaDCC {
     async genDCC(p: string) {
         let dccout = this.dccout =  path.resolve(p, this.config.dccout)
         this.frw  = new NodejsFRW(dccout);
-        this.gitfs = new GitFS(dccout,this.frw);
+        this.gitfs = new GitFS(this.frw);
         
         console.log('v=', p);
         //得到最后一次提交的根
@@ -73,9 +73,9 @@ export class LayaDCC {
         //let headbuff = this.frw.textencode(JSON.stringify(head))
         //shasum(new Uint8Array(headbuff),true)
         //头，固定文件名
-        await this.frw.writeToCommon(`${this.config.outfile}.json`,JSON.stringify(head),true);
+        await this.frw.write(`${this.config.outfile}.json`,JSON.stringify(head),true);
         //版本文件
-        await this.frw.writeToCommon(`${this.config.outfile}.${this.config.version}.json`,JSON.stringify(head),true);
+        await this.frw.write(`${this.config.outfile}.${this.config.version}.json`,JSON.stringify(head),true);
 
         await this.mergeSmallFile(rootNode);
         //debugger;
@@ -114,7 +114,7 @@ export class LayaDCC {
         let reservBuff = new Uint8Array(this.config.mergedFileSize);
         let objInPacks:{id:string,start:number,length:number}[]=[];
         for(let i of treeNodes){
-            let commitobjFile = gitfs.getObjUrl(i, GitFS.OBJSUBDIRNUM, false);
+            let commitobjFile = gitfs.getObjUrl(i, GitFS.OBJSUBDIRNUM);
             let buff = await frw.read(commitobjFile, 'buffer') as ArrayBuffer;
             let size = buff.byteLength;
             if(treeSize+size<this.config.mergedFileSize){
@@ -137,21 +137,6 @@ export class LayaDCC {
         //合并小文件
         //直接遍历objects目录，顺序合并
         //结果记录下来即可
-    }
-
-    async checkoutTest(p: string,head:string){
-        let dccout =  path.resolve(p, this.config.dccout)
-        this.frw  = new NodejsFRW(dccout);
-        this.gitfs = new GitFS(dccout,'',this.frw);
-        try{
-            let headstr = await this.frw.read(head,'utf8') as string;
-            let headobj = JSON.parse(headstr) as RootDesc;
-            let rootobj = await this.gitfs.getTreeNode(headobj.root,null)
-            debugger;
-        }catch(e:any){
-            debugger;
-        }
-        debugger;
     }
 
     /**

@@ -3,87 +3,71 @@
  * 
  */
 
-import { IFileRW } from "./gitfs/GitFS";
-
-export class DCCClientFS_web_local implements IFileRW{
-    read(url: string, encode: "utf8" | "buffer"): Promise<string | ArrayBuffer> {
-        throw new Error("Method not implemented.");
-    }
-    readSource(rurl: string, encode: "utf8" | "buffer"): Promise<string | ArrayBuffer> {
-        throw new Error("Method not implemented.");
-    }
-    write(url: string, content: string | ArrayBuffer, overwrite?: boolean): Promise<any> {
-        throw new Error("Method not implemented.");
-    }
-    writeToCommon(url: string, content: ArrayBuffer, overwrite?: boolean): Promise<any> {
-        throw new Error("Method not implemented.");
-    }
-    isFileExist(url: string): Promise<boolean> {
-        throw new Error("Method not implemented.");
-    }
-    unzip(buff: ArrayBuffer): ArrayBuffer {
-        throw new Error("Method not implemented.");
-    }
-    zip(buff: ArrayBuffer): ArrayBuffer {
-        throw new Error("Method not implemented.");
-    }
-    textencode(text: string): ArrayBuffer {
-        throw new Error("Method not implemented.");
-    }
-    textdecode(buffer: ArrayBuffer, off: number): string {
-        throw new Error("Method not implemented.");
-    }
-    saveUserData(key: string, value: string): void {
-        throw new Error("Method not implemented.");
-    }
-    getUserData(key: string): string {
-        throw new Error("Method not implemented.");
-    }
-    mv(src: string, dst: string): Promise<unknown> {
-        throw new Error("Method not implemented.");
-    }
-    
-}
+import { IndexDBFileRW } from "./IndexDBFileRW";
+import { IGitFSFileIO } from "./gitfs/GitFS";
 
 //访问服务器文件的接口。只要读就行了
-export class DCCClientFS_web_remote implements IFileRW{
+export class DCCClientFS_web implements IGitFSFileIO{
+    private dbfile:IndexDBFileRW;
+    repoPath:string;
+
+    async init(repoPath:string){
+        if(!repoPath.endsWith('/'))repoPath+='/';
+        this.repoPath =repoPath;
+
+        this.dbfile = new IndexDBFileRW();
+        await this.dbfile.init('');
+    }
+    
     async read(url: string, encode: "utf8" | "buffer"): Promise<string | ArrayBuffer> {
-        let resp = await fetch(url);
-        if(encode=='utf8') return await resp.text();
-        else return await resp.arrayBuffer();
+        //先从本地读取，如果没有就从远程下载
+        let ret:string|ArrayBuffer;
+        try{
+            ret = await this.dbfile.read(url,encode)
+        }catch(e:any){
+            let resp = await fetch(this.repoPath+url);
+            if(encode=='utf8'){
+                ret = await resp.text();
+                await this.dbfile.write(url,ret);
+            }else{
+                ret = await resp.arrayBuffer();
+                await this.dbfile.write(url,ret);
+            }
+        }
+        return ret;
     }
-    readSource(rurl: string, encode: "utf8" | "buffer"): Promise<string | ArrayBuffer> {
-        throw new Error("Method not implemented.");
+
+    //write只能往本地写
+    async write(url: string, content: string | ArrayBuffer, overwrite?: boolean): Promise<any> {
+        if(!overwrite && await this.dbfile.isFileExist(url)){
+            return;
+        }
+        this.dbfile.write(url,content);
     }
-    write(url: string, content: string | ArrayBuffer, overwrite?: boolean): Promise<any> {
-        throw new Error("Method not implemented.");
+
+    //只能判断本地的
+    async isFileExist(url: string): Promise<boolean> {
+        return await this.dbfile.isFileExist(url);
     }
-    writeToCommon(url: string, content: ArrayBuffer, overwrite?: boolean): Promise<any> {
-        throw new Error("Method not implemented.");
+
+    async mv(src: string, dst: string) {
+        await this.dbfile.mv(src,dst)
     }
-    isFileExist(url: string): Promise<boolean> {
-        throw new Error("Method not implemented.");
-    }
+
     unzip(buff: ArrayBuffer): ArrayBuffer {
         throw new Error("Method not implemented.");
     }
+
     zip(buff: ArrayBuffer): ArrayBuffer {
         throw new Error("Method not implemented.");
     }
+
     textencode(text: string): ArrayBuffer {
-        throw new Error("Method not implemented.");
+        return new TextEncoder().encode(text);
     }
+
     textdecode(buffer: ArrayBuffer, off: number): string {
-        throw new Error("Method not implemented.");
-    }
-    saveUserData(key: string, value: string): void {
-        throw new Error("Method not implemented.");
-    }
-    getUserData(key: string): string {
-        throw new Error("Method not implemented.");
-    }
-    mv(src: string, dst: string): Promise<unknown> {
-        throw new Error("Method not implemented.");
+        return new TextDecoder().decode(buffer);
     }
 
 }

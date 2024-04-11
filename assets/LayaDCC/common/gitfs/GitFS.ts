@@ -18,19 +18,24 @@ export async function readBinFile(file: File) {
     });
 }
 
-export interface IFileRW {
+/**
+ * 封装一个文件读写接口
+ * 这个接口主要为gitfs准备的
+ * 所有的操作都是相对gitfs所在目录进行的
+ */
+export interface IGitFSFileIO {
+    //库所在路径
+    repoPath:string;
+    //提供一个异步初始化过程
+    init(repoPath:string):Promise<void>
+    //主要是相对目录，此接口知道baseurl
     read(url: string, encode: 'utf8' | 'buffer'): Promise<string | ArrayBuffer>;
-    readSource(rurl:string, encode: 'utf8' | 'buffer'):Promise<string|ArrayBuffer>;
     write(url: string, content: string | ArrayBuffer, overwrite?:boolean): Promise<any>;
-    //这个是给layame用的，本地无实际用途，直接写即可
-    writeToCommon(url: string, content: ArrayBuffer, overwrite?:boolean): Promise<any>;
     isFileExist(url: string):Promise<boolean>;
     unzip(buff: ArrayBuffer): ArrayBuffer;
     zip(buff: ArrayBuffer): ArrayBuffer;
     textencode(text: string): ArrayBuffer;
     textdecode(buffer: ArrayBuffer, off: number): string;
-    saveUserData(key:string, value:string):void;
-    getUserData(key:string):string;
     mv(src:string,dst:string):Promise<unknown>;
 }
 
@@ -43,20 +48,15 @@ var PROJINFO = '.projinfo';
  * 可以与远端进行同步
  */
 export class GitFS {
-    // git库所在目录。里面有Objects目录。相当于git的.git目录
-    private remoteRepoUrl: string;
     //private userUrl:string; //保存head等用户信息的地方，可以通过filerw写。从uid开始的相对路径
     treeRoot = new TreeNode(null,null,null);
     // 当前准备提交的commit
     private curCommit = new CommitInfo();
-    private frw: IFileRW;
+    private frw: IGitFSFileIO;
     // 当前的修改
     private allchanges: TreeNode[] = [];
-    // 有的库是别人的，只能读
-    private readonly = false;
     private recentCommits:string[];
 
-    private branch = 'master';
     static OBJSUBDIRNUM=1;
     static MAXFILESIZE = 32*1024*1024;
 
@@ -68,12 +68,9 @@ export class GitFS {
     /**
      * 
      * @param repoUrl git库所在目录
-     * @param userFile 保存head等用户信息的地方，以用户id开始的相对目录。可以通过filerw写
      * @param filerw 
      */
-    constructor(repoUrl: string, filerw: IFileRW) {
-        this.remoteRepoUrl = repoUrl;
-        if (!repoUrl.endsWith('/')) this.remoteRepoUrl += '/';
+    constructor(filerw: IGitFSFileIO) {
         this.frw = filerw;
     }
 
@@ -81,12 +78,10 @@ export class GitFS {
      * 得到相对于git目录的目录。
      * @param objid 
      * @param subdirnum  分成几个子目录
-     * @param reltocommon 是否相对目录
      * @returns 
      */
-    getObjUrl(objid: string,subdirnum:number, reltocommon:boolean){
-        let ret = reltocommon?'':this.remoteRepoUrl;
-        ret += 'objects/';
+    getObjUrl(objid: string,subdirnum:number){
+        let ret = 'objects/';
         let ostr = objid;
         for(let i=0; i<subdirnum;i++){
             let dir = ostr.substring(0,2);
@@ -112,7 +107,7 @@ export class GitFS {
     }
 
     async getCommitHead(url:string){
-        let commit = await this.frw.readSource(url,'utf8') as string;
+        let commit = await this.frw.read(url,'utf8') as string;
         if(commit){
             this.recentCommits = commit.split('\n');
             return this.recentCommits[0];
@@ -146,7 +141,7 @@ export class GitFS {
     }
 
     async getCommit(objid: string) {
-        let commitobjFile = this.getObjUrl(objid, GitFS.OBJSUBDIRNUM, false);// this.getObjUrl(objid);
+        let commitobjFile = this.getObjUrl(objid, GitFS.OBJSUBDIRNUM);// this.getObjUrl(objid);
         let buff = await this.frw.read(commitobjFile, 'buffer') as ArrayBuffer;
         let cc:GitCommit;
         if(buff){
@@ -176,7 +171,7 @@ export class GitFS {
             // 创建空的
             return new TreeNode(null,null,this.frw);
         }
-        let treepath = this.getObjUrl(objid, GitFS.OBJSUBDIRNUM, false);// this.getObjUrl(objid);
+        let treepath = this.getObjUrl(objid, GitFS.OBJSUBDIRNUM);// this.getObjUrl(objid);
         let buff = await this.frw.read(treepath, 'buffer') as ArrayBuffer;
         if(!buff) throw "no treepath";
         let treebuff = new Uint8Array(buff);
@@ -196,14 +191,12 @@ export class GitFS {
      * @param encode 
      * @returns 
      */
-    async getBlobNode(objid: string | Uint8Array, encode: 'utf8'): Promise<string>;
-    async getBlobNode(objid: string | Uint8Array, encode: 'buffer'): Promise<ArrayBuffer>;    
     async getBlobNode(objid: string|Uint8Array, encode: 'utf8' | 'buffer'):Promise<string|ArrayBuffer> {
         let strid = objid as string;
         if(typeof(objid)!='string'){
             strid=toHex(objid);
         }
-        let treepath = this.getObjUrl(strid, GitFS.OBJSUBDIRNUM, false);// this.getObjUrl(strid);
+        let treepath = this.getObjUrl(strid, GitFS.OBJSUBDIRNUM);// this.getObjUrl(strid);
         let treebuff = await this.frw.read(treepath, 'buffer') as ArrayBuffer;
         if(!treebuff){
             console.log('download error:', strid);
@@ -311,9 +304,9 @@ export class GitFS {
     }
 
     async saveObject(objid: string, content: ArrayBuffer){
-        let treepath = this.getObjUrl(objid,GitFS.OBJSUBDIRNUM,true);
+        let treepath = this.getObjUrl(objid,GitFS.OBJSUBDIRNUM);
         //let ret = await this.frw.write(treepath, content);
-        await this.frw.writeToCommon(treepath,content as ArrayBuffer);
+        await this.frw.write(treepath,content as ArrayBuffer);
     }
 
     /**
@@ -335,6 +328,7 @@ export class GitFS {
      */
     async pathToEntries(path:string, entrylist:TreeEntry[]){
         let pathes = path.split('/');
+        if(pathes[0]=='/')pathes.shift();
         let cNode = this.treeRoot;
         entrylist.length=0;
         // 定位到节点
@@ -358,6 +352,18 @@ export class GitFS {
         }
 
         return true;
+    }
+
+    async pathToObjPath(relUrl:string){
+        let entries:TreeEntry[]=[]
+        if(await this.pathToEntries(relUrl,entries)){
+            let last = entries[entries.length-1];
+            let objid = toHex(last.oid);
+            let path = this.getObjUrl(objid,GitFS.OBJSUBDIRNUM);
+            return path;
+        }else{
+            return null;
+        }
     }
 
     /**

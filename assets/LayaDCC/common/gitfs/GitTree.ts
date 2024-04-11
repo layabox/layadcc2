@@ -2,7 +2,7 @@
 //import { readUTF8, writeUTF8 } from "./GitIndex";
 
 import { Config } from "./Config";
-import { GitFS, IFileRW } from "./GitFS";
+import { GitFS, IGitFSFileIO } from "./GitFS";
 import { hashToArray, readUTF8, shasum, toHex, writeUTF8 } from "./GitFSUtils";
 
 export enum EntryType{
@@ -67,7 +67,7 @@ export class TreeNode{
 	buff:Uint8Array|null=null; 	// 计算sha需要先转成buff。由于计算sha和提交都需要这个buff，所以，每次计算sha都会更新并保存这个buff。 如果有zip的话，这个是zip之后的
 	sha:string|null=null;				// null或者'' 表示没有计算，或者原来的失效了，需要重新计算
 
-	constructor(entries: Uint8Array|TreeEntry[] | null, parent:TreeNode|null, frw:IFileRW){
+	constructor(entries: Uint8Array|TreeEntry[] | null, parent:TreeNode|null, frw:IGitFSFileIO){
 		this.parent=parent;
 		if (entries) {
 			if (entries instanceof Uint8Array){
@@ -187,7 +187,7 @@ export class TreeNode{
 	 * 更新自己包括子的sha，同时记录变化的节点，用来push
 	 * 这个每次提交的时候，只允许执行一次，放到生成commit的地方
 	 */
-	async updateAllSha(frw:IFileRW, changed:TreeNode[]){
+	async updateAllSha(frw:IGitFSFileIO, changed:TreeNode[]){
 		// 先计算子，再计算自己
 		let entries = this.entries;
 		for(let i=0, n=entries.length; i<n; i++){
@@ -264,7 +264,7 @@ export class TreeNode{
 		return entries
 	}
 
-	parseBuffer(zippedbuffer: Uint8Array, frw:IFileRW) {
+	parseBuffer(zippedbuffer: Uint8Array, frw:IGitFSFileIO) {
 		this.buff=zippedbuffer;
 		let buffer:Uint8Array;
 		if(Config.zip){
@@ -283,7 +283,7 @@ export class TreeNode{
 	}	
 
 	// 保存成一个buffer
-	async toObject(frw:IFileRW) {
+	async toObject(frw:IGitFSFileIO) {
 		// Adjust the sort order to match git's
 		const entries = this._entries?[...this._entries]:[];
 		entries.sort(compareTreeEntryPath)

@@ -1,4 +1,4 @@
-import { IFileRW } from "./GitFS";
+import { IGitFSFileIO } from "./GitFS";
 import { shasum, toHex } from "./GitFSUtils";
 
 export class CommitInfo{
@@ -90,7 +90,7 @@ export class GitCommit{
         +d.getMinutes()+':'
         +d.getSeconds();
     }
-    async toBuffer(frw:IFileRW){
+    async toBuffer(frw:IGitFSFileIO){
         let treeid= this.idbuffToString(this.commitinfo.tree);
         let parentid= this.commitinfo.parent?(this.idbuffToString(this.commitinfo.parent)):null;
         let str='commit ';
