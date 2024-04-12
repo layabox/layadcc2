@@ -137,7 +137,12 @@ export class GitFS {
      * @param treeid 
      */
     async setRoot(treeid:string){
-        this.treeRoot = await this.getTreeNode(treeid, this.treeRoot);
+        try{
+            //getTreeNode失败要throw，但是root这里可以不存在，相当于没有gitfs
+            this.treeRoot = await this.getTreeNode(treeid, this.treeRoot);
+        }catch(e){
+            this.treeRoot=null;
+        }
     }
 
     async toRev(rev:number){
