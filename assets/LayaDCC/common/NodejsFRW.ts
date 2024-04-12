@@ -83,4 +83,11 @@ export class NodejsFRW implements IGitFSFileIO{
     async mv(src:string, dst:string){
         return promisify(fs.rename)(src,dst);
     }
+    rm(url: string): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+    enumCachedObjects(callback: (objid: string) => void): Promise<void> {
+        throw new Error("Method not implemented.");
+    }
+
 }

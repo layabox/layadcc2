@@ -58,7 +58,18 @@ export class IndexDBFileRW implements IGitFSFileIO {
             request.onsuccess = function(event) {
                 if (request.result) {
                     const result: ArrayBuffer = request.result.content;
-                    resolve(encode === 'utf8' ? new TextDecoder().decode(result) : result);
+                    if(typeof result == 'string'){
+                        if(encode==='utf8') resolve(result);
+                        else{
+                            resolve(new TextEncoder().encode(result));
+                        }
+                    }else{
+                        //保存的是buffer
+                        if(encode=='buffer') resolve(result);
+                        else{
+                            resolve(new TextDecoder().decode(result));
+                        }
+                    }
                 } else {
                     reject('URL not found');
                 }
@@ -144,6 +155,47 @@ export class IndexDBFileRW implements IGitFSFileIO {
                               .delete(url);
             request.onsuccess = () => resolve();
             request.onerror = (event) => reject('Delete operation failed: ' + event);
+        });
+    }
+
+    async rm(url:string):Promise<void>{
+        await this.delete(url);
+    }
+
+    async enumCachedObjects(callback:(objid:string)=>void):Promise<void>{
+        return new Promise((resolve, reject) => {
+            if (!this.db) {
+                reject('Database not initialized');
+                return;
+            }
+    
+            // 创建一个用于读写的事务来访问文件存储
+            const transaction = this.db.transaction([this.storeName], 'readwrite');
+            const objectStore = transaction.objectStore(this.storeName);
+    
+            // 打开具有游标的请求来遍历所有记录
+            const request = objectStore.openCursor();
+            
+            request.onerror = function(event) {
+                console.error('Error reading data.');
+                reject('Failed to open cursor on object store');
+            };
+    
+            request.onsuccess = async (event) => {
+                const cursor = request.result;
+                if (cursor) {
+                    let key = cursor.key as string;
+                    if(key.startsWith('objects/')){
+                        key = key.substring(8);
+                        key = key.replaceAll('/','');
+                        callback(key);
+                    }
+                    cursor.continue();
+                } else {
+                    // 如果没有更多数据（即 cursor 为 null），完成遍历
+                    resolve();
+                }
+            };
         });
     }
 

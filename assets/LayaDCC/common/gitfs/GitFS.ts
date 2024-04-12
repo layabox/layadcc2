@@ -35,6 +35,9 @@ export interface IGitFSFileIO {
     zip(buff: ArrayBuffer): ArrayBuffer;
     textencode(text: string): ArrayBuffer;
     textdecode(buffer: ArrayBuffer, off: number): string;
+    rm(url:string):Promise<void>;
+    //遍历对象。只遍历本地的，用来清理用
+    enumCachedObjects(callback:(objid:string)=>void):Promise<void>;
     mv(src:string,dst:string):Promise<unknown>;
 }
 
@@ -249,8 +252,13 @@ export class GitFS {
         treecb(node);
 		for await (const entry of node.entries) {
             if(entry.isDir){
-                if(!entry.treeNode) await this.openNode(entry);
-                await this.visitAll(entry.treeNode!, treecb,blobcb);
+                try{
+                    if(!entry.treeNode) await this.openNode(entry);
+                    await this.visitAll(entry.treeNode!, treecb,blobcb);
+                }catch(e){
+                    //失败了可能是遍历本地目录，但是本地还没有下载，没有设置远程或者访问远程失败
+                    console.log('openNode error:', toHex(entry.oid));
+                }
             }else{
                 blobcb(entry);
             }
@@ -531,6 +539,11 @@ export class GitFS {
             return end.owner.rmEntry(end);
         }
         return false;
+    }
+
+    async removeObject(oid:string){
+        let url = this.getObjUrl(oid);
+        await this.frw.rm(url);
     }
 
     /**

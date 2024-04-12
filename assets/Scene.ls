@@ -161,6 +161,28 @@
           "text": ""
         }
       ]
+    },
+    {
+      "_$id": "7cphrnol",
+      "_$type": "Button",
+      "name": "Button(1)",
+      "x": 179,
+      "y": 180,
+      "width": 120,
+      "height": 40,
+      "_mouseState": 2,
+      "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
+      "label": "clean",
+      "labelSize": 20,
+      "labelAlign": "center",
+      "labelVAlign": "middle",
+      "_$comp": [
+        {
+          "_$type": "a1c80334-7e5d-4bea-868b-cf6012baf86b",
+          "scriptPath": "../src/cleanDCC.ts",
+          "text": ""
+        }
+      ]
     }
   ]
 }

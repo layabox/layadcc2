@@ -1,5 +1,6 @@
 import { RootDesc } from "./RootDesc";
 import { GitFS, IGitFSFileIO } from "./gitfs/GitFS";
+import { toHex } from "./gitfs/GitFSUtils";
 
 function delay(ms:number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -29,7 +30,8 @@ export class LayaDCCClient{
     }
 
     //初始化，下载必须信息
-    async init(headfile:string){
+    //headfile为null则不下载，仅仅使用本地缓存
+    async init(headfile:string|null){
         if(this._gitfs){
             throw '重复初始化'
         }
@@ -37,18 +39,30 @@ export class LayaDCCClient{
         this._headFile=headfile;
         //let frw = this._frw = new DCCClientFS_web_local();
         //下载head文件
-        let headResp = await fetch(this._headFile);
-        let tryCount=0;        
-        while(!headResp.ok){
-            headResp = await fetch(this._headFile);
-            tryCount++;
-            if(tryCount>10){
-                return false;
+        let headStr='';
+        if(headfile){
+            let headResp = await fetch(this._headFile);
+            let tryCount=0;        
+            while(!headResp.ok){
+                headResp = await fetch(this._headFile);
+                tryCount++;
+                if(tryCount>10){
+                    return false;
+                }
+                delay(100);
+                
             }
-            delay(100);
-            
+            headStr = await headResp.text();
+            //保存head到本地
+            //TODO以后加上比较
+            await this._frw.write('head.json',headStr,true);
         }
-        let headStr = await headResp.text();
+        
+        if(!headStr){
+            //本地
+            headStr = await this._frw.read('head.json','utf8') as string;
+        }
+
         let dcchead = JSON.parse(headStr) as RootDesc;
         let gitfs = this._gitfs = new GitFS( this._frw);
         //处理打包
@@ -98,12 +112,30 @@ export class LayaDCCClient{
         return this._frw.repoPath+objpath;
     }
 
-    clean(){
+    async clean(){
         let gitfs = this._gitfs;
+        //遍历file
+        let files:Set<string> = new Set()
         //统计所有树上的
-        gitfs.visitAll(gitfs.treeRoot,(tree)=>{},(blob)=>{})
+        await gitfs.visitAll(gitfs.treeRoot,(tree)=>{
+            files.add(tree.sha);
+        },(blob)=>{
+            files.add(toHex(blob.oid));
+        })
         //统计所有的本地保存的
         //不在树上的全删掉
+        let removed:string[]=[];
+        let dbgRemovdeFile:string[]=[];
+        await this._frw.enumCachedObjects((objid)=>{
+            if(!files.has(objid)){
+                removed.push(objid);
+            }
+        })
+        //
+        for(let id of removed ){
+            console.log('清理节点:',id)
+            gitfs.removeObject(id);
+        }
     }
 
     mountURL(url: string) {

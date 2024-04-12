@@ -11,8 +11,8 @@ export class DCCClientFS_web implements IGitFSFileIO{
     private dbfile:IndexDBFileRW;
     repoPath:string;
 
-    async init(repoPath:string){
-        if(!repoPath.endsWith('/'))repoPath+='/';
+    async init(repoPath:string|null){
+        if(repoPath && !repoPath.endsWith('/'))repoPath+='/';
         this.repoPath =repoPath;
 
         this.dbfile = new IndexDBFileRW();
@@ -25,13 +25,15 @@ export class DCCClientFS_web implements IGitFSFileIO{
         try{
             ret = await this.dbfile.read(url,encode)
         }catch(e:any){
-            let resp = await fetch(this.repoPath+url);
-            if(encode=='utf8'){
-                ret = await resp.text();
-                await this.dbfile.write(url,ret);
-            }else{
-                ret = await resp.arrayBuffer();
-                await this.dbfile.write(url,ret);
+            if(this.repoPath){
+                let resp = await fetch(this.repoPath+url);
+                if(encode=='utf8'){
+                    ret = await resp.text();
+                    await this.dbfile.write(url,ret);
+                }else{
+                    ret = await resp.arrayBuffer();
+                    await this.dbfile.write(url,ret);
+                }
             }
         }
         return ret;
@@ -68,6 +70,14 @@ export class DCCClientFS_web implements IGitFSFileIO{
 
     textdecode(buffer: ArrayBuffer, off: number): string {
         return new TextDecoder().decode(buffer);
+    }
+
+    async rm(url: string): Promise<void> {
+        await this.dbfile.rm(url);
+    }
+    //如果希望遍历服务器端的怎么办
+    async enumCachedObjects(callback: (objid: string) => void): Promise<void> {
+        await this.dbfile.enumCachedObjects(callback);
     }
 
 }

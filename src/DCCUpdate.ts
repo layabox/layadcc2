@@ -24,6 +24,18 @@ export class DCCUpdate{
 
         let img = new Laya.Image();
         img.skin='atlas/comp.png';
+        img.scale(0.2,0.2)
         Laya.stage.addChild(img)
+    }
+
+    async clean(){
+        let dcc = this.dcc = new DCCClient( DCCClientFS_web, null);
+        dcc.onlyTransUrl=false;
+        console.log('初始化dcc开始');
+        let initok = await dcc.init(null);
+        console.log('初始化dcc结束');
+        if(!initok)
+            return false;
+        await dcc.clean();   
     }
 }
