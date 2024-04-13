@@ -27,6 +27,8 @@ export interface IGitFSFileIO {
     repoPath:string;
     //提供一个异步初始化过程
     init(repoPath:string):Promise<void>
+    //远程下载。由于有的平台不支持，所以封装一下
+    fetch(url:string):Promise<Response>;
     //主要是相对目录，此接口知道baseurl
     read(url: string, encode: 'utf8' | 'buffer'): Promise<string | ArrayBuffer>;
     write(url: string, content: string | ArrayBuffer, overwrite?:boolean): Promise<any>;

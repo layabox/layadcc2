@@ -14,6 +14,10 @@ export class IndexDBFileRW implements IGitFSFileIO {
         // 初始化数据库
         //this.initDB();
     }
+    
+    fetch(url: string): Promise<Response> {
+        throw new Error("Method not implemented.");
+    }
     async init(repoPath:string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             if (!window.indexedDB) {

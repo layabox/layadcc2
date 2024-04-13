@@ -41,10 +41,10 @@ export class LayaDCCClient{
         //下载head文件
         let headStr='';
         if(headfile){
-            let headResp = await fetch(this._headFile);
+            let headResp = await this._frw.fetch(this._headFile);
             let tryCount=0;        
             while(!headResp.ok){
-                headResp = await fetch(this._headFile);
+                headResp = await this._frw.fetch(this._headFile);
                 tryCount++;
                 if(tryCount>10){
                     return false;
