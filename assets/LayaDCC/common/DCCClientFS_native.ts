@@ -15,10 +15,8 @@ function myFetch(url:string, encode:'utf8'|'buffer'='buffer') {
       // 设置请求的方法和URL
       xhr._open('GET', url, true);
       xhr.setPostCB((result)=>{
-        debugger;
         resolve(result);
       },(e1)=>{
-        debugger;
         resolve(null);
       });
       xhr.getData(url);
@@ -29,10 +27,45 @@ function myFetch(url:string, encode:'utf8'|'buffer'='buffer') {
 export class DCCClientFS_native implements IGitFSFileIO{
     repoPath:string;
 
+    private getAbsPath(path:string){
+        let cachePath = conch.getCachePath();
+        if(path.includes(':/')||path.includes(':\\')){
+            return path;
+        }
+        else{
+            if(!cachePath.endsWith('/')){
+                cachePath+='/';
+            }
+            return cachePath+path;
+        }
+    }
+
+    //file是相对cache的目录
+    private makeDirsInCachePath(file:string){
+        file = file.replaceAll('\\','/');
+        let paths = file.split('/');
+        paths.pop();//去掉文件
+        if(paths.length<=0)
+            return;
+
+        let cpath = this.getAbsPath('');
+        for(let p of paths){
+            cpath=cpath+'/'+p;
+            if(!fs_exists(cpath)){
+                fs_mkdir(cpath);
+            }
+        }
+    }
+
     async init(repoPath:string|null){
         if(repoPath && !repoPath.endsWith('/'))repoPath+='/';
         this.repoPath =repoPath;
 
+        //创建基本目录
+        let objpath = this.getAbsPath('objects');
+        if(!fs_exists(objpath)){
+            fs_mkdir(objpath);
+        }
         console.log('pp', conch.getCachePath());
     }
     
@@ -49,23 +82,18 @@ export class DCCClientFS_native implements IGitFSFileIO{
         //先从本地读取，如果没有就从远程下载
         let ret:string|ArrayBuffer;
         try{
-            debugger;
-            let buff = fs_readFileSync(url);
-            //ret = await this.dbfile.read(url,encode)
+            ret = fs_readFileSync(url);
         }catch(e:any){
+        }
+        if(!ret){
             if(this.repoPath){
                 let resp = await this.fetch(this.repoPath+url);
                 if(encode=='utf8'){
                     ret = await resp.text();
-                    debugger;
-                    fs_writeFileSync(url,ret);
-                    //await this.dbfile.write(url,ret);
                 }else{
                     ret = await resp.arrayBuffer();
-                    debugger;
-                    fs_writeFileSync(url,ret);
-                    //await this.dbfile.write(url,ret);
                 }
+                await this.write(url,ret);
             }
         }
         return ret;
@@ -73,11 +101,13 @@ export class DCCClientFS_native implements IGitFSFileIO{
 
     //write只能往本地写
     async write(url: string, content: string | ArrayBuffer, overwrite?: boolean): Promise<any> {
+        //确保路径都存在
+        this.makeDirsInCachePath(url);
+        url = this.getAbsPath(url);
         if(!overwrite && fs_exists(url)){
             return;
         }
         fs_writeFileSync(url,content);
-        //this.dbfile.write(url,content);
     }
 
     //只能判断本地的
@@ -113,5 +143,4 @@ export class DCCClientFS_native implements IGitFSFileIO{
         debugger;
         //await this.dbfile.enumCachedObjects(callback);
     }
-
 }
