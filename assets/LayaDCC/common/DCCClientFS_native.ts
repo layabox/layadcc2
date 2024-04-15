@@ -69,6 +69,7 @@ export class DCCClientFS_native implements IGitFSFileIO{
         console.log('pp', conch.getCachePath());
     }
     
+    //远程下载
     async fetch(url: string): Promise<Response> {
         let ret = await myFetch(url);
         return {
@@ -82,7 +83,10 @@ export class DCCClientFS_native implements IGitFSFileIO{
         //先从本地读取，如果没有就从远程下载
         let ret:string|ArrayBuffer;
         try{
-            ret = fs_readFileSync(url);
+            ret = fs_readFileSync(this.getAbsPath(url));
+            if(encode=='utf8'){
+                ret = (new TextDecoder()).decode(ret);
+            }
         }catch(e:any){
         }
         if(!ret){
@@ -136,11 +140,20 @@ export class DCCClientFS_native implements IGitFSFileIO{
     }
 
     async rm(url: string): Promise<void> {
+        url = this.getAbsPath(url);
         fs_rm(url)
     }
+
     //如果希望遍历服务器端的怎么办
     async enumCachedObjects(callback: (objid: string) => void): Promise<void> {
-        debugger;
-        //await this.dbfile.enumCachedObjects(callback);
+        let objects = this.getAbsPath('objects');
+        let idPres = fs_readdirSync(objects);
+        for(let pre of idPres){
+            let cpath = objects+'/'+pre;
+            let objs = fs_readdirSync(cpath);
+            for(let o of objs){
+                callback(pre+o);
+            }
+        }
     }
 }

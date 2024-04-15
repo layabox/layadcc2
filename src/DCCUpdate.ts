@@ -36,6 +36,23 @@ export class DCCUpdate{
         Laya.stage.addChild(img)
     }
 
+    //更新所有的。要有进度统计
+    async updateAll(progress:(p:number)=>void){
+        let dccurl = 'http://localhost:8899/dccout/'
+        let headFile = 'http://localhost:8899/dccout/version.1.0.1.json';// Editor.serverURL;
+
+        let dcc = this.dcc = new DCCClient( DCCClientFS,dccurl );
+        dcc.onlyTransUrl=false;
+
+        console.log('初始化dcc开始');
+        let initok = await dcc.init(headFile);
+        console.log('初始化dcc结束');
+        if(!initok)
+            return false;
+        //遍历
+        dcc.updateAll(p=>{console.log('progress:',p*100);});
+    }
+
     async clean(){
         let dcc = this.dcc = new DCCClient( DCCClientFS, null);
         dcc.onlyTransUrl=false;

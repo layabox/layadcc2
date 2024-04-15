@@ -69,7 +69,7 @@ export class LayaDCCClient{
         //TODO
         await gitfs.setRoot(dcchead.root);
         //let rootTree = await gitfs.getTreeNode(dcchead.root,null);
-        let bbb = await gitfs.loadFileByPath('atlas/comp.png','buffer')
+        //let bbb = await gitfs.loadFileByPath('atlas/comp.png','buffer')
         return true;
     }
 
@@ -112,14 +112,52 @@ export class LayaDCCClient{
         return this._frw.repoPath+objpath;
     }
 
+    //在第一次调用progress之前是下载节点的过程
+    async updateAll(progress:(p:number)=>void){
+        let gitfs = this._gitfs;
+        //为了能统计，需要先下载所有的目录节点，这段时间是无法统计的
+
+        //先统计本地已经存在的
+        let locals:Set<string> = new Set();
+        await this._frw.enumCachedObjects((objid)=>{
+            locals.add(objid);
+        })
+
+        //遍历file
+        let needUpdateFiles:string[]=[];
+        //统计所有树上的
+        await gitfs.visitAll(gitfs.treeRoot,async (tree)=>{
+            //下载
+            if(!locals.has(tree.sha))
+                await this._frw.read( gitfs.getObjUrl(tree.sha),'buffer')
+        },async (blob)=>{
+            let id = toHex(blob.oid);
+            if(!locals.has(id)){
+                needUpdateFiles.push(id);
+            }
+        })
+        //
+        console.log('need update:',needUpdateFiles.length);
+        needUpdateFiles.forEach(id=>{console.log(id);});
+        let p = 0;
+        progress&&progress(0);
+        for(let i=0,n=needUpdateFiles.length; i<n; i++){
+            let id = needUpdateFiles[i];
+            //TODO并发
+            await this._frw.read(gitfs.getObjUrl(id),'buffer');
+            progress(i/n);
+        }
+        progress&&progress(1);
+    }
+
     async clean(){
         let gitfs = this._gitfs;
         //遍历file
         let files:Set<string> = new Set()
         //统计所有树上的
-        await gitfs.visitAll(gitfs.treeRoot,(tree)=>{
+        await gitfs.visitAll(gitfs.treeRoot,async (tree)=>{
             files.add(tree.sha);
-        },(blob)=>{
+        }, async (blob)=>{
             files.add(toHex(blob.oid));
         })
         //统计所有的本地保存的

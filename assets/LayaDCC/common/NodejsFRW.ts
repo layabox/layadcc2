@@ -9,6 +9,9 @@ export class NodejsFRW implements IGitFSFileIO{
     constructor(basedir:string){
         this.repoPath=basedir;
     }
+    fetch(url: string): Promise<Response> {
+        throw new Error("Method not implemented.");
+    }
     async init(repoPath:string){
         this.repoPath=repoPath;
     }

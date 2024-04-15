@@ -102,9 +102,9 @@ export class LayaDCC {
         let blob_packs:string[]=[];
 
         //统计所有的treenode和blobnode,他们要分别打包
-        await gitfs.visitAll(rootNode,(cnode)=>{
+        await gitfs.visitAll(rootNode,async (cnode)=>{
             treeNodes.push(cnode.sha!);
-        },(entry)=>{
+        },async (entry)=>{
             blobNodes.push(toHex(entry.oid));
         })
 

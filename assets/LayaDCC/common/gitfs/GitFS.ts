@@ -255,8 +255,8 @@ export class GitFS {
         }
     }
 
-    async visitAll(node:TreeNode, treecb:(cnode:TreeNode)=>void, blobcb:(entry:TreeEntry)=>void){
-        treecb(node);
+    async visitAll(node:TreeNode, treecb:(cnode:TreeNode)=>Promise<void>, blobcb:(entry:TreeEntry)=>Promise<void>){
+        await treecb(node);
 		for await (const entry of node.entries) {
             if(entry.isDir){
                 try{
@@ -267,7 +267,7 @@ export class GitFS {
                     console.log('openNode error:', toHex(entry.oid));
                 }
             }else{
-                blobcb(entry);
+                await blobcb(entry);
             }
 		}
     }
