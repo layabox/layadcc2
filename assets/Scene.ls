@@ -153,14 +153,7 @@
       "label": "更新",
       "labelSize": 20,
       "labelAlign": "center",
-      "labelVAlign": "middle",
-      "_$comp": [
-        {
-          "_$type": "435dd170-0023-41a4-ab62-587d38fe7dce",
-          "scriptPath": "../src/NewScript.ts",
-          "text": ""
-        }
-      ]
+      "labelVAlign": "middle"
     },
     {
       "_$id": "7cphrnol",
@@ -178,9 +171,114 @@
       "labelVAlign": "middle",
       "_$comp": [
         {
-          "_$type": "a1c80334-7e5d-4bea-868b-cf6012baf86b",
-          "scriptPath": "../src/cleanDCC.ts",
-          "text": ""
+          "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
+          "scriptPath": "../src/AllTest.ts",
+          "cmd": "clean"
+        }
+      ]
+    },
+    {
+      "_$id": "hb1lpycm",
+      "_$type": "Image",
+      "name": "Image",
+      "x": 410,
+      "y": 108,
+      "width": 221,
+      "height": 10,
+      "skin": "res://0180cc61-a417-48e3-b42d-fe3d024d7469",
+      "color": "#ffffff"
+    },
+    {
+      "_$id": "k06a10xc",
+      "_$type": "Button",
+      "name": "Button(2)",
+      "x": 182,
+      "y": 239,
+      "width": 120,
+      "height": 40,
+      "_mouseState": 2,
+      "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
+      "label": "udpate",
+      "labelSize": 20,
+      "labelAlign": "center",
+      "labelVAlign": "middle"
+    },
+    {
+      "_$id": "1ebdg76c",
+      "_$type": "Button",
+      "name": "Button(3)",
+      "x": 177,
+      "y": 425,
+      "width": 120,
+      "height": 40,
+      "_mouseState": 2,
+      "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
+      "label": "udpateall",
+      "labelSize": 20,
+      "labelAlign": "center",
+      "labelVAlign": "middle",
+      "_$comp": [
+        {
+          "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
+          "scriptPath": "../src/AllTest.ts",
+          "cmd": "updateAll"
+        }
+      ],
+      "_$child": [
+        {
+          "_$id": "t3b6bbqb",
+          "_$type": "ProgressBar",
+          "name": "ProgressBar",
+          "x": 205.94028553592125,
+          "y": 5.237863740726198,
+          "width": 120,
+          "height": 30,
+          "skin": "res://ae3de75e-ee9f-478d-9f8b-ede75a4fc296",
+          "value": 0.5
+        }
+      ]
+    },
+    {
+      "_$id": "gxe0f1lq",
+      "_$type": "Button",
+      "name": "Button(4)",
+      "x": 186,
+      "y": 306,
+      "width": 100,
+      "height": 40,
+      "_mouseState": 2,
+      "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
+      "label": "ImgSrc",
+      "labelSize": 20,
+      "labelAlign": "center",
+      "labelVAlign": "middle",
+      "_$comp": [
+        {
+          "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
+          "scriptPath": "../src/AllTest.ts",
+          "cmd": "imgSrc"
+        }
+      ]
+    },
+    {
+      "_$id": "x2j4c0bu",
+      "_$type": "Button",
+      "name": "Button(5)",
+      "x": 188,
+      "y": 359,
+      "width": 100,
+      "height": 40,
+      "_mouseState": 2,
+      "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
+      "label": "普通下载",
+      "labelSize": 20,
+      "labelAlign": "center",
+      "labelVAlign": "middle",
+      "_$comp": [
+        {
+          "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
+          "scriptPath": "../src/AllTest.ts",
+          "cmd": "commondown"
         }
       ]
     }

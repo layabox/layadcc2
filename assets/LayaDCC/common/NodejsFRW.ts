@@ -87,7 +87,8 @@ export class NodejsFRW implements IGitFSFileIO{
         return promisify(fs.rename)(src,dst);
     }
     rm(url: string): Promise<void> {
-        throw new Error("Method not implemented.");
+        let absfile = path.resolve(this.repoPath,url);
+        return promisify(fs.rm)(absfile)
     }
     enumCachedObjects(callback: (objid: string) => void): Promise<void> {
         throw new Error("Method not implemented.");

@@ -43,6 +43,13 @@ export interface IGitFSFileIO {
     mv(src:string,dst:string):Promise<unknown>;
 }
 
+export interface IObjectPack{
+    init():Promise<boolean>;
+    has(oid:string):Promise<boolean>;
+    get(oid:string):Promise<ArrayBuffer>;
+}
+
+
 var PROJINFO = '.projinfo';
 
 /**
@@ -70,6 +77,9 @@ export class GitFS {
 
     checkDownload=false;
 
+    private _treeNodePacks:IObjectPack[]=[];
+    private _blobNodePacks:IObjectPack[]=[];
+
     /**
      * 
      * @param repoUrl git库所在目录
@@ -77,6 +87,38 @@ export class GitFS {
      */
     constructor(filerw: IGitFSFileIO) {
         this.frw = filerw;
+    }
+
+    addTreeNodePack(pack:IObjectPack){
+        let idx = this._treeNodePacks.indexOf(pack);
+        if(idx<0){
+            this._treeNodePacks.push(pack);
+        }
+    }
+    removeTreeNodePack(pack:IObjectPack){
+        let idx = this._treeNodePacks.indexOf(pack);
+        if(idx>=0){
+            this._treeNodePacks.splice(idx,1);
+        }
+    }
+    clearTreeNodePack(){
+        this._treeNodePacks.length=0;
+    }
+
+    addBlobNodePack(pack:IObjectPack){
+        let idx = this._blobNodePacks.indexOf(pack);
+        if(idx<0){
+            this._blobNodePacks.push(pack);
+        }
+    }
+    removeBlobNodePack(pack:IObjectPack){
+        let idx = this._blobNodePacks.indexOf(pack);
+        if(idx>=0){
+            this._blobNodePacks.splice(idx,1);
+        }
+    }
+    clearBlobNodePack(){
+        this._blobNodePacks.length=0;
     }
 
     /**
@@ -183,8 +225,24 @@ export class GitFS {
             return new TreeNode(null,null,this.frw);
         }
         let treepath = this.getObjUrl(objid);
-        let buff = await this.frw.read(treepath, 'buffer') as ArrayBuffer;
-        if(!buff) throw "no treepath";
+        let buff:ArrayBuffer;
+        try{
+            buff = await this.frw.read(treepath, 'buffer') as ArrayBuffer;
+        }catch(e){}
+        if(!buff){
+            //从所有的包中查找
+            for(let pack of this._treeNodePacks){
+                if(!pack) continue;
+                if(await pack.has(objid)){
+                    buff = await pack.get(objid)
+                }
+                if(buff)
+                    break;
+            }
+
+            if(!buff)
+                throw "no treepath";
+        } 
         let treebuff = new Uint8Array(buff);
         let ret = treeNode;
         if(!ret){
@@ -207,13 +265,28 @@ export class GitFS {
         if(typeof(objid)!='string'){
             strid=toHex(objid);
         }
-        let treepath = this.getObjUrl(strid);
-        let treebuff = await this.frw.read(treepath, 'buffer') as ArrayBuffer;
-        if(!treebuff){
-            console.log('download error:', strid);
-            throw new Error('download error:'+strid);
+        let objpath = this.getObjUrl(strid);
+        let buff:ArrayBuffer|null=null;
+        try{
+            let objbuff = await this.frw.read(objpath, 'buffer') as ArrayBuffer;
+            if(objbuff){
+                buff = GitFS.zip?this.frw.unzip(objbuff):objbuff;
+            }
+        }catch(e){
         }
-        let buff = GitFS.zip?this.frw.unzip(treebuff):treebuff;
+        if(!buff){
+            for(let pack of this._blobNodePacks){
+                if(!pack) continue;
+                if(await pack.has(strid)){
+                    buff = await pack.get(strid)
+                }
+                if(buff)
+                    break;
+            }  
+            if(!buff){
+                throw new Error('download error:'+strid);
+            }
+        }
 
         //下载文件最好不校验。影响速度。
         if(this.checkDownload){
