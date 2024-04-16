@@ -38,6 +38,8 @@ export class DCCUpdate{
 
     //更新所有的。要有进度统计
     async updateAll(progress:(p:number)=>void,head='version.1.0.0.json'){
+        if(typeof progress === 'function' && typeof head=='string'){}
+        else throw 'bad params'
         let dccurl = 'http://localhost:7788/'
         let headFile = 'http://localhost:7788/'+head;// Editor.serverURL;
 

@@ -42,43 +42,71 @@ export class LayaDCC {
         this.frw  = new NodejsFRW(dccout);
         this.gitfs = new GitFS(this.frw);
         
-        console.log('v=', p);
+        //rootNode.
+        if(!fs.existsSync( dccout)){
+            fs.mkdirSync(dccout);
+        }
+
+        //revisions
+        let revPath = path.join(dccout,'revisions');
+        if(!fs.existsSync(revPath)){
+            fs.mkdirSync(revPath);
+        }
+
         //得到最后一次提交的根
         //先直接操作目录
-        let lastVer:string;
+        //let lastVer:string;
         let rootNode:TreeNode;
         try{
             let headstr = await this.frw.read(this.config.outfile+'.json','utf8') as string;
             let headobj = JSON.parse(headstr) as RootDesc;
-            lastVer = headobj.version||'1.0.0';
+            //lastVer = headobj.version||'1.0.0';
             rootNode = await this.gitfs.getTreeNode(headobj.root,null);
         }catch(e:any){
             rootNode = new TreeNode(null,null,this.frw);
         }
 
-        //rootNode.
-        if(!fs.existsSync( dccout)){
-            fs.mkdirSync(dccout);
-        }
+
+        //当前修订版。修订版只要内容变了就会增加，与用户设置的版本无关
+        let lastRev=0;
+        let lastRevRoot:string=null;
+        try{
+            lastRev = parseInt(fs.readFileSync(path.join(revPath,'head.txt'),'utf-8'));
+            if(lastRev>=0){
+                lastRevRoot = fs.readFileSync(path.join(revPath,`${lastRev}.txt`),'utf-8')
+            }
+            if(!lastRevRoot){
+                lastRev=0;
+            }
+        }catch(e){}
+
         let files = await this.walkDirectory(p,rootNode,this.config.fast,['.git','.gitignore','dccout']);
         console.log(files.length)
-        console.log(files)
+        //console.log(files)
+        //更新修订版本
+        if(rootNode.sha!==lastRevRoot){
+            //有变化
+            fs.writeFileSync(path.join(revPath,'head.txt'),`${lastRev+1}`);//当前版本
+            fs.writeFileSync(path.join(revPath,`${lastRev+1}.txt`),rootNode.sha)//当前版本对应的root
+        }
+        
         //创建头文件
         let head = new RootDesc();
-        head.root = rootNode.sha!;
+        head.root = rootNode.sha;
         head.fileCounts = files.length;
         head.objPackages=[];
         head.time = new Date();
         head.version = this.config.version;
         this.config.desc && (head.desc = this.config.desc);
 
+        //
         //let headbuff = this.frw.textencode(JSON.stringify(head))
         //shasum(new Uint8Array(headbuff),true)
         //头，固定文件名
-        await this.frw.write(`${this.config.outfile}.json`,JSON.stringify(head),true);
+        //await this.frw.write(`${this.config.outfile}.json`,JSON.stringify(head),true);
+
         //版本文件
         await this.frw.write(`${this.config.outfile}.${this.config.version}.json`,JSON.stringify(head),true);
-
         await this.mergeSmallFile(rootNode);
         //debugger;
     }
