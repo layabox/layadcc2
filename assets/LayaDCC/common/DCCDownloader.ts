@@ -40,13 +40,26 @@ export class DCCDownloader extends Laya.Downloader{
             promise = (async ()=>{
                     let buff = await this.dcc.readFile(url);
                     if(!buff) return url;
-                    var blob = new Blob([buff], { type: 'application/octet-binary' });
-                    return window.URL.createObjectURL(blob); 
+                    switch(contentType){
+                        case 'text':
+                            onComplete( new TextDecoder().decode(buff));
+                            return null;
+                        case 'json':
+                            onComplete(JSON.parse(new TextDecoder().decode(buff)));
+                            return null;
+                        case 'arraybuffer':
+                            onComplete(buff);
+                            return null;
+                        default:
+                            var blob = new Blob([buff], { type: 'application/octet-binary' });
+                            return window.URL.createObjectURL(blob); 
+                    }
                 }
             )();
         }
         promise.then(transed=>{
-            this.originDownloader.common.call(this.originDownloader,owner, transed, originalUrl, contentType, onProgress, onComplete);
+            if(transed)
+                this.originDownloader.common.call(this.originDownloader,owner, transed, originalUrl, contentType, onProgress, onComplete);
         });
 
     }
