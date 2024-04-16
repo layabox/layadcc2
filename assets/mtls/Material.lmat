@@ -1,0 +1,44 @@
+{
+    "version": "LAYAMATERIAL:04",
+    "props": {
+      "textures": [],
+      "type": "BLINNPHONG",
+      "renderQueue": 2000,
+      "alphaTest": false,
+      "materialRenderMode": 0,
+      "s_Cull": 2,
+      "s_Blend": 0,
+      "s_DepthTest": 1,
+      "s_DepthWrite": true,
+      "u_DiffuseColor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "u_MaterialSpecular": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "u_Shininess": 0.078125,
+      "u_TilingOffset": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "u_TransmissionRate": 0,
+      "u_BackDiffuse": 0,
+      "u_BackScale": 0,
+      "u_TransmissionColor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "u_AlbedoIntensity": 1,
+      "defines": []
+    }
+  }

@@ -33,38 +33,25 @@ export class DCCDownloader extends Laya.Downloader{
     }
 
     override common(owner: any, url: string, originalUrl: string, contentType: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void {
-        // if (this.vfs && url.startsWith(this.vfsprefix)) {
-        //     url = this.vfsGetPath(url);
-        //     this.vfs.load(url, contentType == 'json' ? 'utf8' : 'buffer').then(v => {
-        //         let url1 = url;
-        //         if (contentType == 'json') {
-        //             onComplete(JSON.parse(v));
-        //         } else {
-        //             onComplete(v);
-        //         }
-        //     })
-        // } else {
-        //     this.originDownloader.common.call(this.originDownloader,owner, url, originalUrl, contentType, onProgress, onComplete);
-        // }
-        this.originDownloader.common.call(this.originDownloader,owner, url, originalUrl, contentType, onProgress, onComplete);
+        let promise:Promise<string>;
+        if(this.dcc.onlyTransUrl){
+            promise = this.dcc.transUrl(url);
+        }else{
+            promise = (async ()=>{
+                    let buff = await this.dcc.readFile(url);
+                    if(!buff) return url;
+                    var blob = new Blob([buff], { type: 'application/octet-binary' });
+                    return window.URL.createObjectURL(blob); 
+                }
+            )();
+        }
+        promise.then(transed=>{
+            this.originDownloader.common.call(this.originDownloader,owner, transed, originalUrl, contentType, onProgress, onComplete);
+        });
+
     }
 
     override image(owner: any, url: string, originalUrl: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void {
-        // if (this.vfs && url.startsWith(this.vfsprefix)) {
-        //     url = this.vfsGetPath(url);
-        //     this.vfs.load(url, 'buffer').then((v: ArrayBuffer) => {
-        //         if (v) {
-        //             var blob = new Blob([v], { type: 'application/octet-binary' });
-        //             url = window.URL.createObjectURL(blob);
-        //             super.image(owner, url, originalUrl, onProgress, onComplete);
-        //         }else{
-        //             // 失败了也要返回，否则会认为卡住了，没有机会再次下载了
-        //             onComplete(v);
-        //         }
-        //     })
-        // } else {
-        //     this.originDownloader.image.call(this.originDownloader,owner, url, originalUrl, onProgress, onComplete);
-        // }
         let promise:Promise<string>;
         if(this.dcc.onlyTransUrl){
             promise = this.dcc.transUrl(url);

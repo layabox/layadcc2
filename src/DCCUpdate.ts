@@ -10,6 +10,12 @@ let DCCClientFS = {
     "web":DCCClientFS_web
 }[Env.runtimeName];
 
+export class UniDCCClient extends DCCClient{
+    constructor(dccurl:string){
+        super(DCCClientFS,dccurl);
+    }
+}
+
 export class DCCUpdate{
     dcc:DCCClient;
     
