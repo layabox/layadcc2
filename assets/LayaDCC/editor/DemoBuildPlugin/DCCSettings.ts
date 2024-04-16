@@ -1,10 +1,10 @@
-@IEditor.panel("MyTestBuildSettings", { usage: "build-settings", title: "热更新" })
-export class TestBuildSettings extends IEditor.EditorPanel {
+@IEditor.panel("DCCSettings", { usage: "build-settings", title: "热更新" })
+export class DCCSettings extends IEditor.EditorPanel {
     @IEditor.onLoad
     static start() {
         Editor.typeRegistry.addTypes([
             {
-                name: "TestBuildSettings",
+                name: "DCCSettings",
                 catalogBarStyle : "hidden",
                 properties: [
                     {
@@ -22,13 +22,13 @@ export class TestBuildSettings extends IEditor.EditorPanel {
                     {
                         name: "TargetPath",
                         type: "string",
-                        default: Editor.projectPath+'/web/release/',
+                        default: Editor.projectPath+'/release/web/',
                         hidden: "!data.enable",
                     },
                     {
                         name: "OutputPath",
                         type: "string",
-                        default: 'dccout',
+                        default: Editor.projectPath+'/release/web/dccout',
                         hidden: "!data.enable",
                     },    
                     {
@@ -81,13 +81,13 @@ export class TestBuildSettings extends IEditor.EditorPanel {
                 ]
             }
         ]);
-        Editor.extensionManager.createSettings("TestBuildSettings", "project");
+        Editor.extensionManager.createSettings("DCCSettings", "project");
     }
 
     async create() {
         let panel = IEditor.GUIUtils.createInspectorPanel();
         panel.allowUndo = true;
-        panel.inspect(Editor.getSettings("TestBuildSettings").data, "TestBuildSettings");
+        panel.inspect(Editor.getSettings("DCCSettings").data, "DCCSettings");
         this._panel = panel;
     }
 }

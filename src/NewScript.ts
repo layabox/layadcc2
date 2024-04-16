@@ -33,7 +33,7 @@ export class UpdateDCCScript extends Laya.Script {
     //onLateUpdate(): void {}
 
     //鼠标点击后执行。与交互相关的还有onMouseDown等十多个函数，具体请参阅文档。
-    async onMouseClick(): void {
+    async onMouseClick() {
         // let img = new Laya.Image();
         // img.skin = 'atlas/comp.png'
         // img.scale(0.2,0.2)

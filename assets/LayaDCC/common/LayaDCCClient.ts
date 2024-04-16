@@ -62,6 +62,8 @@ export class LayaDCCClient{
             //本地
             headStr = await this._frw.read('head.json','utf8') as string;
         }
+        if(!headStr)
+            return false;
 
         let dcchead = JSON.parse(headStr) as RootDesc;
         let gitfs = this._gitfs = new GitFS( this._frw);

@@ -13,9 +13,9 @@ let DCCClientFS = {
 export class DCCUpdate{
     dcc:DCCClient;
     
-    async update(){
-        let dccurl = 'http://localhost:8899/dccout/'
-        let headFile = 'http://localhost:8899/dccout/version.1.0.1.json';// Editor.serverURL;
+    async update(head='version.1.0.0.json'){
+        let dccurl = 'http://localhost:7788/'
+        let headFile = 'http://localhost:7788/'+head;// Editor.serverURL;
 
         let dcc = this.dcc = new DCCClient( DCCClientFS,dccurl );
         dcc.onlyTransUrl=false;
@@ -37,9 +37,9 @@ export class DCCUpdate{
     }
 
     //更新所有的。要有进度统计
-    async updateAll(progress:(p:number)=>void){
-        let dccurl = 'http://localhost:8899/dccout/'
-        let headFile = 'http://localhost:8899/dccout/version.1.0.1.json';// Editor.serverURL;
+    async updateAll(progress:(p:number)=>void,head='version.1.0.0.json'){
+        let dccurl = 'http://localhost:7788/'
+        let headFile = 'http://localhost:7788/'+head;// Editor.serverURL;
 
         let dcc = this.dcc = new DCCClient( DCCClientFS,dccurl );
         dcc.onlyTransUrl=false;

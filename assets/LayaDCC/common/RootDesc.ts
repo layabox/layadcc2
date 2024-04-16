@@ -7,4 +7,6 @@ export class RootDesc{
     fileCounts=0;
     time:Date;
     version='1.0.0';    //上一次的id
+    parentVersion:string;
+    desc:string;
 }

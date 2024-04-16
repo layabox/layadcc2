@@ -7,9 +7,8 @@ import { GitFS } from "./gitfs/GitFS";
 import { RootDesc } from "./RootDesc";
 import { shasum, toHex } from "./gitfs/GitFSUtils";
 
-class Params{
-    //如果为true则head.json会把版本号加到后面
-    increaseFileName=false;
+export class Params{
+    mergeFile=false;
     //小于这个文件的合并
     fileToMerge=100*1024;
     //合并后的最大文件大小，不允许超过。
@@ -19,6 +18,7 @@ class Params{
     //用户需要指定版本号，这样可以精确控制。如果已经存在注意提醒
     version='1.0.1';  
     fast=true;
+    desc:string;
 }
 
 export class LayaDCC {
@@ -29,6 +29,9 @@ export class LayaDCC {
     constructor() {
     }
 
+    set params(p:Params){
+        this.config = p;
+    }
     /**
      * 生成目录p的dcc信息
      * 默认保存在当前目录的.dcc目录下
@@ -67,6 +70,7 @@ export class LayaDCC {
         head.objPackages=[];
         head.time = new Date();
         head.version = this.config.version;
+        this.config.desc && (head.desc = this.config.desc);
 
         //let headbuff = this.frw.textencode(JSON.stringify(head))
         //shasum(new Uint8Array(headbuff),true)

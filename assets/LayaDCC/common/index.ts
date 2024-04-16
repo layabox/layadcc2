@@ -1,5 +1,5 @@
 import { gzip,gunzip } from "zlib";
-import { LayaDCC } from "./LayaDCC";
+import { LayaDCC, Params } from "./LayaDCC";
 import { cwd } from "process";
 import * as path from "path";
 
@@ -14,6 +14,11 @@ export class LayaDCCCmd{
     set dir(v:string){
         this._dir = v;
     }
+
+    set params(p:Params){
+        this.dcc.params = p;
+    }
+    
     async run(){
         let st = Date.now();
         await this.dcc.genDCC(this._dir);
