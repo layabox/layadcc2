@@ -1,4 +1,4 @@
-@IEditor.panel("DCCSettings", { usage: "build-settings", title: "热更新" })
+@IEditor.panel("DCCSettings", { usage: "build-settings", title: "DCC" })
 export class DCCSettings extends IEditor.EditorPanel {
     @IEditor.onLoad
     static start() {
@@ -21,13 +21,22 @@ export class DCCSettings extends IEditor.EditorPanel {
                     },
                     {
                         name: "TargetPath",
-                        type: "string",
+                        inspector: "File",
+                        options: {
+                            absolutePath: true,
+                            properties: ["openDirectory"]
+                        },
+                        //type: "string",
                         default: Editor.projectPath+'/release/web/',
                         hidden: "!data.enable",
                     },
                     {
                         name: "OutputPath",
-                        type: "string",
+                        inspector: "File",
+                        options: {
+                            absolutePath: true,
+                            properties: ["openDirectory"]
+                        },
                         default: Editor.projectPath+'/release/web/dccout',
                         hidden: "!data.enable",
                     },    

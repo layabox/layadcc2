@@ -1,10 +1,10 @@
 
-@IEditorEnv.regBuildPlugin("*")
+@IEditorEnv.regBuildPlugin("DCC")
 export class TestBuildPlugin implements IEditorEnv.IBuildPlugin {
     config: IEditorEnv.ISettings;
 
     async onSetup(task: IEditorEnv.IBuildTask): Promise<void> {
-        this.config = EditorEnv.getSettings("TestBuildSettings");
+        this.config = EditorEnv.getSettings("DCCSettings");
         await this.config.sync();
 
         if (this.config.data.enabled) //取消掉原来的版本管理

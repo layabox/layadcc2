@@ -7,17 +7,18 @@ function delay(ms:number) {
 }
 
 export class LayaDCCClient{
-    private _headFile:string;
     private _frw:IGitFSFileIO;
     //是否只把请求的url转换成hash
     private _onlyTransUrl=false;
     private _gitfs:GitFS;
     //映射到dcc目录的地址头，如果没有，则按照http://*/算，所有的请求都裁掉主机地址
     private _pathMapToDCC='';
-    private _dccurl:string;
+    //dcc的服务器根目录地址
+    private _dccServer:string;
 
     constructor(frw:new ()=>IGitFSFileIO, dccurl:string){
-        this._dccurl=dccurl;
+        if(dccurl && !dccurl.endsWith('/')) dccurl+='/';
+        this._dccServer=dccurl;
         this._frw = new frw();
     }
 
@@ -35,16 +36,15 @@ export class LayaDCCClient{
         if(this._gitfs){
             throw '重复初始化'
         }
-        await this._frw.init(this._dccurl);
-        this._headFile=headfile;
+        await this._frw.init(this._dccServer);
         //let frw = this._frw = new DCCClientFS_web_local();
         //下载head文件
         let headStr='';
         if(headfile){
-            let headResp = await this._frw.fetch(this._headFile);
+            let headResp = await this._frw.fetch(headfile);
             let tryCount=0;        
             while(!headResp.ok){
-                headResp = await this._frw.fetch(this._headFile);
+                headResp = await this._frw.fetch(headfile);
                 tryCount++;
                 if(tryCount>10){
                     return false;
@@ -68,6 +68,21 @@ export class LayaDCCClient{
         let dcchead = JSON.parse(headStr) as RootDesc;
         let gitfs = this._gitfs = new GitFS( this._frw);
         //处理打包
+        if(dcchead.treePackages.length){
+            for(let packid of dcchead.treePackages){
+                let resp = await this._frw.fetch(`${this._dccServer}packfile/tree-${packid}.idx`);
+                if(!resp.ok) throw 'download treenode idx error';
+                let idxs:{id:string,start:number,length:number}[] = JSON.parse(await resp.text());
+                let resp1 = await this._frw.fetch(`${this._dccServer}packfile/tree-${packid}.pack`);
+                if(!resp1.ok) throw 'download treenode pack error';
+                let buff = await resp1.arrayBuffer();
+                //把这些对象写到本地
+                for(let nodeinfo of idxs){
+                    let nodebuff = buff.slice(nodeinfo.start, nodeinfo.start+nodeinfo.length);
+                    await this._gitfs.saveObject(nodeinfo.id,nodebuff)
+                }
+            }
+        }
         //TODO
         await gitfs.setRoot(dcchead.root);
         //let rootTree = await gitfs.getTreeNode(dcchead.root,null);
