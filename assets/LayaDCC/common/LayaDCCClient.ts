@@ -16,6 +16,11 @@ export class LayaDCCClient{
     //dcc的服务器根目录地址
     private _dccServer:string;
 
+    /**
+     * 
+     * @param frw 
+     * @param dccurl dcc的服务器地址
+     */
     constructor(frw:new ()=>IGitFSFileIO, dccurl:string){
         if(dccurl && !dccurl.endsWith('/')) dccurl+='/';
         this._dccServer=dccurl;
@@ -74,7 +79,7 @@ export class LayaDCCClient{
             return false;
 
         let gitfs = this._gitfs = new GitFS( this._frw);
-        if(localRoot && remoteHead && localRoot!=remoteHead.root){//本地不等于远端
+        if( !localRoot || (remoteHead && localRoot!=remoteHead.root)){//本地不等于远端
             //处理打包
             if( remoteHead.treePackages.length){
                 for(let packid of remoteHead.treePackages){

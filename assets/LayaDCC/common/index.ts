@@ -27,14 +27,3 @@ export class LayaDCCCmd{
         //this.dcc.checkoutTest(this._dir,'head.json')
     }
 }
-//
-
-
-//console.log('kk',a,args)
-
-// gzip('aaass',(err,buff)=>{
-//     console.log(buff);
-//     gunzip(buff,(err,buff)=>{
-//         console.log(buff.toString())
-//     })
-// })

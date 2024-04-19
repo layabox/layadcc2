@@ -4,11 +4,10 @@ import * as fs from 'fs'
 import * as path from "path";
 import { gunzipSync, gzipSync } from "zlib";
 
-export class NodejsFRW implements IGitFSFileIO{
+export class DCCFS_NodeJS implements IGitFSFileIO{
+    //basedir是dcc根目录。当生成的时候是dcc的输出目录。当客户端的时候是缓存目录
     repoPath='';
-    constructor(basedir:string){
-        this.repoPath=basedir;
-    }
+
     fetch(url: string): Promise<Response> {
         throw new Error("Method not implemented.");
     }
@@ -28,6 +27,9 @@ export class NodejsFRW implements IGitFSFileIO{
     }
 
     async write(url: string, content: string | ArrayBuffer, overwrite?:boolean) {
+        if(path.isAbsolute(url)){
+            url = path.relative(this.repoPath,url);
+        }
         let paths = url.split('/');
         paths.pop();
         let absfile = path.resolve(this.repoPath,url);

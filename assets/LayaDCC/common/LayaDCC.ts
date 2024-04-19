@@ -1,5 +1,5 @@
 import * as path from "path";
-import { NodejsFRW } from "./DCCFS_NodeJS";
+import { DCCFS_NodeJS } from "./DCCFS_NodeJS";
 import { TreeNode } from "./gitfs/GitTree";
 import * as fs from 'fs'
 import { promisify } from "util";
@@ -23,7 +23,7 @@ export class Params{
 }
 
 export class LayaDCC {
-    private frw:NodejsFRW;
+    private frw:DCCFS_NodeJS;
     private gitfs:GitFS;
     private config = new Params();
     private dccout:string;
@@ -40,7 +40,8 @@ export class LayaDCC {
      */
     async genDCC(p: string) {
         let dccout = this.dccout =  path.resolve(p, this.config.dccout)
-        this.frw  = new NodejsFRW(dccout);
+        this.frw  = new DCCFS_NodeJS();
+        await this.frw.init(dccout);
         this.gitfs = new GitFS(this.frw);
         
         //rootNode.
