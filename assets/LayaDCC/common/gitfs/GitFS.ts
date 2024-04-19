@@ -26,11 +26,11 @@ export interface IGitFSFileIO {
     //库所在路径
     repoPath:string;
     //提供一个异步初始化过程
-    init(repoPath:string):Promise<void>
+    init(repoPath:string,cachePath:string):Promise<void>;
     //远程下载。由于有的平台不支持，所以封装一下
     fetch(url:string):Promise<Response>;
     //主要是相对目录，此接口知道baseurl
-    read(url: string, encode: 'utf8' | 'buffer'): Promise<string | ArrayBuffer>;
+    read(url: string, encode: 'utf8' | 'buffer',onlylocal:boolean): Promise<string | ArrayBuffer>;
     write(url: string, content: string | ArrayBuffer, overwrite?:boolean): Promise<any>;
     isFileExist(url: string):Promise<boolean>;
     unzip(buff: ArrayBuffer): ArrayBuffer;

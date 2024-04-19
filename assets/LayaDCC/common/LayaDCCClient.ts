@@ -27,6 +27,10 @@ export class LayaDCCClient{
         this._frw = new frw();
     }
 
+    get fileIO(){
+        return this._frw;
+    }
+
     set pathMapToDCC(v:string){
         this._pathMapToDCC=v;
     }
@@ -37,18 +41,18 @@ export class LayaDCCClient{
 
     //初始化，下载必须信息
     //headfile为null则不下载，仅仅使用本地缓存
-    async init(headfile:string|null){
+    async init(headfile:string|null,cachePath:string){
         if(this._gitfs){
             throw '重复初始化'
         }
-        await this._frw.init(this._dccServer);
+        await this._frw.init(this._dccServer,cachePath);
 
         let rootNode:string;
         //本地记录的head信息
         let localRoot:string=null;
         try{
             //本地
-            let localHeadStr = await this._frw.read('head.json','utf8') as string;
+            let localHeadStr = await this._frw.read('head.json','utf8',true) as string;
             let localHead = JSON.parse(localHeadStr) as RootDesc;
             localRoot = localHead.root;
             rootNode = localRoot;
@@ -116,7 +120,7 @@ export class LayaDCCClient{
 
     /**
      * 
-     * @param url 如果是绝对地址，并且设置是映射地址，则计算一个相对地址。如果是相对地址，则直接使用
+     * @param url 用户认识的地址。如果是绝对地址，并且设置是映射地址，则计算一个相对地址。如果是相对地址，则直接使用
      * @returns 
      */
     async readFile(url:string):Promise<ArrayBuffer|null>{
@@ -133,6 +137,10 @@ export class LayaDCCClient{
 
         let buff = await gitfs.loadFileByPath(url,'buffer') as ArrayBuffer;
         return buff;
+    }
+
+    async getObjectUrl(objid:string){
+        return this._gitfs.getObjUrl(objid)
     }
 
     async transUrl(url:string){
@@ -170,7 +178,7 @@ export class LayaDCCClient{
         await gitfs.visitAll(gitfs.treeRoot,async (tree)=>{
             //下载
             if(!locals.has(tree.sha))
-                await this._frw.read( gitfs.getObjUrl(tree.sha),'buffer')
+                await this._frw.read( gitfs.getObjUrl(tree.sha),'buffer',false)
         },async (blob)=>{
             let id = toHex(blob.oid);
             if(!locals.has(id)){
@@ -185,8 +193,8 @@ export class LayaDCCClient{
         for(let i=0,n=needUpdateFiles.length; i<n; i++){
             let id = needUpdateFiles[i];
             //TODO并发
-            await this._frw.read(gitfs.getObjUrl(id),'buffer');
-            progress(i/n);
+            await this._frw.read(gitfs.getObjUrl(id),'buffer',false);
+            progress&&progress(i/n);
         }
         progress&&progress(1);
     }

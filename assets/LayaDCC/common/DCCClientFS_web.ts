@@ -11,24 +11,26 @@ export class DCCClientFS_web implements IGitFSFileIO{
     private dbfile:IndexDBFileRW;
     repoPath:string;
 
-    async init(repoPath:string|null){
+    async init(repoPath:string|null,cachePath:string){
         if(repoPath && !repoPath.endsWith('/'))repoPath+='/';
         this.repoPath =repoPath;
 
         this.dbfile = new IndexDBFileRW();
-        await this.dbfile.init('');
+        await this.dbfile.init('','');
     }
 
     async fetch(url: string): Promise<Response> {
         return await fetch(url);
     }
     
-    async read(url: string, encode: "utf8" | "buffer"): Promise<string | ArrayBuffer> {
+    async read(url: string, encode: "utf8" | "buffer",onlylocal:boolean): Promise<string | ArrayBuffer> {
         //先从本地读取，如果没有就从远程下载
         let ret:string|ArrayBuffer;
         try{
-            ret = await this.dbfile.read(url,encode)
+            ret = await this.dbfile.read(url,encode,true)
         }catch(e:any){
+            if(onlylocal)
+                return null;
             if(this.repoPath){
                 let resp = await fetch(this.repoPath+url);
                 if(encode=='utf8'){

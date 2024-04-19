@@ -7,3 +7,4 @@ node_modules
 bin/js/bundles
 test
 *.d.ts
+dcctest

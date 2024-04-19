@@ -11,10 +11,12 @@ export class DCCFS_NodeJS implements IGitFSFileIO{
     fetch(url: string): Promise<Response> {
         throw new Error("Method not implemented.");
     }
-    async init(repoPath:string){
+    async init(repoPath:string,cachePath:string){
         this.repoPath=repoPath;
     }
-    async read(url:string, encode:'utf8'|'buffer') {
+
+    //这个不是客户端读写，所以onlylocal没有用
+    async read(url:string, encode:'utf8'|'buffer',onlylocal:boolean) {
         if(!path.isAbsolute(url)){
             url = path.join(this.repoPath,url);
         }

@@ -18,7 +18,7 @@ export class IndexDBFileRW implements IGitFSFileIO {
     fetch(url: string): Promise<Response> {
         throw new Error("Method not implemented.");
     }
-    async init(repoPath:string): Promise<void> {
+    async init(repoPath:string,cachePath:string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             if (!window.indexedDB) {
                 console.error("Your browser doesn't support IndexedDB");
@@ -46,7 +46,7 @@ export class IndexDBFileRW implements IGitFSFileIO {
         });
     }
 
-    async read(url: string, encode: 'utf8' | 'buffer'): Promise<string | ArrayBuffer> {
+    async read(url: string, encode: 'utf8' | 'buffer',onlylocal:boolean): Promise<string | ArrayBuffer> {
         return new Promise((resolve, reject) => {
             if (!this.db) {
                 reject('Database not initialized');
@@ -141,7 +141,7 @@ export class IndexDBFileRW implements IGitFSFileIO {
     }
     async mv(src: string, dst: string): Promise<void> {
         try {
-            const data = await this.read(src, 'buffer');
+            const data = await this.read(src, 'buffer',true);
             await this.write(dst, data as ArrayBuffer);
             await this.delete(src);
         } catch (error) {

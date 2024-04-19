@@ -57,7 +57,7 @@ export class DCCClientFS_native implements IGitFSFileIO{
         }
     }
 
-    async init(repoPath:string|null){
+    async init(repoPath:string|null,cachePath:string){
         if(repoPath && !repoPath.endsWith('/'))repoPath+='/';
         this.repoPath =repoPath;
 
@@ -83,7 +83,7 @@ export class DCCClientFS_native implements IGitFSFileIO{
         }
     }
 
-    async read(url: string, encode: "utf8" | "buffer"): Promise<string | ArrayBuffer> {
+    async read(url: string, encode: "utf8" | "buffer",onlylocal:boolean): Promise<string | ArrayBuffer> {
         //先从本地读取，如果没有就从远程下载
         let ret:string|ArrayBuffer;
         try{
@@ -94,6 +94,8 @@ export class DCCClientFS_native implements IGitFSFileIO{
         }catch(e:any){
         }
         if(!ret){
+            if(onlylocal)
+                return null;
             if(this.repoPath){
                 let resp = await this.fetch(this.repoPath+url);
                 if(encode=='utf8'){

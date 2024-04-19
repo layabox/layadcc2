@@ -41,7 +41,7 @@ export class LayaDCC {
     async genDCC(p: string) {
         let dccout = this.dccout =  path.resolve(p, this.config.dccout)
         this.frw  = new DCCFS_NodeJS();
-        await this.frw.init(dccout);
+        await this.frw.init(dccout,null);
         this.gitfs = new GitFS(this.frw);
         
         //rootNode.
@@ -60,7 +60,7 @@ export class LayaDCC {
         //let lastVer:string;
         let rootNode:TreeNode;
         try{
-            let headstr = await this.frw.read(this.config.outfile+'.json','utf8') as string;
+            let headstr = await this.frw.read('head.json','utf8',true) as string;
             let headobj = JSON.parse(headstr) as RootDesc;
             //打包文件
             if(headobj.treePackages){
@@ -118,7 +118,7 @@ export class LayaDCC {
         let merges = await this.mergeSmallFile(rootNode,true,false);
         head.treePackages=merges.tree_packs;
         //版本文件
-        await this.frw.write(`${this.config.outfile}.json`,JSON.stringify(head),true);
+        await this.frw.write('head.json',JSON.stringify(head),true);//这个要用固定名称，与配置无关
         await this.frw.write(`${this.config.outfile}.${this.config.version}.json`,JSON.stringify(head),true);
         //debugger;
     }
@@ -157,7 +157,7 @@ export class LayaDCC {
         let objInPacks:{id:string,start:number,length:number}[]=[];
         for(let i of treeNodes){
             let objFile = gitfs.getObjUrl(i);
-            let buff = await frw.read(objFile, 'buffer') as ArrayBuffer;
+            let buff = await frw.read(objFile, 'buffer',true) as ArrayBuffer;
             let size = buff.byteLength;
             if(treeSize+size<this.config.mergedFileSize){
                 objInPacks.push({id:i,start:treeSize,length:size});
@@ -254,7 +254,7 @@ export class LayaDCC {
                     }
                 }
                 if(check){
-                    let value = await this.frw.read(res,'buffer') as ArrayBuffer;
+                    let value = await this.frw.read(res,'buffer',true) as ArrayBuffer;
                     entry = await this.gitfs.setFileAtNode(node, filename, value);
                     entry.fileMTime = fmtime;
                 }

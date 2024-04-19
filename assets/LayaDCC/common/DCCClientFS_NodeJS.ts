@@ -12,12 +12,13 @@ import { IGitFSFileIO } from "./gitfs/GitFS";
 export class DCCClientFS_NodeJS extends DCCFS_NodeJS{
     private cachePath='d:/temp/dcctest/cache/';
 
-    override async init(repoPath: string): Promise<void> {
-        await super.init(repoPath);
-        await promisify(fs.mkdir)(this.cachePath+'objects',{recursive:true});
+    override async init(repoPath: string,cachePath:string): Promise<void> {
+        await super.init(repoPath,cachePath);
+        if(cachePath) this.cachePath = cachePath;
+        await promisify(fs.mkdir)(path.join(this.cachePath,'objects'),{recursive:true});
     }
 
-    override async read(url: string, encode: "utf8" | "buffer"): Promise<string | ArrayBuffer> {
+    override async read(url: string, encode: "utf8" | "buffer",onlylocal:boolean): Promise<string | ArrayBuffer> {
         //先从本地读取，如果没有就从远程下载
         if(path.isAbsolute(url)){
             throw 'only 相对'
@@ -32,6 +33,8 @@ export class DCCClientFS_NodeJS extends DCCFS_NodeJS{
         }catch(e:any){
         }
         if(!ret){
+            if(onlylocal)
+                return null;
             if(this.repoPath){
                 let resp = await this.fetch(this.repoPath+url);
                 if(encode=='utf8'){
@@ -49,18 +52,16 @@ export class DCCClientFS_NodeJS extends DCCFS_NodeJS{
         //测试用：只是本地
         if(url.startsWith('file:///')){
             url = url.replace('file:///','');
-            if(path.isAbsolute(url)){
-                let buf = fs.readFileSync(url);
-                return {
-                    ok:true,
-                    arrayBuffer:async ()=>{return buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.byteLength);},
-                    text:async ()=>{ return (new TextDecoder()).decode(buf);}
-                } as unknown as Response;
-            }
-        }else{
-            throw 'xx1'
         }
-        return null;
+        if(path.isAbsolute(url)){
+            let buf = fs.readFileSync(url);
+            return {
+                ok:true,
+                arrayBuffer:async ()=>{return buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.byteLength);},
+                text:async ()=>{ return (new TextDecoder()).decode(buf);}
+            } as unknown as Response;
+        }
+        throw 'xx1'
     }
 
     //这个与DCCFS_Nodejs不同，那个是生成，这个是保存到缓存
@@ -86,5 +87,17 @@ export class DCCClientFS_NodeJS extends DCCFS_NodeJS{
         }
 
         await promisify(fs.writeFile)(absfile, content);
+    } 
+    
+    override async enumCachedObjects(callback: (objid: string) => void): Promise<void> {
+        let objects = path.join(this.cachePath,'objects');
+        let idPres = fs.readdirSync(objects);
+        for(let pre of idPres){
+            let cpath = objects+'/'+pre;
+            let objs = fs.readdirSync(cpath);
+            for(let o of objs){
+                callback(pre+o);
+            }
+        }
     }    
 }
