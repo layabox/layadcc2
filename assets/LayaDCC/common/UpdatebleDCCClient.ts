@@ -1,6 +1,9 @@
 import { LayaDCCClient } from "./LayaDCCClient";
 
 //可以更新的dcc客户端
+//简化为不更新文件，只是更新treenode的hash
+//只有zip更新（局部且通过文件更新）的时候才有用，
+//zip更新不能删除文件，只能增加文件，可能会导致无法与服务器一致
 export class UpdateableDCCClient extends LayaDCCClient{
     /**
      * 更新一个文件

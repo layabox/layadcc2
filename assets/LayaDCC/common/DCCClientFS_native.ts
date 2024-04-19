@@ -71,12 +71,16 @@ export class DCCClientFS_native implements IGitFSFileIO{
     
     //远程下载
     async fetch(url: string): Promise<Response> {
-        let ret = await myFetch(url);
-        return {
-            ok:!!ret,
-            arrayBuffer:async ()=>{return ret;},
-            text:async ()=>{ return (new TextDecoder()).decode(ret);}
-        } as unknown as Response;
+        if(TextDecoder){
+            let ret = await myFetch(url);
+            return {
+                ok:!!ret,
+                arrayBuffer:async ()=>{return ret;},
+                text:async ()=>{ return (new TextDecoder()).decode(ret);}
+            } as unknown as Response;
+        }else{
+            throw 'no TextDecoder'
+        }
     }
 
     async read(url: string, encode: "utf8" | "buffer"): Promise<string | ArrayBuffer> {

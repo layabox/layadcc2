@@ -2,6 +2,7 @@ import { cwd } from "process";
 import { LayaDCCCmd } from "../common";
 import * as path from 'path';
 import { Params } from "../common/LayaDCC";
+import { DCCAutoTest } from "../../../src/DCCAutoTest";
 
 interface IConfigData{
     enable:boolean;
@@ -23,8 +24,8 @@ export class testDCC{
         console.log('xiiii')
     }
 
-    @IEditor.menu('App/tool/LayaDCC')
-    async testdcc(){
+    @IEditor.menu('App/tool/DCC')
+    async genDCC(){
         let a = new LayaDCCCmd();
         let data = Editor.getSettings("DCCSettings").data as unknown as IConfigData;
         data.enable;
@@ -43,4 +44,9 @@ export class testDCC{
         //a.dir = path.join(Editor.projectPath,'release/web');
         a.run();        
     }    
+
+    @IEditor.menu('App/tool/DCCTest')
+    async testDCC(){
+        await DCCAutoTest.run();
+    }
 }

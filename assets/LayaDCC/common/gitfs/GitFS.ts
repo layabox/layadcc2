@@ -105,19 +105,22 @@ export class GitFS {
         this._treeNodePacks.length=0;
     }
 
-    addBlobNodePack(pack:IObjectPack){
+    addBlobPack(pack:IObjectPack,first=false){
         let idx = this._blobNodePacks.indexOf(pack);
         if(idx<0){
+            if(first){
+                this._blobNodePacks.splice(0,0,pack);
+            }
             this._blobNodePacks.push(pack);
         }
     }
-    removeBlobNodePack(pack:IObjectPack){
+    removeBlobPack(pack:IObjectPack){
         let idx = this._blobNodePacks.indexOf(pack);
         if(idx>=0){
             this._blobNodePacks.splice(idx,1);
         }
     }
-    clearBlobNodePack(){
+    clearBlobPack(){
         this._blobNodePacks.length=0;
     }
 
@@ -337,6 +340,7 @@ export class GitFS {
                     await this.visitAll(entry.treeNode!, treecb,blobcb);
                 }catch(e){
                     //失败了可能是遍历本地目录，但是本地还没有下载，没有设置远程或者访问远程失败
+                    //在没有网的情况下容易出
                     console.log('openNode error:', toHex(entry.oid));
                 }
             }else{
@@ -395,7 +399,7 @@ export class GitFS {
     async saveObject(objid: string, content: ArrayBuffer){
         let treepath = this.getObjUrl(objid);
         //let ret = await this.frw.write(treepath, content);
-        await this.frw.write(treepath,content as ArrayBuffer);
+        await this.frw.write(treepath,content as ArrayBuffer,false);
     }
 
     /**

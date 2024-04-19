@@ -37,9 +37,23 @@ export class LayaDCCClient{
             throw '重复初始化'
         }
         await this._frw.init(this._dccServer);
+
+        let rootNode:string;
+        //本地记录的head信息
+        let localRoot:string=null;
+        try{
+            //本地
+            let localHeadStr = await this._frw.read('head.json','utf8') as string;
+            let localHead = JSON.parse(localHeadStr) as RootDesc;
+            localRoot = localHead.root;
+            rootNode = localRoot;
+        }catch(e){}
+
+
         //let frw = this._frw = new DCCClientFS_web_local();
         //下载head文件
-        let headStr='';
+        let remoteHead:RootDesc=null;
+        let remoteHeadStr:string=null;
         if(headfile){
             let headResp = await this._frw.fetch(headfile);
             let tryCount=0;        
@@ -50,43 +64,41 @@ export class LayaDCCClient{
                     return false;
                 }
                 delay(100);
-                
             }
-            headStr = await headResp.text();
-            //保存head到本地
-            //TODO以后加上比较
-            await this._frw.write('head.json',headStr,true);
+            remoteHeadStr = await headResp.text();
+            remoteHead = JSON.parse(remoteHeadStr);
+            rootNode = remoteHead.root;
         }
         
-        if(!headStr){
-            //本地
-            headStr = await this._frw.read('head.json','utf8') as string;
-        }
-        if(!headStr)
+        if(!remoteHead && !localRoot)
             return false;
 
-        let dcchead = JSON.parse(headStr) as RootDesc;
         let gitfs = this._gitfs = new GitFS( this._frw);
-        //处理打包
-        if(dcchead.treePackages.length){
-            for(let packid of dcchead.treePackages){
-                let resp = await this._frw.fetch(`${this._dccServer}packfile/tree-${packid}.idx`);
-                if(!resp.ok) throw 'download treenode idx error';
-                let idxs:{id:string,start:number,length:number}[] = JSON.parse(await resp.text());
-                let resp1 = await this._frw.fetch(`${this._dccServer}packfile/tree-${packid}.pack`);
-                if(!resp1.ok) throw 'download treenode pack error';
-                let buff = await resp1.arrayBuffer();
-                //把这些对象写到本地
-                for(let nodeinfo of idxs){
-                    let nodebuff = buff.slice(nodeinfo.start, nodeinfo.start+nodeinfo.length);
-                    await this._gitfs.saveObject(nodeinfo.id,nodebuff)
+        if(localRoot && remoteHead && localRoot!=remoteHead.root){//本地不等于远端
+            //处理打包
+            if( remoteHead.treePackages.length){
+                for(let packid of remoteHead.treePackages){
+                    let resp = await this._frw.fetch(`${this._dccServer}packfile/tree-${packid}.idx`);
+                    if(!resp.ok) throw 'download treenode idx error';
+                    let idxs:{id:string,start:number,length:number}[] = JSON.parse(await resp.text());
+                    //先判断所有的index是不是都有了,如果都有的就不下载了
+                    //TODO 这个过程会不会很慢？还不如直接下载
+
+                    let resp1 = await this._frw.fetch(`${this._dccServer}packfile/tree-${packid}.pack`);
+                    if(!resp1.ok) throw 'download treenode pack error';
+                    let buff = await resp1.arrayBuffer();
+                    //把这些对象写到本地
+                    for(let nodeinfo of idxs){
+                        let nodebuff = buff.slice(nodeinfo.start, nodeinfo.start+nodeinfo.length);
+                        await this._gitfs.saveObject(nodeinfo.id,nodebuff)
+                    }
                 }
             }
         }
-        //TODO
-        await gitfs.setRoot(dcchead.root);
-        //let rootTree = await gitfs.getTreeNode(dcchead.root,null);
-        //let bbb = await gitfs.loadFileByPath('atlas/comp.png','buffer')
+
+        //初始化完成，记录head到本地
+        await this._frw.write('head.json',remoteHeadStr,true);
+        await gitfs.setRoot(rootNode);
         return true;
     }
 
@@ -167,6 +179,16 @@ export class LayaDCCClient{
         progress&&progress(1);
     }
 
+    /**
+     * 添加对象，可以用来做zip更新
+     * @param objid 
+     * @param content 
+     * @returns 
+     */
+    async addObject(objid:string, content:ArrayBuffer){
+        return this._gitfs.saveObject(objid,content);
+    }
+
     async clean(){
         let gitfs = this._gitfs;
         //遍历file
@@ -191,24 +213,6 @@ export class LayaDCCClient{
             console.log('清理节点:',id)
             gitfs.removeObject(id);
         }
-    }
-
-    mountURL(url: string) {
-
-    }
-    mountPath(p: string) {
-
-    }
-    mountZip() {
-
-    }
-
-    mountAPK() {
-
-    }
-
-    getChangedList(){
-
     }
 
     isFileChanged(url:string){

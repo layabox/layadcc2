@@ -1,5 +1,5 @@
 import * as path from "path";
-import { NodejsFRW } from "./NodejsFRW";
+import { NodejsFRW } from "./DCCFS_NodeJS";
 import { TreeNode } from "./gitfs/GitTree";
 import * as fs from 'fs'
 import { promisify } from "util";
@@ -172,6 +172,7 @@ export class LayaDCC {
                 treeSize+=size;
             }
             if(rmMergedTreeNode){
+                console.log('rm:',objFile)
                 await this.frw.rm(objFile);
             }
         }
