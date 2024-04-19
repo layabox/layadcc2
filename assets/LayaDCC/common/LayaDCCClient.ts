@@ -114,14 +114,21 @@ export class LayaDCCClient{
         return this._onlyTransUrl;
     }
 
+    /**
+     * 
+     * @param url 如果是绝对地址，并且设置是映射地址，则计算一个相对地址。如果是相对地址，则直接使用
+     * @returns 
+     */
     async readFile(url:string):Promise<ArrayBuffer|null>{
         let gitfs = this._gitfs;
         if(!gitfs)return null;
-        if(!this._pathMapToDCC){
-            url = (new URL(url)).pathname;;
-        }else{
-            if(!url.startsWith(this._pathMapToDCC)) return null;
-            url = url.substring(this._pathMapToDCC.length);
+        if( url.startsWith('http:')||url.startsWith('https:')||url.startsWith('file:')){//绝对路径
+            if(!this._pathMapToDCC){
+                url = (new URL(url)).pathname;;
+            }else{
+                if(!url.startsWith(this._pathMapToDCC)) return null;
+                url = url.substring(this._pathMapToDCC.length);
+            }
         }
 
         let buff = await gitfs.loadFileByPath(url,'buffer') as ArrayBuffer;

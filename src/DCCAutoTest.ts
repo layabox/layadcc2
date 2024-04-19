@@ -35,7 +35,11 @@ async function test_nodePack_downloadOnce(){
 
     //这个不应该再次下载index包
     let dcc2 = new LayaDCCClient(DCCClientFS_NodeJS,dccurl);
-    dcc2.init(headFile);
+    await dcc2.init(headFile);
+    console.log((new TextDecoder()).decode(await dcc2.readFile('dir/txtindir.txt')));
+    dcc2.pathMapToDCC='file:///a/b/';
+    console.log((new TextDecoder()).decode(await dcc2.readFile('file:///a/b/dir/txtindir.txt')));
+
 }
 
 async function ttt(){
