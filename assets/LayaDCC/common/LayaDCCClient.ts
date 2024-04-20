@@ -6,6 +6,13 @@ function delay(ms:number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+//流程记录，可以用来做测试
+export interface ICheckLog{
+    enableLogCheck:boolean;
+    checkLog(event:string):void;
+    clear():void;
+}
+
 export class LayaDCCClient{
     private _frw:IGitFSFileIO;
     //是否只把请求的url转换成hash
@@ -15,20 +22,29 @@ export class LayaDCCClient{
     private _pathMapToDCC='';
     //dcc的服务器根目录地址
     private _dccServer:string;
+    private _logger:ICheckLog=null;
 
     /**
      * 
      * @param frw 
      * @param dccurl dcc的服务器地址
      */
-    constructor(frw:new ()=>IGitFSFileIO, dccurl:string){
+    constructor(frw:new ()=>IGitFSFileIO, dccurl:string, logger:ICheckLog=null){
         if(dccurl && !dccurl.endsWith('/')) dccurl+='/';
         this._dccServer=dccurl;
         this._frw = new frw();
+        if(logger){
+            this._logger=logger;
+            logger.clear();
+        }
     }
 
     get fileIO(){
         return this._frw;
+    }
+
+    private log(msg:string){
+        this._logger && this._logger.checkLog(msg);
     }
 
     set pathMapToDCC(v:string){
@@ -86,7 +102,9 @@ export class LayaDCCClient{
         if( !localRoot || (remoteHead && localRoot!=remoteHead.root)){//本地不等于远端
             //处理打包
             if( remoteHead.treePackages.length){
+                this.log('需要下载treenode')
                 for(let packid of remoteHead.treePackages){
+                    this.log(`下载treenode:${packid}`);
                     let resp = await this._frw.fetch(`${this._dccServer}packfile/tree-${packid}.idx`);
                     if(!resp.ok) throw 'download treenode idx error';
                     let idxs:{id:string,start:number,length:number}[] = JSON.parse(await resp.text());

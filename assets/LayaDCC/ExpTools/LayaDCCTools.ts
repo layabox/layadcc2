@@ -1,4 +1,4 @@
-import { LayaDCC, Params } from "../common/LayaDCC";
+import { Params } from "../common/LayaDCC";
 import AdmZip from "adm-zip"
 import * as fs from 'fs'
 import * as path from "path";
@@ -6,7 +6,6 @@ import * as os from 'os';
 import {promisify} from 'util'
 import { LayaDCCClient } from "../common/LayaDCCClient";
 import { DCCClientFS_NodeJS } from "../common/DCCClientFS_NodeJS";
-import { cwd } from "process";
 
 function enumDccObjects(dccpath:string){
     let ret:string[]=[];
@@ -24,35 +23,16 @@ function enumDccObjects(dccpath:string){
 
 export class LayaDCCTools{
     static genDCC(srcpath:string, outpath:string, param:Params){
-
     }
 
     //直接把一个dcc目录打包，使用当前的root
     static genZipPatch(dccpath:string){
+        //先检查是否有打包，如果有先解开
         let all = enumDccObjects(dccpath);
-
-    }
-
-    ttt(){
-
-// 创建一个临时目录
-fs.mkdtemp(path.join(os.tmpdir(), 'your-prefix-'), (err, directory) => {
-    if (err) throw err;
-    console.log(`临时目录已创建在 ${directory}`);
-  
-    // 在这里执行你的操作...
-  
-    // 操作完成后，删除临时目录
-    fs.rmdir(directory, { recursive: true }, (err) => {
-      if (err) throw err;
-      console.log('临时目录已删除');
-    });
-  });        
     }
 
     //比较两个dcc目录，把差异（只是new增加的）打包，使用new的root作为root
     static async genZipByComparePath(dccold:string, dccnew:string){
-        debugger;
         //创建一个临时目录
         let basepath = path.join(os.tmpdir(), 'layadcc');
         try{
@@ -68,14 +48,13 @@ fs.mkdtemp(path.join(os.tmpdir(), 'your-prefix-'), (err, directory) => {
         let allnew:string[]=[];
 
         console.log('开始统计',dccold);
-        //TODO 不对，没有统计blob文件
-        await dccclient1.updateAll(null);   //由于有打包等问题，最好还是完全更新
+        await dccclient1.updateAll(null);   //需要保证有blob节点。由于有打包等问题，最好还是完全更新
         await dccclient1.fileIO.enumCachedObjects((objid)=>{allold.push(objid);});
         console.log('开始统计',dccnew);
         await dccclientNew.updateAll(null);
         await dccclientNew.fileIO.enumCachedObjects((objid)=>{allnew.push(objid);});
-        console.log('比较差异...')
 
+        console.log('比较差异...')
         let changed:string[]=[];
         let oldset = new Set();
         allold.forEach(id=>{oldset.add(id);})
@@ -100,24 +79,15 @@ fs.mkdtemp(path.join(os.tmpdir(), 'your-prefix-'), (err, directory) => {
                 zip.addFile(objid,Buffer.from(buf));
             }
         }
-        zip.writeZip('d:/temp/dcc.zip');
-        console.log('完成')
-
+        let zipPath = 'd:/temp/dcc.zip';
+        zip.writeZip(zipPath);
+        console.log('删除临时目录：', basepath);
         await promisify(fs.rmdir)(basepath,{recursive:true})
+        console.log('完成')
+        return zipPath;
     }
 
     static async getZipByRev(dcc:string, revold:number, revnew:number){
 
-    }
-
-    zip(){
-        const zip = new AdmZip();
-        zip.addFile("textfile.txt", Buffer.from("This is the content of text file", "utf-8"));
-
-        // 添加一个已存在的文件
-        zip.addLocalFile("/path/to/file.txt");
-        
-        // 将ZIP文件保存到磁盘
-        zip.writeZip(/*target path*/"./path/to/createdZip.zip");        
     }
 }

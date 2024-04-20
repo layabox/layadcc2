@@ -2,8 +2,29 @@ import { LayaDCCTools } from "../assets/LayaDCC/ExpTools/LayaDCCTools";
 import { DCCClientFS_NodeJS } from "../assets/LayaDCC/common/DCCClientFS_NodeJS";
 import { DCCFS_NodeJS } from "../assets/LayaDCC/common/DCCFS_NodeJS";
 import { LayaDCC, Params } from "../assets/LayaDCC/common/LayaDCC";
-import { LayaDCCClient } from "../assets/LayaDCC/common/LayaDCCClient";
+import { ICheckLog, LayaDCCClient } from "../assets/LayaDCC/common/LayaDCCClient";
+import AdmZip from "adm-zip"
 
+function verify(v:boolean, desc:string){
+    if(!v) throw desc;
+    console.log(`%cOK:${desc}`,'color: green;');
+}
+
+class TestCheckLog implements ICheckLog{
+    enableLogCheck: boolean;
+    private logs:string[]=[];
+    checkLog(event: string): void {
+        if(!this.enableLogCheck)return;
+        
+    }
+    clear(): void {
+        this.logs.length=0;
+    }    
+
+    has(msg:string){
+        return this.logs.some(v=>v==msg);
+    }
+}
 //utils
 function getAbs(p:string){
     return Editor.projectPath+'/dcctest/'+p;
@@ -12,6 +33,7 @@ function getAbs(p:string){
 
 export class DCCAutoTest{
     static async run(){
+        await test_nodePack_downloadOnce();
         await testZip();
     }
 }
@@ -41,11 +63,16 @@ async function test_nodePack_downloadOnce(){
         return false;
 
     //这个不应该再次下载index包
-    let dcc2 = new LayaDCCClient(DCCClientFS_NodeJS,dccurl);
+    let logger = new TestCheckLog();
+    let dcc2 = new LayaDCCClient(DCCClientFS_NodeJS,dccurl, logger);
     await dcc2.init(headFile,null);
-    console.log((new TextDecoder()).decode(await dcc2.readFile('dir/txtindir.txt')));
+    verify(!logger.has('需要下载treenode'),'不应该下载treenode包');
+    logger.clear();
+    let cont = (new TextDecoder()).decode(await dcc2.readFile('dir/txtindir.txt'));
+    verify(cont=='txtindir.txt','文件内容不对');
     dcc2.pathMapToDCC='file:///a/b/';
-    console.log((new TextDecoder()).decode(await dcc2.readFile('file:///a/b/dir/txtindir.txt')));
+    cont = (new TextDecoder()).decode(await dcc2.readFile('file:///a/b/dir/txtindir.txt'));
+    verify(cont=='txtindir.txt','带目录替换的地址文件内容不对')
 
 }
 
@@ -60,7 +87,13 @@ async function testZip(){
     dcc.params = param;
     await dcc.genDCC(Editor.projectPath+'/dcctest/ver2');
 
-    await LayaDCCTools.genZipByComparePath(getAbs('dccout1'),getAbs('dccout2'))
+    let zipfile = await LayaDCCTools.genZipByComparePath(getAbs('dccout1'),getAbs('dccout2'));
+
+    //检查zip内容
+    let zip = new AdmZip(zipfile);
+    verify(2==zip.getEntryCount(), '必须包含两个节点，一个是tree一个是blob');
+    let cc = zip.getEntry("00c994feced3af6ee4d6190d59fb316df83e8e31").getData();
+    verify((new TextDecoder()).decode(cc)=='ver2','文件内容不对');
 }
 
 async function ttt(){
