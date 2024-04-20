@@ -4,10 +4,20 @@ import { DCCFS_NodeJS } from "../assets/LayaDCC/common/DCCFS_NodeJS";
 import { LayaDCC, Params } from "../assets/LayaDCC/common/LayaDCC";
 import { ICheckLog, LayaDCCClient } from "../assets/LayaDCC/common/LayaDCCClient";
 import AdmZip from "adm-zip"
+import * as fs from 'fs'
+import * as path from "path";
+import * as os from 'os';
+import { Zip_Native } from "../assets/LayaDCC/common/Zip_Native";
+import { Zip_Nodejs } from "../assets/LayaDCC/common/Zip_NodeJS";
+
 
 function verify(v:boolean, desc:string){
     if(!v) throw desc;
     console.log(`%cOK:${desc}`,'color: green;');
+}
+
+function decode(buf:Buffer|ArrayBuffer){
+    return (new TextDecoder()).decode(buf);
 }
 
 class TestCheckLog implements ICheckLog{
@@ -68,10 +78,10 @@ async function test_nodePack_downloadOnce(){
     await dcc2.init(headFile,null);
     verify(!logger.has('需要下载treenode'),'不应该下载treenode包');
     logger.clear();
-    let cont = (new TextDecoder()).decode(await dcc2.readFile('dir/txtindir.txt'));
+    let cont = decode(await dcc2.readFile('dir/txtindir.txt'));
     verify(cont=='txtindir.txt','文件内容不对');
     dcc2.pathMapToDCC='file:///a/b/';
-    cont = (new TextDecoder()).decode(await dcc2.readFile('file:///a/b/dir/txtindir.txt'));
+    cont = decode(await dcc2.readFile('file:///a/b/dir/txtindir.txt'));
     verify(cont=='txtindir.txt','带目录替换的地址文件内容不对')
 
 }
@@ -82,6 +92,9 @@ async function testZip(){
     dcc.params = param;
     param.dccout = Editor.projectPath+'/dcctest/dccout1'
     await dcc.genDCC(Editor.projectPath+'/dcctest/ver1');
+    let bb = fs.readFileSync(path.join(Editor.projectPath+'/dcctest/dccout1','objects/69','3253c6c7bb2298e1cf9e7768f5f8342dea87ea'));
+    verify(!!bb,'不能缺少blob')
+    
 
     param.dccout = Editor.projectPath+'/dcctest/dccout2'
     dcc.params = param;
@@ -91,9 +104,27 @@ async function testZip(){
 
     //检查zip内容
     let zip = new AdmZip(zipfile);
-    verify(2==zip.getEntryCount(), '必须包含两个节点，一个是tree一个是blob');
+    verify(3==zip.getEntryCount(), '必须包含两个节点，一个是tree一个是blob，再加一个描述');
     let cc = zip.getEntry("00c994feced3af6ee4d6190d59fb316df83e8e31").getData();
-    verify((new TextDecoder()).decode(cc)=='ver2','文件内容不对');
+    verify(decode(cc)=='ver2','文件内容不对');
+
+    let root = JSON.parse(decode(zip.getEntry('head.json').getData())).root;
+    verify(root=='90ca87c602f132407250bcf2ae8368f629ec43d7','必须包含新版的root')
+
+    //应用zip
+    let dccurl = getAbs('dccout1');
+    let client = new LayaDCCClient(DCCClientFS_NodeJS,dccurl);
+    let iniok = await client.init(path.join(dccurl,'head.json'), null);
+    verify(iniok,'initok')
+    await client.updateAll(null);
+    await client.updateByZip(zipfile, window.conch?Zip_Native:Zip_Nodejs,null);
+    await client.clean();
+    //let headAfterUpdate = await client.readFile('head.json');
+    //head.json不是gitfs的，需要底层访问
+    let headAfterUpdate = await client.fileIO.read('head.json','utf8',true) as string;
+    let headobj = JSON.parse(headAfterUpdate)
+    verify(headobj.root=='90ca87c602f132407250bcf2ae8368f629ec43d7','updateByZip 要更新head.json');
+
 }
 
 async function ttt(){

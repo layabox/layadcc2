@@ -269,6 +269,7 @@ interface ZipFile{
     readFile(id:number):ArrayBuffer;
     close():void;
     readAsTextByName(name:string):string;
+    readAsArrayBufferByName(name:string):ArrayBuffer;
     new ():ZipFile;
 }
 

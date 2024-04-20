@@ -79,6 +79,8 @@ export class LayaDCCTools{
                 zip.addFile(objid,Buffer.from(buf));
             }
         }
+        //添加描述信息
+        zip.addLocalFile(path.join(dccnew,'head.json'));
         let zipPath = 'd:/temp/dcc.zip';
         zip.writeZip(zipPath);
         console.log('删除临时目录：', basepath);

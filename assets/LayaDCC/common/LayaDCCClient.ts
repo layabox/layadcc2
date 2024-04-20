@@ -13,6 +13,19 @@ export interface ICheckLog{
     clear():void;
 }
 
+export interface IZipEntry{
+    entryName: string;
+    getData(): Uint8Array;//Uint8Array比arraybuffer的优势是可以共享buffer
+    isDirectory: boolean;
+}
+export interface IZip{
+    open(file:string):void;
+    getEntryCount():number;
+    getEntry(e:string):IZipEntry;
+    forEach(callback: (entry: IZipEntry) => void):void;
+    close():void;
+}
+
 export class LayaDCCClient{
     private _frw:IGitFSFileIO;
     //是否只把请求的url转换成hash
@@ -44,6 +57,7 @@ export class LayaDCCClient{
     }
 
     private log(msg:string){
+        console.log(msg);
         this._logger && this._logger.checkLog(msg);
     }
 
@@ -180,6 +194,7 @@ export class LayaDCCClient{
     }
 
     //在第一次调用progress之前是下载节点的过程
+    //初始话的时候已经保存head.json了所以这里不必更新
     async updateAll(progress:(p:number)=>void){
         let gitfs = this._gitfs;
         //为了能统计，需要先下载所有的目录节点，这段时间是无法统计的
@@ -195,6 +210,7 @@ export class LayaDCCClient{
         //统计所有树上的
         await gitfs.visitAll(gitfs.treeRoot,async (tree)=>{
             //下载
+            //TODO 注意控制并发
             if(!locals.has(tree.sha))
                 await this._frw.read( gitfs.getObjUrl(tree.sha),'buffer',false)
         },async (blob)=>{
@@ -204,17 +220,40 @@ export class LayaDCCClient{
             }
         })
         //
-        console.log('need update:',needUpdateFiles.length);
-        needUpdateFiles.forEach(id=>{console.log(id);});
-        let p = 0;
+        this.log(`updateAll need update ${needUpdateFiles.length}`);
+        //needUpdateFiles.forEach(id=>{console.log(id);});
         progress&&progress(0);
         for(let i=0,n=needUpdateFiles.length; i<n; i++){
             let id = needUpdateFiles[i];
             //TODO并发
             await this._frw.read(gitfs.getObjUrl(id),'buffer',false);
+            this.log(`updateAll: update obj:${id}`);
             progress&&progress(i/n);
         }
         progress&&progress(1);
+    }
+
+    /**
+     * 根据zip更新
+     * 这个会修改本地保存的root
+     * @param zipfile 
+     * @param progress 
+     */
+    async updateByZip(zipfile:string,zipClass:new()=>IZip, progress:(p:number)=>void){
+        let zip = new zipClass();
+        zip.open(zipfile);
+        //TODO 数据太多的时候要控制并发
+        zip.forEach(async entry=>{
+            await this.addObject(entry.entryName,entry.getData())
+        })
+        debugger;
+        //写head
+        let buf = zip.getEntry('head.json');
+        await this._frw.write('head.json',buf.getData().buffer,true);
+        //更新自己的root
+        let localHeadStr = await this._frw.read('head.json','utf8',true) as string;
+        let localHead = JSON.parse(localHeadStr) as RootDesc;        
+        await this._gitfs.setRoot(localHead.root);
     }
 
     /**

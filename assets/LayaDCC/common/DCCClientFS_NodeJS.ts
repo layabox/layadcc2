@@ -1,4 +1,3 @@
-import { DCCFS_NodeJS } from "./DCCFS_NodeJS";
 import {promisify} from 'util'
 import * as fs from 'fs'
 import * as path from "path";
@@ -9,16 +8,17 @@ import { IGitFSFileIO } from "./gitfs/GitFS";
  * 主要是封装了一个缓存目录
  * 
  */
-export class DCCClientFS_NodeJS extends DCCFS_NodeJS{
+export class DCCClientFS_NodeJS implements IGitFSFileIO{
+    repoPath: string;
     private cachePath='d:/temp/dcctest/cache/';
 
-    override async init(repoPath: string,cachePath:string): Promise<void> {
-        await super.init(repoPath,cachePath);
+    async init(repoPath: string,cachePath:string): Promise<void> {
+        this.repoPath=repoPath;
         if(cachePath) this.cachePath = cachePath;
         await promisify(fs.mkdir)(path.join(this.cachePath,'objects'),{recursive:true});
     }
 
-    override async read(url: string, encode: "utf8" | "buffer",onlylocal:boolean): Promise<string | ArrayBuffer> {
+    async read(url: string, encode: "utf8" | "buffer",onlylocal:boolean): Promise<string | ArrayBuffer> {
         //先从本地读取，如果没有就从远程下载
         if(path.isAbsolute(url)){
             throw 'only 相对'
@@ -48,7 +48,7 @@ export class DCCClientFS_NodeJS extends DCCFS_NodeJS{
         return ret;
     }
 
-    override async fetch(url: string): Promise<Response> {
+    async fetch(url: string): Promise<Response> {
         //测试用：只是本地
         if(url.startsWith('file:///')){
             url = url.replace('file:///','');
@@ -65,7 +65,7 @@ export class DCCClientFS_NodeJS extends DCCFS_NodeJS{
     }
 
     //这个与DCCFS_Nodejs不同，那个是生成，这个是保存到缓存
-    override async write(url: string, content: string | ArrayBuffer, overwrite?:boolean) {
+    async write(url: string, content: string | ArrayBuffer, overwrite?:boolean) {
         if(path.isAbsolute(url)){
             throw 'only rel'
             //url = path.relative(this.cachePath,url);
@@ -89,7 +89,7 @@ export class DCCClientFS_NodeJS extends DCCFS_NodeJS{
         await promisify(fs.writeFile)(absfile, content);
     } 
     
-    override async enumCachedObjects(callback: (objid: string) => void): Promise<void> {
+    async enumCachedObjects(callback: (objid: string) => void): Promise<void> {
         let objects = path.join(this.cachePath,'objects');
         let idPres = fs.readdirSync(objects);
         for(let pre of idPres){
@@ -100,4 +100,36 @@ export class DCCClientFS_NodeJS extends DCCFS_NodeJS{
             }
         }
     }    
+
+    rm(url: string): Promise<void> {
+        let absfile = path.resolve(this.cachePath,url);
+        return promisify(fs.rm)(absfile)
+    }    
+    async isFileExist(url: string): Promise<boolean> {
+        try {
+            await promisify(fs.access)(url, fs.constants.F_OK);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+    unzip(buff: ArrayBuffer): ArrayBuffer {
+        throw new Error("Method not implemented.");
+    }
+    zip(buff: ArrayBuffer): ArrayBuffer {
+        throw new Error("Method not implemented.");
+    }
+    textencode(text: string): ArrayBuffer {
+        return Buffer.from(text, 'utf-8').buffer;
+    }
+    textdecode(buffer: ArrayBuffer, off: number): string {
+        if (!(buffer instanceof ArrayBuffer)) {
+            throw new Error("Input must be an ArrayBuffer.");
+        }
+        return Buffer.from(buffer).toString('utf-8', off);
+    }
+    mv(src: string, dst: string): Promise<unknown> {
+        return promisify(fs.rename)(src,dst);
+    }
+
 }
