@@ -158,7 +158,7 @@ export class GitFS {
     }
 
     async getCommitHead(url:string){
-        let commit = await this.frw.read(url,'utf8') as string;
+        let commit = await this.frw.read(url,'utf8',false) as string;
         if(commit){
             this.recentCommits = commit.split('\n');
             return this.recentCommits[0];
@@ -198,7 +198,7 @@ export class GitFS {
 
     async getCommit(objid: string) {
         let commitobjFile = this.getObjUrl(objid);
-        let buff = await this.frw.read(commitobjFile, 'buffer') as ArrayBuffer;
+        let buff = await this.frw.read(commitobjFile, 'buffer',false) as ArrayBuffer;
         let cc:GitCommit;
         if(buff){
             cc = new GitCommit(this.frw.unzip(buff), objid);
@@ -230,7 +230,7 @@ export class GitFS {
         let treepath = this.getObjUrl(objid);
         let buff:ArrayBuffer;
         try{
-            buff = await this.frw.read(treepath, 'buffer') as ArrayBuffer;
+            buff = await this.frw.read(treepath, 'buffer',false) as ArrayBuffer;
         }catch(e){}
         if(!buff){
             //从所有的包中查找
@@ -271,7 +271,7 @@ export class GitFS {
         let objpath = this.getObjUrl(strid);
         let buff:ArrayBuffer|null=null;
         try{
-            let objbuff = await this.frw.read(objpath, 'buffer') as ArrayBuffer;
+            let objbuff = await this.frw.read(objpath, 'buffer',false) as ArrayBuffer;
             if(objbuff){
                 buff = GitFS.zip?this.frw.unzip(objbuff):objbuff;
             }

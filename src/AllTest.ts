@@ -60,7 +60,7 @@ export class AllTest extends Laya.Script {
         dcc.onlyTransUrl=false;
         dcc.pathMapToDCC= urlbase;
 
-        let initok = await dcc.init(headFile);
+        let initok = await dcc.init(headFile,null);
         if(!initok)
             return false;
         

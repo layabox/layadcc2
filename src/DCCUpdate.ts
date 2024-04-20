@@ -27,7 +27,7 @@ export class DCCUpdate{
         dcc.onlyTransUrl=false;
 
         console.log('初始化dcc开始');
-        let initok = await dcc.init(headFile);
+        let initok = await dcc.init(headFile,null);
         console.log('初始化dcc结束');
         if(!initok)
             return false;
@@ -53,7 +53,7 @@ export class DCCUpdate{
         dcc.onlyTransUrl=false;
 
         console.log('初始化dcc开始');
-        let initok = await dcc.init(headFile);
+        let initok = await dcc.init(headFile,null);
         console.log('初始化dcc结束');
         if(!initok)
             return false;
@@ -65,7 +65,7 @@ export class DCCUpdate{
         let dcc = this.dcc = new DCCClient( DCCClientFS, null);
         dcc.onlyTransUrl=false;
         console.log('初始化dcc开始');
-        let initok = await dcc.init(null);
+        let initok = await dcc.init(null,null);
         console.log('初始化dcc结束');
         if(!initok)
             return false;

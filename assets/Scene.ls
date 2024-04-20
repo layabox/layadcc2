@@ -281,6 +281,27 @@
           "cmd": "commondown"
         }
       ]
+    },
+    {
+      "_$id": "mkzh5trk",
+      "_$type": "Button",
+      "name": "Button(6)",
+      "x": 722,
+      "y": 286,
+      "width": 120,
+      "height": 40,
+      "_mouseState": 2,
+      "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
+      "label": "Title",
+      "labelSize": 20,
+      "labelAlign": "center",
+      "labelVAlign": "middle",
+      "_$comp": [
+        {
+          "_$type": "7bad1742-6eed-4d8d-81c0-501dc5bf03d6",
+          "scriptPath": "../src/Main.ts"
+        }
+      ]
     }
   ]
 }
