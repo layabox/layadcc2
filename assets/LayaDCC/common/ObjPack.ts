@@ -7,10 +7,17 @@ export class ObjPack implements IObjectPack{
     private _packFile:string;
     private idxInfo:{id:string,start:number,length:number}[];
 
-    constructor(fs:IGitFSFileIO,packid:string){
+    /**
+     * 
+     * @param type 
+     * @param fs 读取整体包文件的。虽然只有读，但是为了通用（例如磁盘的，网络的，apk内的）还是用了IGitFSFileIO接口
+     * @param packid 
+     */
+    constructor(type:'tree'|'blob',fs:IGitFSFileIO,packid:string){
         this._frw=fs;
-        this._idxFile = this.packPath+'tree-'+packid+'.idx';
-        this._packFile = this.packPath+'tree-'+packid+'.pack';
+        let pre = type=='tree'?'tree-':'blob-';
+        this._idxFile = this.packPath+pre+packid+'.idx';
+        this._packFile = this.packPath+pre+packid+'.pack';
     }
 
     async init(): Promise<boolean> {

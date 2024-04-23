@@ -1,6 +1,6 @@
 import { FileNode } from "./FSData";
 import { CommitInfo, GitCommit } from "./GitCommit";
-import { shasum, toHex } from "./GitFSUtils";
+import { readUTF8, shasum, toHex } from "./GitFSUtils";
 import { TreeEntry, TreeNode } from "./GitTree";
 
 export async function readBinFile(file: File) {
@@ -282,7 +282,7 @@ export class GitFS {
         }
 
         if (encode == 'utf8') {
-            let str = (new TextDecoder()).decode(buff);
+            let str = readUTF8(buff);
             return str;
         } else {
             return buff;

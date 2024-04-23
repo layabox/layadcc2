@@ -60,7 +60,7 @@ export class IndexDBFileRW implements IGitFSFileIO {
                 debugger;
             };
             request.onsuccess = function(event) {
-                if (request.result) {
+                if (request.result && request.result.content) {
                     const result: ArrayBuffer = request.result.content;
                     if(typeof result == 'string'){
                         if(encode==='utf8') resolve(result);

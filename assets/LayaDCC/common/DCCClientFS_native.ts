@@ -3,6 +3,7 @@
  * 
  */
 
+import { Env } from "./Env";
 import { IGitFSFileIO } from "./gitfs/GitFS";
 
 function myFetch(url:string, encode:'utf8'|'buffer'='buffer') {
@@ -76,7 +77,7 @@ export class DCCClientFS_native implements IGitFSFileIO{
             return {
                 ok:!!ret,
                 arrayBuffer:async ()=>{return ret;},
-                text:async ()=>{ return (new TextDecoder()).decode(ret);}
+                text:async ()=>{ Env.dcodeUtf8(ret);}
             } as unknown as Response;
         }else{
             throw 'no TextDecoder'
@@ -89,7 +90,7 @@ export class DCCClientFS_native implements IGitFSFileIO{
         try{
             ret = fs_readFileSync(this.getAbsPath(url));
             if(encode=='utf8'){
-                ret = (new TextDecoder()).decode(ret);
+                ret = Env.dcodeUtf8(ret);
             }
         }catch(e:any){
         }
@@ -142,7 +143,7 @@ export class DCCClientFS_native implements IGitFSFileIO{
     }
 
     textdecode(buffer: ArrayBuffer, off: number): string {
-        return new TextDecoder().decode(buffer);
+        return Env.dcodeUtf8(buffer);
     }
 
     async rm(url: string): Promise<void> {

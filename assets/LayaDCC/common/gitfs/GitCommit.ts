@@ -1,5 +1,5 @@
 import { IGitFSFileIO } from "./GitFS";
-import { shasum, toHex } from "./GitFSUtils";
+import { readUTF8, shasum, toHex } from "./GitFSUtils";
 
 export class CommitInfo{
     tree:string;   //20byte
@@ -34,7 +34,7 @@ export class GitCommit{
         let l = (len>0?len:buff.byteLength);
         buff = buff.slice(off,off+l);
         let newbuff = new Uint8Array(buff);
-        return (new TextDecoder()).decode(newbuff);
+        return readUTF8(newbuff);
     }
 
     private strToBuff(str:string){

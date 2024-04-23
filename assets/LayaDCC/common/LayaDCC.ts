@@ -65,7 +65,7 @@ export class LayaDCC {
             //打包文件
             if(headobj.treePackages){
                 for(let packid of headobj.treePackages){
-                    let pack = new ObjPack(this.frw,packid);
+                    let pack = new ObjPack('tree',this.frw,packid);
                     await pack.init();
                     this.gitfs.addObjectPack(pack);
                 }

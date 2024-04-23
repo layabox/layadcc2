@@ -137,6 +137,7 @@ export class LayaDCCClient{
         //初始化apk包资源
         if(window.conch){
             let appResPack = new ObjPack_AppRes('cache/dcc2.0');
+            await appResPack.init();
             gitfs.addObjectPack(appResPack);
         }
 

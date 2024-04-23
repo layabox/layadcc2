@@ -2,6 +2,7 @@ import {promisify} from 'util'
 import * as fs from 'fs'
 import * as path from "path";
 import { IGitFSFileIO } from "./gitfs/GitFS";
+import { Env } from './Env';
 
 /**
  * 客户端使用的基于nodejs的文件接口
@@ -28,7 +29,7 @@ export class DCCClientFS_NodeJS implements IGitFSFileIO{
         try{
             ret = await promisify(fs.readFile)(absLocal);
             if(encode=='utf8'){
-                ret = (new TextDecoder()).decode(ret);
+                ret = Env.dcodeUtf8(ret);
             }
         }catch(e:any){
         }

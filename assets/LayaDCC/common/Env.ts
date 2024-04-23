@@ -9,4 +9,9 @@ export class Env{
     static isNative(){}
     static isWeb(){}
     static isNode(){}
+
+    //根据不同的平台实现
+    static dcodeUtf8(buf:ArrayBuffer){
+        return (new TextDecoder()).decode(buf);
+    }
 }

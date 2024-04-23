@@ -3,11 +3,12 @@
  * 
  */
 
+import { Env } from "../Env";
 import { createHash } from "./sha1";
 
 
-export function readUTF8(buf:Uint8Array, len?:number){
-	return new TextDecoder().decode( new Uint8Array(buf.buffer, len));
+export function readUTF8(buf:Uint8Array|ArrayBuffer){
+	return Env.dcodeUtf8(buf);
 }
 
 // 返回写了多少

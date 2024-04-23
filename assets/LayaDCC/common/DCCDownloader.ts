@@ -1,3 +1,4 @@
+import { Env } from "./Env";
 import { LayaDCCClient } from "./LayaDCCClient";
 
 
@@ -42,10 +43,10 @@ export class DCCDownloader extends Laya.Downloader{
                     if(!buff) return url;
                     switch(contentType){
                         case 'text':
-                            onComplete( new TextDecoder().decode(buff));
+                            onComplete( Env.dcodeUtf8(buff));
                             return null;
                         case 'json':
-                            onComplete(JSON.parse(new TextDecoder().decode(buff)));
+                            onComplete(JSON.parse(Env.dcodeUtf8(buff)));
                             return null;
                         case 'arraybuffer':
                             onComplete(buff);

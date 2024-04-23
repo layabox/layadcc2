@@ -1,4 +1,4 @@
-import path, { resolve } from "path";
+//import path, { resolve } from "path";
 import { AppResReader_Native } from "../assets/LayaDCC/common/AppResReader_Native";
 import { DCCDownloader } from "../assets/LayaDCC/common/DCCDownloader";
 import { DCCUpdate, UniDCCClient } from "./DCCUpdate";
@@ -70,16 +70,21 @@ export class AllTest extends Laya.Script {
         let dcc = new UniDCCClient( null );
         dcc.pathMapToDCC= urlbase;
         let initok = await dcc.init(null,null);
+        //读取缓存目录的head.json
         let txt = await dcc.fileIO.read('head.json','utf8',true)
         console.log('read head.json:'+txt);
 
+        //用相对目录访问
         let ab = await dcc.readFile("txt.txt");
         let tt = (new TextDecoder()).decode(ab);
         console.log('tt:',tt)
 
         //测试绝对地址的
+        let down = new DCCDownloader(dcc)
+        down.injectToLaya();
+
         let layaload = await Laya.loader.load('http://10.10.20.26:8899/txt.txt')
-        console.log(''+layaload)
+        console.log(''+layaload.data)
     }
 
     private async update1(){
@@ -118,7 +123,7 @@ export class AllTest extends Laya.Script {
         let cachePath = conch.getCachePath();
         let localfile =  cachePath+url.substr(url.lastIndexOf('/'));
     
-        return new Promise((resolv,reject)=>{
+        return new Promise((resolve,reject)=>{
                 downloadBigFile(url, localfile, (total, now, speed) => {
                     //onEvent('downloading', Math.floor((now / total) * 100), null);
                     return false;
@@ -145,7 +150,7 @@ export class AllTest extends Laya.Script {
         //let dccurl = getAbs('dccout1');
         let dccurl=''
         let client = new UniDCCClient('http://10.10.20.26:6666/dccout2');
-        let iniok = await client.init(path.join(dccurl,'head.json'), null);
+        let iniok = await client.init(dccurl+'head.json', null);
         await client.updateAll(null);
         //await client.updateByZip(zipfile, window.conch?Zip_Native:Zip_Nodejs,null);
         await client.updateByZip(zipfile, Zip_Native,null);
