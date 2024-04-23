@@ -113,21 +113,23 @@ export class LayaDCCClient{
         //下载head文件
         let remoteHead:RootDesc=null;
         let remoteHeadStr:string=null;
-        if(headfile){
-            let headResp = await this._frw.fetch(headfile);
-            let tryCount=0;        
-            while(!headResp.ok){
-                headResp = await this._frw.fetch(headfile);
-                tryCount++;
-                if(tryCount>10){
-                    return false;
+        try{
+            if(headfile){
+                let headResp = await this._frw.fetch(headfile);
+                let tryCount=0;        
+                while(!headResp.ok){
+                    headResp = await this._frw.fetch(headfile);
+                    tryCount++;
+                    if(tryCount>10){
+                        return false;
+                    }
+                    delay(100);
                 }
-                delay(100);
+                remoteHeadStr = await headResp.text();
+                remoteHead = JSON.parse(remoteHeadStr);
+                rootNode = remoteHead.root;
             }
-            remoteHeadStr = await headResp.text();
-            remoteHead = JSON.parse(remoteHeadStr);
-            rootNode = remoteHead.root;
-        }
+        }catch(e){}
         
         if(!remoteHead && !localRoot)
             //如果本地和远程都没有dcc数据，则返回，不做dcc相关设置
@@ -273,7 +275,10 @@ export class LayaDCCClient{
         zip.open(zipfile);
         //TODO 数据太多的时候要控制并发
         zip.forEach(async entry=>{
-            await this.addObject(entry.entryName,entry.getData())
+            if(entry.entryName=='head.json'){
+            }else{
+                await this.addObject(entry.entryName,entry.getData())
+            }
         })
         debugger;
         //写head

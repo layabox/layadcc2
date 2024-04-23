@@ -3,6 +3,7 @@ import { AppResReader_Native } from "../assets/LayaDCC/common/AppResReader_Nativ
 import { DCCDownloader } from "../assets/LayaDCC/common/DCCDownloader";
 import { DCCUpdate, UniDCCClient } from "./DCCUpdate";
 import { Zip_Native } from "../assets/LayaDCC/common/Zip_Native";
+import { Env } from "../assets/LayaDCC/common/Env";
 
 const { regClass, property, Loader} = Laya;
 
@@ -128,11 +129,11 @@ export class AllTest extends Laya.Script {
 
     private async downloadBigZip(url:string):Promise<string|null>{
         let cachePath = conch.getCachePath();
-        let localfile =  cachePath+url.substr(url.lastIndexOf('/'));
+        let localfile =  cachePath+url.substring(url.lastIndexOf('/'));
     
         return new Promise((resolve,reject)=>{
                 downloadBigFile(url, localfile, (total, now, speed) => {
-                    //onEvent('downloading', Math.floor((now / total) * 100), null);
+                    console.log(`downloading:${Math.floor((now / total) * 100)}`)
                     return false;
                 }, (curlret, httpret) => {
                     if (curlret != 0 || httpret < 200 || httpret >= 300) {
@@ -148,16 +149,23 @@ export class AllTest extends Laya.Script {
         );
     }
 
+    /**
+测试方法：
+1. 生成zip包，old=ver2,new=ver1。 注意不能直接把dccout1打zip，因为更新用的zip包只是一堆对象，不是原来的文件结构
+2. 这个zip包放到项目服务器 :8899/update/dccout1.zip 
+2. dcc初始化为dccout2
+3. 下载zip更新。最后再取 txt.txt应该是 "ver1.txt"
+    */
     private async zipUpdate(){
-        let zipfile = await this.downloadBigZip('todo url')
+        let zipfile = await this.downloadBigZip('http://10.10.20.26:8899/update/dccout1.zip')
         //先用dccout2
         //然后把1打包，保存到手机上
         //用zip更新
             //cache path
         //let dccurl = getAbs('dccout1');
-        let dccurl=''
-        let client = new UniDCCClient('http://10.10.20.26:6666/dccout2');
-        let iniok = await client.init(dccurl+'head.json', null);
+        let dccurl='http://10.10.20.26:6666/dccout2'
+        let client = new UniDCCClient(dccurl);
+        let iniok = await client.init(dccurl+'/head.json', null);
         await client.updateAll(null);
         //await client.updateByZip(zipfile, window.conch?Zip_Native:Zip_Nodejs,null);
         await client.updateByZip(zipfile, Zip_Native,null);
@@ -166,6 +174,10 @@ export class AllTest extends Laya.Script {
         //head.json不是gitfs的，需要底层访问
         let headAfterUpdate = await client.fileIO.read('head.json','utf8',true) as string;
         let headobj = JSON.parse(headAfterUpdate)
+        let txtbuf = await client.readFile('txt.txt');
+        let txt = Env.dcodeUtf8(txtbuf);
+        //txt='ver1'
+        console.log(`txt:${txt}`);
         //verify(headobj.root=='90ca87c602f132407250bcf2ae8368f629ec43d7','updateByZip 要更新head.json');
     
     }
