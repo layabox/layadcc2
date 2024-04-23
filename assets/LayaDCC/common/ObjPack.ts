@@ -15,7 +15,7 @@ export class ObjPack implements IObjectPack{
 
     async init(): Promise<boolean> {
         try{
-            this.idxInfo = JSON.parse(await this._frw.read(this._idxFile,'utf8') as string)
+            this.idxInfo = JSON.parse(await this._frw.read(this._idxFile,'utf8',true) as string)
         }catch(e){
             throw 'open pack error';
             return false;
@@ -39,7 +39,7 @@ export class ObjPack implements IObjectPack{
     }
 
     private async readPart(file:string,start:number, end:number){
-        const rawData = await this._frw.read(file, 'buffer') as ArrayBuffer;
+        const rawData = await this._frw.read(file, 'buffer',true) as ArrayBuffer;
         return rawData.slice(start,end)
     }
    

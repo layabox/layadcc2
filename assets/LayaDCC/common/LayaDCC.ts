@@ -67,7 +67,7 @@ export class LayaDCC {
                 for(let packid of headobj.treePackages){
                     let pack = new ObjPack(this.frw,packid);
                     await pack.init();
-                    this.gitfs.addTreeNodePack(pack);
+                    this.gitfs.addObjectPack(pack);
                 }
             }
             rootNode = await this.gitfs.getTreeNode(headobj.root,null);

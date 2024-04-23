@@ -1,3 +1,5 @@
+import { AppResReader_Native } from "./AppResReader_Native";
+import { ObjPack_AppRes } from "./ObjPack_AppRes";
 import { RootDesc } from "./RootDesc";
 import { GitFS, IGitFSFileIO } from "./gitfs/GitFS";
 import { toHex } from "./gitfs/GitFSUtils";
@@ -77,6 +79,23 @@ export class LayaDCCClient{
         }
         await this._frw.init(this._dccServer,cachePath);
 
+        //判断是不是新的安装
+        if(window.conch){
+            //如果是的话，拷贝出apk中的head
+            let appres = new AppResReader_Native();
+            //规则：如果第一次安装，直接使用apk内的，如果是覆盖安装，则比较时间差。比较的作用是防止万一没有网络的情况下，apk内的资源比较旧..
+            try{
+                let apphead = await appres.getRes('cache/dcc2.0/head.json','buffer') as ArrayBuffer;
+                if(apphead){
+                    //暂时直接拷贝覆盖，应该也是正确的
+                    await this._frw.write('head.json',apphead,true);
+                }
+            }catch(e){
+                console.log('LayaDCCClient init error: no head.json in package')
+            }
+        }
+
+
         let rootNode:string;
         //本地记录的head信息
         let localRoot:string=null;
@@ -110,9 +129,17 @@ export class LayaDCCClient{
         }
         
         if(!remoteHead && !localRoot)
+            //如果本地和远程都没有dcc数据，则返回，不做dcc相关设置
             return false;
 
         let gitfs = this._gitfs = new GitFS( this._frw);
+
+        //初始化apk包资源
+        if(window.conch){
+            let appResPack = new ObjPack_AppRes('cache/dcc2.0');
+            gitfs.addObjectPack(appResPack);
+        }
+
         if( !localRoot || (remoteHead && localRoot!=remoteHead.root)){//本地不等于远端
             //处理打包
             if( remoteHead.treePackages.length){
@@ -210,9 +237,9 @@ export class LayaDCCClient{
         //统计所有树上的
         await gitfs.visitAll(gitfs.treeRoot,async (tree)=>{
             //下载
-            //TODO 注意控制并发
             if(!locals.has(tree.sha))
-                await this._frw.read( gitfs.getObjUrl(tree.sha),'buffer',false)
+                //理论上不应该走到这里，应为visitAll的时候都下载了
+                await this._frw.read( gitfs.getObjUrl(tree.sha),'buffer',false);
         },async (blob)=>{
             let id = toHex(blob.oid);
             if(!locals.has(id)){
@@ -225,7 +252,7 @@ export class LayaDCCClient{
         progress&&progress(0);
         for(let i=0,n=needUpdateFiles.length; i<n; i++){
             let id = needUpdateFiles[i];
-            //TODO并发
+            //TODO 并发以提高效率
             await this._frw.read(gitfs.getObjUrl(id),'buffer',false);
             this.log(`updateAll: update obj:${id}`);
             progress&&progress(i/n);

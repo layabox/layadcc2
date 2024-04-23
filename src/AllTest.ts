@@ -1,5 +1,8 @@
+import path, { resolve } from "path";
+import { AppResReader_Native } from "../assets/LayaDCC/common/AppResReader_Native";
 import { DCCDownloader } from "../assets/LayaDCC/common/DCCDownloader";
 import { DCCUpdate, UniDCCClient } from "./DCCUpdate";
+import { Zip_Native } from "../assets/LayaDCC/common/Zip_Native";
 
 const { regClass, property, Loader} = Laya;
 
@@ -38,6 +41,9 @@ export class AllTest extends Laya.Script {
             case 'imgSrc':
                 await this.imgSrc();
                 break;
+            case 'update':
+                this.update1();
+                break;
             case 'updateAll':
                 await this.updateAll();
                 break;
@@ -47,7 +53,40 @@ export class AllTest extends Laya.Script {
             case 'commondown':
                 await this.commonDown();
                 break;
+            case 'zipupdate':
+                await this.zipUpdate();
+                break;
+            case 'apkres':
+                await this.apkRes();
+                break;
         }
+    }
+
+    private async apkRes(){
+        let urlbase = 'http://10.10.20.26:8899/';
+        //let dccurl = 'http://localhost:7788/'
+        let headFile = 'http://localhost:7788/version.3.0.0.json'
+
+        let dcc = new UniDCCClient( null );
+        dcc.pathMapToDCC= urlbase;
+        let initok = await dcc.init(null,null);
+        let txt = await dcc.fileIO.read('head.json','utf8',true)
+        console.log('read head.json:'+txt);
+
+        let ab = await dcc.readFile("txt.txt");
+        let tt = (new TextDecoder()).decode(ab);
+        console.log('tt:',tt)
+
+        //测试绝对地址的
+        let layaload = await Laya.loader.load('http://10.10.20.26:8899/txt.txt')
+        console.log(''+layaload)
+    }
+
+    private async update1(){
+        let r = new AppResReader_Native();
+        console.log('ikikik')
+        let rtxt1 = await r.getRes('cache/dcc2.0/head.json','utf8');
+        console.log('ikikik2'+rtxt1)
     }
 
     private async commonDown(){
@@ -60,7 +99,7 @@ export class AllTest extends Laya.Script {
         dcc.onlyTransUrl=false;
         dcc.pathMapToDCC= urlbase;
 
-        let initok = await dcc.init(headFile);
+        let initok = await dcc.init(headFile,null);
         if(!initok)
             return false;
         
@@ -73,6 +112,50 @@ export class AllTest extends Laya.Script {
         downloader.removeFromLaya();
         let lmtl1 = await Laya.loader.load(urlbase+'mtls/Material.lmat');
         debugger;
+    }
+
+    private async downloadBigZip(url:string):Promise<string|null>{
+        let cachePath = conch.getCachePath();
+        let localfile =  cachePath+url.substr(url.lastIndexOf('/'));
+    
+        return new Promise((resolv,reject)=>{
+                downloadBigFile(url, localfile, (total, now, speed) => {
+                    //onEvent('downloading', Math.floor((now / total) * 100), null);
+                    return false;
+                }, (curlret, httpret) => {
+                    if (curlret != 0 || httpret < 200 || httpret >= 300) {
+                        //onEvent('downloadError');
+                        resolve(null);
+                    }
+                    else {
+                        //onEvent('downloadOK');
+                        resolve(localfile);
+                    }
+                }, 10, 100000000);        
+            }
+        );
+    }
+
+    private async zipUpdate(){
+        let zipfile = await this.downloadBigZip('todo url')
+        //先用dccout2
+        //然后把1打包，保存到手机上
+        //用zip更新
+            //cache path
+        //let dccurl = getAbs('dccout1');
+        let dccurl=''
+        let client = new UniDCCClient('http://10.10.20.26:6666/dccout2');
+        let iniok = await client.init(path.join(dccurl,'head.json'), null);
+        await client.updateAll(null);
+        //await client.updateByZip(zipfile, window.conch?Zip_Native:Zip_Nodejs,null);
+        await client.updateByZip(zipfile, Zip_Native,null);
+        await client.clean();
+        //let headAfterUpdate = await client.readFile('head.json');
+        //head.json不是gitfs的，需要底层访问
+        let headAfterUpdate = await client.fileIO.read('head.json','utf8',true) as string;
+        let headobj = JSON.parse(headAfterUpdate)
+        //verify(headobj.root=='90ca87c602f132407250bcf2ae8368f629ec43d7','updateByZip 要更新head.json');
+    
     }
 
     private async clean(){

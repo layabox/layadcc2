@@ -153,7 +153,14 @@
       "label": "更新",
       "labelSize": 20,
       "labelAlign": "center",
-      "labelVAlign": "middle"
+      "labelVAlign": "middle",
+      "_$comp": [
+        {
+          "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
+          "scriptPath": "../src/AllTest.ts",
+          "cmd": "update"
+        }
+      ]
     },
     {
       "_$id": "7cphrnol",
@@ -279,6 +286,50 @@
           "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
           "scriptPath": "../src/AllTest.ts",
           "cmd": "commondown"
+        }
+      ]
+    },
+    {
+      "_$id": "d1deevim",
+      "_$type": "Button",
+      "name": "Button(6)",
+      "x": 179,
+      "y": 504,
+      "width": 120,
+      "height": 40,
+      "_mouseState": 2,
+      "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
+      "label": "zip",
+      "labelSize": 20,
+      "labelAlign": "center",
+      "labelVAlign": "middle",
+      "_$comp": [
+        {
+          "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
+          "scriptPath": "../src/AllTest.ts",
+          "cmd": "zipupdate"
+        }
+      ]
+    },
+    {
+      "_$id": "ff8bvubd",
+      "_$type": "Button",
+      "name": "Button(7)",
+      "x": 75,
+      "y": 445,
+      "width": 120,
+      "height": 40,
+      "_mouseState": 2,
+      "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
+      "label": "APK资源",
+      "labelSize": 20,
+      "labelAlign": "center",
+      "labelVAlign": "middle",
+      "_$comp": [
+        {
+          "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
+          "scriptPath": "../src/AllTest.ts",
+          "cmd": "apkres"
         }
       ]
     }

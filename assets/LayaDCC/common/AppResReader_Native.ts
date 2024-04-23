@@ -1,9 +1,5 @@
 
-export interface IResReader{
-    getRes(file:string, encode:'utf8'|'buffer'):Promise<string|ArrayBuffer>;
-}
-
-export class AppResReader_Native implements IResReader{
+export class AppResReader_Native{
     async getRes(file:string, encode:'utf8'|'buffer'){
         return conch.readFileFromAsset(file,encode)
     }

@@ -49,4 +49,11 @@ export class testDCC{
     async testDCC(){
         await DCCAutoTest.run();
     }
+
+    @IEditor.menu('App/tool/DCCZip')
+    async testDCCZip(){
+        let a = new LayaDCCCmd();
+        a.genzip('','');
+    }
+
 }

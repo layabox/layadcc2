@@ -76,9 +76,7 @@ export class GitFS {
     user: string;       // 用户名。提交用。
 
     checkDownload=false;
-
-    private _treeNodePacks:IObjectPack[]=[];
-    private _blobNodePacks:IObjectPack[]=[];
+    private _objectPacks:IObjectPack[]=[];
 
     /**
      * 
@@ -89,39 +87,23 @@ export class GitFS {
         this.frw = filerw;
     }
 
-    addTreeNodePack(pack:IObjectPack){
-        let idx = this._treeNodePacks.indexOf(pack);
-        if(idx<0){
-            this._treeNodePacks.push(pack);
-        }
-    }
-    removeTreeNodePack(pack:IObjectPack){
-        let idx = this._treeNodePacks.indexOf(pack);
-        if(idx>=0){
-            this._treeNodePacks.splice(idx,1);
-        }
-    }
-    clearTreeNodePack(){
-        this._treeNodePacks.length=0;
-    }
-
-    addBlobPack(pack:IObjectPack,first=false){
-        let idx = this._blobNodePacks.indexOf(pack);
+    addObjectPack(pack:IObjectPack,first=false){
+        let idx = this._objectPacks.indexOf(pack);
         if(idx<0){
             if(first){
-                this._blobNodePacks.splice(0,0,pack);
+                this._objectPacks.splice(0,0,pack);
             }
-            this._blobNodePacks.push(pack);
+            this._objectPacks.push(pack);
         }
     }
-    removeBlobPack(pack:IObjectPack){
-        let idx = this._blobNodePacks.indexOf(pack);
+    removeObjectPack(pack:IObjectPack){
+        let idx = this._objectPacks.indexOf(pack);
         if(idx>=0){
-            this._blobNodePacks.splice(idx,1);
+            this._objectPacks.splice(idx,1);
         }
     }
-    clearBlobPack(){
-        this._blobNodePacks.length=0;
+    clearObjectPack(){
+        this._objectPacks.length=0;
     }
 
     /**
@@ -158,7 +140,7 @@ export class GitFS {
     }
 
     async getCommitHead(url:string){
-        let commit = await this.frw.read(url,'utf8') as string;
+        let commit = await this.frw.read(url,'utf8',false) as string;
         if(commit){
             this.recentCommits = commit.split('\n');
             return this.recentCommits[0];
@@ -198,7 +180,7 @@ export class GitFS {
 
     async getCommit(objid: string) {
         let commitobjFile = this.getObjUrl(objid);
-        let buff = await this.frw.read(commitobjFile, 'buffer') as ArrayBuffer;
+        let buff = await this.frw.read(commitobjFile, 'buffer',false) as ArrayBuffer;
         let cc:GitCommit;
         if(buff){
             cc = new GitCommit(this.frw.unzip(buff), objid);
@@ -230,11 +212,11 @@ export class GitFS {
         let treepath = this.getObjUrl(objid);
         let buff:ArrayBuffer;
         try{
-            buff = await this.frw.read(treepath, 'buffer') as ArrayBuffer;
+            buff = await this.frw.read(treepath, 'buffer',false) as ArrayBuffer;
         }catch(e){}
         if(!buff){
             //从所有的包中查找
-            for(let pack of this._treeNodePacks){
+            for(let pack of this._objectPacks){
                 if(!pack) continue;
                 if(await pack.has(objid)){
                     buff = await pack.get(objid)
@@ -271,14 +253,14 @@ export class GitFS {
         let objpath = this.getObjUrl(strid);
         let buff:ArrayBuffer|null=null;
         try{
-            let objbuff = await this.frw.read(objpath, 'buffer') as ArrayBuffer;
+            let objbuff = await this.frw.read(objpath, 'buffer',false) as ArrayBuffer;
             if(objbuff){
                 buff = GitFS.zip?this.frw.unzip(objbuff):objbuff;
             }
         }catch(e){
         }
         if(!buff){
-            for(let pack of this._blobNodePacks){
+            for(let pack of this._objectPacks){
                 if(!pack) continue;
                 if(await pack.has(strid)){
                     buff = await pack.get(strid)

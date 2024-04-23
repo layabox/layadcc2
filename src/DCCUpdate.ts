@@ -27,7 +27,7 @@ export class DCCUpdate{
         dcc.onlyTransUrl=false;
 
         console.log('初始化dcc开始');
-        let initok = await dcc.init(headFile);
+        let initok = await dcc.init(headFile,null);
         console.log('初始化dcc结束');
         if(!initok)
             return false;
