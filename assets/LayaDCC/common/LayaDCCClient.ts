@@ -280,7 +280,6 @@ export class LayaDCCClient{
                 await this.addObject(entry.entryName,entry.getData())
             }
         })
-        debugger;
         //写head
         let buf = zip.getEntry('head.json');
         await this._frw.write('head.json',buf.getData().buffer,true);

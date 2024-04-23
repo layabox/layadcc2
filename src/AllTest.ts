@@ -103,7 +103,6 @@ export class AllTest extends Laya.Script {
     }
 
     private async commonDown(){
-        debugger;
         let urlbase = 'http://localhost:8899/';
         let dccurl = 'http://localhost:7788/'
         let headFile = 'http://localhost:7788/version.3.0.0.json'
@@ -163,7 +162,7 @@ export class AllTest extends Laya.Script {
         //用zip更新
             //cache path
         //let dccurl = getAbs('dccout1');
-        let dccurl='http://10.10.20.26:6666/dccout2'
+        let dccurl='http://10.10.20.26:6677/dccout2'
         let client = new UniDCCClient(dccurl);
         let iniok = await client.init(dccurl+'/head.json', null);
         await client.updateAll(null);
@@ -183,7 +182,6 @@ export class AllTest extends Laya.Script {
     }
 
     private async clean(){
-        debugger;
         let dcc = new DCCUpdate();
         await dcc.clean()
     }
@@ -197,7 +195,6 @@ export class AllTest extends Laya.Script {
     }
 
     private async imgSrc(){
-        debugger;
         let dcc = new DCCUpdate();
         await dcc.update();
         let img2 = new Laya.Image();

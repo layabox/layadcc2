@@ -77,7 +77,7 @@ export class DCCClientFS_native implements IGitFSFileIO{
             return {
                 ok:!!ret,
                 arrayBuffer:async ()=>{return ret;},
-                text:async ()=>{ Env.dcodeUtf8(ret);}
+                text:async ()=>{ return Env.dcodeUtf8(ret);}
             } as unknown as Response;
         }else{
             throw 'no TextDecoder'

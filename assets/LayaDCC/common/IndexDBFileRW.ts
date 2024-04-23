@@ -29,7 +29,6 @@ export class IndexDBFileRW implements IGitFSFileIO {
             const request = indexedDB.open(this.dbName, this.dbVersion);
             request.onerror = (event) => {
                 console.error('Database error: ', (event.target as IDBRequest).error);
-                debugger;
                 reject((event.target as IDBRequest).error); // 使用 reject 报告错误
             };
             request.onsuccess = (event) => {
@@ -57,7 +56,6 @@ export class IndexDBFileRW implements IGitFSFileIO {
             const request = objectStore.get(url);
             request.onerror = function(event) {
                 reject('Unable to retrieve data');
-                debugger;
             };
             request.onsuccess = function(event) {
                 if (request.result && request.result.content) {
