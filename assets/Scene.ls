@@ -315,8 +315,8 @@
       "_$id": "ff8bvubd",
       "_$type": "Button",
       "name": "Button(7)",
-      "x": 75,
-      "y": 445,
+      "x": 110,
+      "y": 437,
       "width": 120,
       "height": 40,
       "_mouseState": 2,
@@ -330,6 +330,21 @@
           "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
           "scriptPath": "../src/AllTest.ts",
           "cmd": "apkres"
+        }
+      ],
+      "_$child": [
+        {
+          "_$id": "xsdyncb1",
+          "_$type": "Text",
+          "name": "Text",
+          "x": 155.16063674139792,
+          "y": 2.92147634903381,
+          "width": 120,
+          "height": 30,
+          "text": "Text",
+          "fontSize": 20,
+          "color": "#FFFFFF",
+          "leading": 2
         }
       ]
     }

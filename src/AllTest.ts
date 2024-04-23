@@ -62,6 +62,7 @@ export class AllTest extends Laya.Script {
         }
     }
 
+    //apk资源测试
     private async apkRes(){
         let urlbase = 'http://10.10.20.26:8899/';
         //let dccurl = 'http://localhost:7788/'
@@ -83,15 +84,15 @@ export class AllTest extends Laya.Script {
         let down = new DCCDownloader(dcc)
         down.injectToLaya();
 
-        let layaload = await Laya.loader.load('http://10.10.20.26:8899/txt.txt')
+        let layaload = await Laya.loader.load('http://10.10.20.26:8899/txt.txt',Laya.Loader.TEXT)
         console.log(''+layaload.data)
+        let _txt = this.owner.getChildByName('Text') as Laya.Text;
+        _txt.text = layaload.data;
     }
 
     private async update1(){
         let r = new AppResReader_Native();
-        console.log('ikikik')
         let rtxt1 = await r.getRes('cache/dcc2.0/head.json','utf8');
-        console.log('ikikik2'+rtxt1)
     }
 
     private async commonDown(){

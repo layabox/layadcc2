@@ -1,5 +1,9 @@
 {
   "name": "DCCPlugin",
   "startupScene": "res://9b931ecf-fde9-44dd-acf3-15f8dc807965",
-  "copyBinFiles": false
+  "copyBinFiles": false,
+  "android": {
+    "version": "release-v3.1.2",
+    "packResources": false
+  }
 }
