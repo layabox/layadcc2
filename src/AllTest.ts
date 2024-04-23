@@ -64,12 +64,16 @@ export class AllTest extends Laya.Script {
 
     //apk资源测试
     private async apkRes(){
-        let urlbase = 'http://10.10.20.26:8899/';
-        //let dccurl = 'http://localhost:7788/'
-        let headFile = 'http://localhost:7788/version.3.0.0.json'
+        /**
+测试方法：
+1. 把dccout2中的内容拷贝到android的assets/cache/dcc2.0/目录下
+2. 这个测试不需要服务器，apk中已经包含资源了
+         */
 
+        //let dccurl = 'http://localhost:7788/'
+        //let headFile = 'http://localhost:7788/version.3.0.0.json'
+        
         let dcc = new UniDCCClient( null );
-        dcc.pathMapToDCC= urlbase;
         let initok = await dcc.init(null,null);
         //读取缓存目录的head.json
         let txt = await dcc.fileIO.read('head.json','utf8',true)
@@ -81,10 +85,12 @@ export class AllTest extends Laya.Script {
         console.log('tt:',tt)
 
         //测试绝对地址的
+        dcc.pathMapToDCC= 'http://bu.cun.zai:8899/';
+
         let down = new DCCDownloader(dcc)
         down.injectToLaya();
 
-        let layaload = await Laya.loader.load('http://10.10.20.26:8899/txt.txt',Laya.Loader.TEXT)
+        let layaload = await Laya.loader.load('http://bu.cun.zai:8899/txt.txt',Laya.Loader.TEXT)
         console.log(''+layaload.data)
         let _txt = this.owner.getChildByName('Text') as Laya.Text;
         _txt.text = layaload.data;

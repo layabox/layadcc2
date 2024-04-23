@@ -38,6 +38,7 @@ export class LayaDCCClient{
     //dcc的服务器根目录地址
     private _dccServer:string;
     private _logger:ICheckLog=null;
+    dccPathInAssets='cache/dcc2.0'
 
     /**
      * 
@@ -85,7 +86,7 @@ export class LayaDCCClient{
             let appres = new AppResReader_Native();
             //规则：如果第一次安装，直接使用apk内的，如果是覆盖安装，则比较时间差。比较的作用是防止万一没有网络的情况下，apk内的资源比较旧..
             try{
-                let apphead = await appres.getRes('cache/dcc2.0/head.json','buffer') as ArrayBuffer;
+                let apphead = await appres.getRes(this.dccPathInAssets+'/head.json','buffer') as ArrayBuffer;
                 if(apphead){
                     //暂时直接拷贝覆盖，应该也是正确的
                     await this._frw.write('head.json',apphead,true);
@@ -136,7 +137,7 @@ export class LayaDCCClient{
 
         //初始化apk包资源
         if(window.conch){
-            let appResPack = new ObjPack_AppRes('cache/dcc2.0');
+            let appResPack = new ObjPack_AppRes(this.dccPathInAssets);
             await appResPack.init();
             gitfs.addObjectPack(appResPack);
         }
