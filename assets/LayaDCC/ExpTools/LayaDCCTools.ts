@@ -1,5 +1,5 @@
 import { Params } from "../common/LayaDCC";
-import AdmZip from "adm-zip"
+//import AdmZip from "adm-zip"
 import * as fs from 'fs'
 import * as path from "path";
 import * as os from 'os';
@@ -64,26 +64,32 @@ export class LayaDCCTools{
         })
         console.log(`发现差异文件${changed.length}个.`)
         console.log('写文件...')
-        const zip = new AdmZip();
+
+        fs.mkdirSync(outPath,{recursive:true});
+        let zipPath = path.join(outPath,outFile??"dcc.zip");
+        //const zip = new AdmZip();
+        let zip = new IEditor.ZipFileW(zipPath);
         for(let objid of changed){
             try{
                 let file = path.join(dccnew,await dccclientNew.getObjectUrl(objid));
                 console.log(file);
                 let buf = fs.readFileSync(file);
-                zip.addFile(objid,buf);
+                //zip.addFile(objid,buf);
+                zip.addBuffer(objid, new Uint8Array(buf));
             }catch(e){
                 //由于打包了，dcc服务器目录可能缺少文件，所以在dcc客户端读取
                 let file = path.join(dccnew,await dccclientNew.getObjectUrl(objid));
                 console.log(file);
                 let buf = await dccclientNew.fileIO.read(await dccclientNew.getObjectUrl(objid),'buffer',false) as ArrayBuffer;
-                zip.addFile(objid,Buffer.from(buf));
+                //zip.addFile(objid,Buffer.from(buf));
+                zip.addBuffer(objid,new Uint8Array(buf));
             }
         }
         //添加描述信息
-        zip.addLocalFile(path.join(dccnew,'head.json'));
-        fs.mkdirSync(outPath,{recursive:true});
-        let zipPath = path.join(outPath,outFile??"dcc.zip");
-        zip.writeZip(zipPath);
+        //zip.addLocalFile(path.join(dccnew,'head.json'));
+        zip.addFile(path.join(dccnew,'head.json'),'head.json');
+        //zip.writeZip(zipPath);
+        zip.save(zipPath);
         console.log('删除临时目录：', basepath);
         await promisify(fs.rmdir)(basepath,{recursive:true})
         console.log('完成')

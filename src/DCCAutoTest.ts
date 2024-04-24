@@ -8,7 +8,7 @@ import * as fs from 'fs'
 import * as path from "path";
 import * as os from 'os';
 import { Zip_Native } from "../assets/LayaDCC/common/Zip_Native";
-import { Zip_Nodejs } from "../assets/LayaDCC/common/Zip_NodeJS";
+import { Zip_Nodejs } from "./Zip_NodeJS";
 
 
 function verify(v:boolean, desc:string){
@@ -42,6 +42,15 @@ function getAbs(p:string){
 //
 
 export class DCCAutoTest{
+    @IEditor.onLoad
+    static init1(){
+    }    
+
+    @IEditor.menu('App/tool/DCCTest')
+    async testDCC(){
+        await DCCAutoTest.run();
+    }
+
     static async run(){
         await test_nodePack_downloadOnce();
         await testZip();

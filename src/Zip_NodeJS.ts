@@ -1,4 +1,4 @@
-import { IZip, IZipEntry } from "./LayaDCCClient";
+import { IZip, IZipEntry } from "../assets/LayaDCC/common/LayaDCCClient";
 import AdmZip from "adm-zip"
 
 export class Zip_Nodejs implements IZip{

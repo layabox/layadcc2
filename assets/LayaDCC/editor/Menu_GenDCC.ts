@@ -1,9 +1,6 @@
-import { cwd } from "process";
+import * as fs from 'fs';
 import { LayaDCCCmd } from "../common";
-import * as path from 'path';
-import * as fs from 'fs'
 import { Params } from "../common/LayaDCC";
-import { DCCAutoTest } from "../../../src/DCCAutoTest";
 import { GenDCCZipDialog } from "./GenDCCZipDialog";
 
 interface IConfigData{
@@ -58,11 +55,6 @@ export class testDCC{
         //a.dir = path.join(Editor.projectPath,'release/web');
         a.run();        
     }    
-
-    //@IEditor.menu('App/tool/DCCTest')
-    async testDCC(){
-        await DCCAutoTest.run();
-    }
 
     @IEditor.menu('App/tool/DCC生成Zip')
     async testDCCZip(){
