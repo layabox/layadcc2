@@ -89,7 +89,7 @@ export class LayaDCCTools{
         //zip.addLocalFile(path.join(dccnew,'head.json'));
         zip.addFile(path.join(dccnew,'head.json'),'head.json');
         //zip.writeZip(zipPath);
-        zip.save(zipPath);
+        await zip.save(zipPath);
         console.log('删除临时目录：', basepath);
         await promisify(fs.rmdir)(basepath,{recursive:true})
         console.log('完成')
