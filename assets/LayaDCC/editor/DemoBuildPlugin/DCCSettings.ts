@@ -30,14 +30,6 @@ export class DCCSettings extends IEditor.EditorPanel {
                         hidden: "!data.enable",
                     },
                     {
-                        name: "useExportDir",
-                        caption:"处理导出目录",
-                        type: "boolean",
-                        default: true,
-                        hidden: "!data.enable",
-                        tips:'使用导出资源计算dcc，如果希望指定其他目录，关闭此标记',
-                    },                    
-                    {
                         name: "targetPath",
                         caption:'资源目录',
                         type: "string",
@@ -46,9 +38,8 @@ export class DCCSettings extends IEditor.EditorPanel {
                             absolutePath: true,
                             properties: ["openDirectory"]
                         },
-                        //type: "string",
                         default: Editor.projectPath+'/release/web/',
-                        hidden: "!data.enable || data.useExportDir",
+                        hidden: "!data.enable",
                     },
                     {
                         name: "outputPath",
@@ -70,13 +61,13 @@ export class DCCSettings extends IEditor.EditorPanel {
                         hidden: "!data.enable",
                         tips:"指定资源版本，如果保留老的资源，则不同的版本可以共存",
                     },                           
-                    {
-                        name: "reserveOldAssets",
-                        caption:"保留老的资源",
-                        type: "boolean",
-                        default: true,
-                        hidden: "!data.enable",
-                    },               
+                    // {
+                    //     name: "reserveOldAssets",
+                    //     caption:"保留老的资源",
+                    //     type: "boolean",
+                    //     default: true,
+                    //     hidden: "!data.enable",
+                    // },               
                     {
                         name: "fastMode",
                         caption:"快速模式",

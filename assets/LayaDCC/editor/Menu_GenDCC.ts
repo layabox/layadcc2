@@ -1,6 +1,7 @@
 import { cwd } from "process";
 import { LayaDCCCmd } from "../common";
 import * as path from 'path';
+import * as fs from 'fs'
 import { Params } from "../common/LayaDCC";
 import { DCCAutoTest } from "../../../src/DCCAutoTest";
 import { GenDCCZipDialog } from "./GenDCCZipDialog";
@@ -27,11 +28,21 @@ export class testDCC{
         console.log('xiiii')
     }
 
-    @IEditor.menu('App/tool/DCC')
+    @IEditor.menu('App/tool/生成DCC')
     async genDCC(){
         let a = new LayaDCCCmd();
         let data = Editor.getSettings("DCCSettings").data as unknown as IConfigData;
-        data.enable;
+        //检查参数
+        if(!data.targetPath ||!fs.existsSync(data.targetPath)){
+            alert(`需要设置正确的资源目录。
+资源目录设置在：构建发布>DCC `);
+            return;
+        }
+        if(!data.outputPath){
+            alert(`需要设置正确输出目录。
+输出目录设置在：构建发布>DCC `);
+            return;
+        }
         let params = new Params();
         params.dccout = data.outputPath;
         //params.outfile = data.OutputFile;
@@ -39,25 +50,21 @@ export class testDCC{
         params.fast = data.fastMode;
         params.desc = data.desc;
         params.mergeFile = data.mergeSmallFiles;
-        params.fileToMerge = data.maxSmallFileSize*1024;
-        params.mergedFileSize=data.maxPackSize*1024;
-        if(!data.useExportDir && data.targetPath )
-            a.dir = data.targetPath;
-        else{
-            a.dir;
-        }
+        params.fileToMerge = data.maxSmallFileSize??100*1024;
+        params.mergedFileSize=data.maxPackSize??1000*1024;
+        a.dir = data.targetPath;
         a.params = params;
         
         //a.dir = path.join(Editor.projectPath,'release/web');
         a.run();        
     }    
 
-    @IEditor.menu('App/tool/DCCTest')
+    //@IEditor.menu('App/tool/DCCTest')
     async testDCC(){
         await DCCAutoTest.run();
     }
 
-    @IEditor.menu('App/tool/DCCZip')
+    @IEditor.menu('App/tool/DCC生成Zip')
     async testDCCZip(){
         Editor.showDialog(GenDCCZipDialog, null);
         //let a = new LayaDCCCmd();
