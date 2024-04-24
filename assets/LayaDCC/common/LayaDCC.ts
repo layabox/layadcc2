@@ -17,7 +17,7 @@ export class Params{
     dccout = "dccout";
     outfile='version'
     //用户需要指定版本号，这样可以精确控制。如果已经存在注意提醒
-    version='1.0.1';  
+    version='1.0.0';  
     fast=true;
     desc:string;
 }
@@ -46,7 +46,7 @@ export class LayaDCC {
         
         //rootNode.
         if(!fs.existsSync( dccout)){
-            fs.mkdirSync(dccout);
+            fs.mkdirSync(dccout,{recursive:true});
         }
 
         //revisions

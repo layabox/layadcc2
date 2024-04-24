@@ -29,6 +29,7 @@ export interface IZip{
 }
 
 export class LayaDCCClient{
+    static VERSION='1.0.0';
     private _frw:IGitFSFileIO;
     //是否只把请求的url转换成hash
     private _onlyTransUrl=false;
@@ -52,6 +53,13 @@ export class LayaDCCClient{
         if(logger){
             this._logger=logger;
             logger.clear();
+        }
+        this.checkEnv();
+    }
+
+    checkEnv(){
+        if(!TextDecoder){
+            alert('DCC需要TextDecoder');
         }
     }
 
