@@ -30,10 +30,13 @@ export class DCCBuildPlugin implements IEditorEnv.IBuildPlugin {
     async onCreatePackage(task: IEditorEnv.IBuildTask): Promise<void>{
     }
 
+    async onCreateManifest?(task: IEditorEnv.IBuildTask): Promise<void>{
+    }    
+    
     async onEnd(task: IEditorEnv.IBuildTask): Promise<void>{
         if (!this.config.data.enable)
             return;
-
+    
         let platform = task.platform;
         let platformParam:'android'|'ios'|'windows';
         if(platform=='android')platformParam='android';
@@ -44,7 +47,5 @@ export class DCCBuildPlugin implements IEditorEnv.IBuildPlugin {
         let dir = task.destPath;//xxx/relase/platform
         let cmd = new LayaDCCCmd();
         await cmd.genDCCCache(dir,platformParam)
-
-        debugger;
     }
 }

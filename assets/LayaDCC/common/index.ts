@@ -1,9 +1,5 @@
-import { gzip,gunzip } from "zlib";
+import * as fs from 'fs';
 import { LayaDCC, Params } from "./LayaDCC";
-import { cwd } from "process";
-import * as path from "path";
-import * as fs from 'fs'
-import { LayaDCCTools } from "../ExpTools/LayaDCCTools";
 
 const args = process.argv.slice(2);
 
@@ -73,21 +69,5 @@ export class LayaDCCCmd{
         param.dccout = cachePath+'/cache/dcc2.0/';
         await dcc.genDCC(dir+'/resource');
         console.log('完成，输出在:',param.dccout);
-    }
-
-    async genzip(dcc1:string, dcc2:string){
-        let dcc = new LayaDCC();
-        let param = new Params();
-        dcc.params = param;
-        param.dccout = Editor.projectPath+'/dcctest/dccout1'
-        await dcc.genDCC(Editor.projectPath+'/dcctest/ver1');
-        let bb = fs.readFileSync(path.join(Editor.projectPath+'/dcctest/dccout1','objects/69','3253c6c7bb2298e1cf9e7768f5f8342dea87ea'));
-        
-    
-        param.dccout = Editor.projectPath+'/dcctest/dccout2'
-        dcc.params = param;
-        await dcc.genDCC(Editor.projectPath+'/dcctest/ver2');
-    
-        let zipfile = await LayaDCCTools.genZipByComparePath(getAbs('dccout1'),getAbs('dccout2'));        
     }
 }

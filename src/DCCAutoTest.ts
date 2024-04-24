@@ -100,7 +100,7 @@ async function testZip(){
     dcc.params = param;
     await dcc.genDCC(Editor.projectPath+'/dcctest/ver2');
 
-    let zipfile = await LayaDCCTools.genZipByComparePath(getAbs('dccout1'),getAbs('dccout2'));
+    let zipfile = await LayaDCCTools.genZipByComparePath(getAbs('dccout1'),getAbs('dccout2'),Editor.projectPath+'/dcctest/');
 
     //检查zip内容
     let zip = new AdmZip(zipfile);

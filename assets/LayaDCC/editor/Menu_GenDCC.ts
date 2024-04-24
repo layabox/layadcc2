@@ -3,19 +3,22 @@ import { LayaDCCCmd } from "../common";
 import * as path from 'path';
 import { Params } from "../common/LayaDCC";
 import { DCCAutoTest } from "../../../src/DCCAutoTest";
+import { GenDCCZipDialog } from "./GenDCCZipDialog";
 
 interface IConfigData{
     enable:boolean;
+    buildCache:boolean;
     desc:string;
-    TargetPath:string;
-    OutputPath:string;
-    OutputFile:string;
+    useExportDir:boolean;
+    targetPath:string;
+    outputPath:string;
+    outputFile:string;
     version:string;
-    ReserveOldAssets:boolean;
-    FastMode:boolean;
+    reserveOldAssets:boolean;
+    fastMode:boolean;
     mergeSmallFiles:boolean;
-    MaxSmallFileSize:number;
-    MaxPackSize:number;
+    maxSmallFileSize:number;
+    maxPackSize:number;
 }
 
 export class testDCC{
@@ -30,15 +33,19 @@ export class testDCC{
         let data = Editor.getSettings("DCCSettings").data as unknown as IConfigData;
         data.enable;
         let params = new Params();
-        params.dccout = data.OutputPath;
-        params.outfile = data.OutputFile;
+        params.dccout = data.outputPath;
+        //params.outfile = data.OutputFile;
         params.version = data.version;
-        params.fast = data.FastMode;
+        params.fast = data.fastMode;
         params.desc = data.desc;
-        params.fileToMerge = data.MaxSmallFileSize*1024;
-        params.mergedFileSize=data.MaxPackSize*1024;
         params.mergeFile = data.mergeSmallFiles;
-        a.dir = data.TargetPath;
+        params.fileToMerge = data.maxSmallFileSize*1024;
+        params.mergedFileSize=data.maxPackSize*1024;
+        if(!data.useExportDir && data.targetPath )
+            a.dir = data.targetPath;
+        else{
+            a.dir;
+        }
         a.params = params;
         
         //a.dir = path.join(Editor.projectPath,'release/web');
@@ -52,8 +59,9 @@ export class testDCC{
 
     @IEditor.menu('App/tool/DCCZip')
     async testDCCZip(){
-        let a = new LayaDCCCmd();
-        a.genzip('','');
+        Editor.showDialog(GenDCCZipDialog, null);
+        //let a = new LayaDCCCmd();
+        //a.genzip('','');
     }
 
 }

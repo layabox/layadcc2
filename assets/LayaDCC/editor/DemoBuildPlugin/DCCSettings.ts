@@ -9,18 +9,38 @@ export class DCCSettings extends IEditor.EditorPanel {
                 properties: [
                     {
                         name: "enable",
+                        caption:"开启",
                         type: "boolean",
                         default: false
                     },
                     {
+                        name: "buildCache",
+                        caption:"打包资源到native",
+                        type: "boolean",
+                        default: false,
+                        hidden: "!data.enable",
+                        tips:'是否把资源打包到native应用中',
+                    },
+                    {
                         name: "desc",
+                        caption:"描述",
                         type: "string",
                         default: "dcc update",
                         tips:'本次版本描述',
                         hidden: "!data.enable",
                     },
                     {
-                        name: "TargetPath",
+                        name: "useExportDir",
+                        caption:"处理导出目录",
+                        type: "boolean",
+                        default: true,
+                        hidden: "!data.enable",
+                        tips:'使用导出资源计算dcc，如果希望指定其他目录，关闭此标记',
+                    },                    
+                    {
+                        name: "targetPath",
+                        caption:'资源目录',
+                        type: "string",
                         inspector: "File",
                         options: {
                             absolutePath: true,
@@ -28,10 +48,12 @@ export class DCCSettings extends IEditor.EditorPanel {
                         },
                         //type: "string",
                         default: Editor.projectPath+'/release/web/',
-                        hidden: "!data.enable",
+                        hidden: "!data.enable || data.useExportDir",
                     },
                     {
-                        name: "OutputPath",
+                        name: "outputPath",
+                        caption:"输出目录",
+                        type: "string",
                         inspector: "File",
                         options: {
                             absolutePath: true,
@@ -41,51 +63,55 @@ export class DCCSettings extends IEditor.EditorPanel {
                         hidden: "!data.enable",
                     },    
                     {
-                        name: "OutputFile",
-                        type: "string",
-                        default: 'version',
-                        hidden: "!data.enable",
-                    },             
-                    {
                         name: "version",
+                        caption:"版本",
                         type: "string",
                         default: '1.0.0',
                         hidden: "!data.enable",
+                        tips:"指定资源版本，如果保留老的资源，则不同的版本可以共存",
                     },                           
                     {
-                        name: "ReserveOldAssets",
+                        name: "reserveOldAssets",
+                        caption:"保留老的资源",
                         type: "boolean",
                         default: true,
                         hidden: "!data.enable",
                     },               
                     {
-                        name: "FastMode",
+                        name: "fastMode",
+                        caption:"快速模式",
                         type: "boolean",
                         default: true,
                         hidden: "!data.enable",
-                    },                       
+                        tips:"生成dcc的时候，会比较文件修改时间，时间没变则不再计算"
+                    },               
+                    /*        
                     {
                         name: "mergeSmallFiles",
+                        caption:"合并小文件",
                         type: "boolean",
                         default: false,
                         hidden: "!data.enable",
                     },                
                     {
-                        name: "MaxSmallFileSize",
-                        caption:"Max small file size (K)",
+                        name: "maxSmallFileSize",
+                        caption:"碎文件大小阈值(K)",
+                        tips:"小于这个值的文件会被打包",
                         addIndent: 1,
                         type: "number",
                         default: 100,
                         hidden: "!(data.mergeSmallFiles&&data.enable)",
                     },                
                     {
-                        name: "MaxPackSize",
-                        caption:"Max pack size (K)",
+                        name: "maxPackSize",
+                        caption:"打包文件大小阈值(K)",
+                        tips:"打包文件不会超过这个大小",
                         addIndent: 1,
                         type: "number",
                         default: 1000,
                         hidden: "!(data.mergeSmallFiles&&data.enable)",
-                    },                
+                    },          
+                    */      
 
                 ]
             }

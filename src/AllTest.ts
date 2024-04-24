@@ -162,7 +162,7 @@ export class AllTest extends Laya.Script {
         //用zip更新
             //cache path
         //let dccurl = getAbs('dccout1');
-        let dccurl='http://10.10.20.26:6677/dccout2'
+        let dccurl='http://101.10.20.26:6677/dccout2'
         let client = new UniDCCClient(dccurl);
         let iniok = await client.init(dccurl+'/head.json', null);
         await client.updateAll(null);

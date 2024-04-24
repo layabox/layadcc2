@@ -32,7 +32,7 @@ export class LayaDCCTools{
     }
 
     //比较两个dcc目录，把差异（只是new增加的）打包，使用new的root作为root
-    static async genZipByComparePath(dccold:string, dccnew:string){
+    static async genZipByComparePath(dccold:string, dccnew:string,outPath:string,outFile?:string){
         //创建一个临时目录
         let basepath = path.join(os.tmpdir(), 'layadcc');
         try{
@@ -81,7 +81,8 @@ export class LayaDCCTools{
         }
         //添加描述信息
         zip.addLocalFile(path.join(dccnew,'head.json'));
-        let zipPath = 'd:/temp/dcc.zip';
+        fs.mkdirSync(outPath,{recursive:true});
+        let zipPath = path.join(outPath,outFile??"dcc.zip");
         zip.writeZip(zipPath);
         console.log('删除临时目录：', basepath);
         await promisify(fs.rmdir)(basepath,{recursive:true})
