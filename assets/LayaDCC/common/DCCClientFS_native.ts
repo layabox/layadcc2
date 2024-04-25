@@ -43,7 +43,8 @@ export class DCCClientFS_native implements IGitFSFileIO{
 
     //file是相对cache的目录
     private makeDirsInCachePath(file:string){
-        file = file.replaceAll('\\','/');
+        file = file.replace(/\\/g, '/');
+        //file = file.replaceAll('\\','/'); 当前native不支持replaceAll
         let paths = file.split('/');
         paths.pop();//去掉文件
         if(paths.length<=0)
@@ -72,16 +73,12 @@ export class DCCClientFS_native implements IGitFSFileIO{
     
     //远程下载
     async fetch(url: string): Promise<Response> {
-        if(TextDecoder){
-            let ret = await myFetch(url);
-            return {
-                ok:!!ret,
-                arrayBuffer:async ()=>{return ret;},
-                text:async ()=>{ return Env.dcodeUtf8(ret);}
-            } as unknown as Response;
-        }else{
-            throw 'no TextDecoder'
-        }
+        let ret = await myFetch(url);
+        return {
+            ok:!!ret,
+            arrayBuffer:async ()=>{return ret;},
+            text:async ()=>{ return Env.dcodeUtf8(ret);}
+        } as unknown as Response;
     }
 
     async read(url: string, encode: "utf8" | "buffer",onlylocal:boolean): Promise<string | ArrayBuffer> {

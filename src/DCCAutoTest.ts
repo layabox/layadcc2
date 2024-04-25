@@ -54,6 +54,7 @@ export class DCCAutoTest{
     static async run(){
         await test_nodePack_downloadOnce();
         await testZip();
+        await testZip1();
     }
 }
 
@@ -133,7 +134,32 @@ async function testZip(){
     let headAfterUpdate = await client.fileIO.read('head.json','utf8',true) as string;
     let headobj = JSON.parse(headAfterUpdate)
     verify(headobj.root=='90ca87c602f132407250bcf2ae8368f629ec43d7','updateByZip 要更新head.json');
+}
 
+/**
+ * 对同一个目录生成dcc，然后计算zip应该为空
+ */
+async function testZip1(){
+    let dcc = new LayaDCC();
+    let param = new Params();
+    dcc.params = param;
+    param.dccout = Editor.projectPath+'/dcctest/dccout3'
+    await dcc.genDCC(Editor.projectPath+'/dcctest/ver1');
+
+
+    param.dccout = Editor.projectPath+'/dcctest/dccout4'
+    dcc.params = param;
+    await dcc.genDCC(Editor.projectPath+'/dcctest/ver1');
+
+    let zipfile = await LayaDCCTools.genZipByComparePath(getAbs('dccout3'),getAbs('dccout4'),Editor.projectPath+'/dcctest/','zzz.zip');
+
+    //检查zip内容
+    let zip = new AdmZip(zipfile);
+    verify(1==zip.getEntryCount(), '相同目录生成的zi里面只有一个head.json');
+
+    zipfile = await LayaDCCTools.genZipByComparePath(getAbs('dccout3'),getAbs('dccout3'),Editor.projectPath+'/dcctest/','zzz.zip');
+    zip = new AdmZip(zipfile);
+    verify(1==zip.getEntryCount(), '相同目录生成的zi里面只有一个head.json');
 }
 
 async function ttt(){

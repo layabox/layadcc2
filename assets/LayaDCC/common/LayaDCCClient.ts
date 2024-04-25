@@ -58,9 +58,9 @@ export class LayaDCCClient{
     }
 
     checkEnv(){
-        if(!TextDecoder){
-            alert('DCC需要TextDecoder');
-        }
+        // if(!window.TextDecoder){
+        //     alert('DCC需要TextDecoder');
+        // }
     }
 
     get fileIO(){

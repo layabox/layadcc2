@@ -12,6 +12,13 @@ export class Env{
 
     //根据不同的平台实现
     static dcodeUtf8(buf:ArrayBuffer){
-        return (new TextDecoder()).decode(buf);
+        if(window.conch){
+            //return conch.bufferToString(buf);
+            let buff = new Laya.Byte(buf);
+            let str = buff.readUTFBytes(buf.byteLength);
+            return str;
+        }else{
+            return (new TextDecoder()).decode(buf);
+        }
     }
 }

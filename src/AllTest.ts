@@ -1,4 +1,3 @@
-//import path, { resolve } from "path";
 import { AppResReader_Native } from "../assets/LayaDCC/common/AppResReader_Native";
 import { DCCDownloader } from "../assets/LayaDCC/common/DCCDownloader";
 import { DCCUpdate, UniDCCClient } from "./DCCUpdate";
@@ -11,32 +10,24 @@ const { regClass, property, Loader} = Laya;
 export class AllTest extends Laya.Script {
     //declare owner : Laya.Sprite3D;
     //declare owner : Laya.Sprite;
+    out:Laya.TextArea = null;
+    outmsg=''
 
     @property(String)
     public cmd: string = "";
 
-    //组件被激活后执行，此时所有节点和组件均已创建完毕，此方法只执行一次
-    //onAwake(): void {}
+    onEnable(): void {
+        this.out = this.owner.parent.getChildByName('TextArea') as Laya.TextArea;
+        this.out.text='hello'
+        let oldlog = console.log;
+        console.log = (...args)=>{
+            oldlog.apply(console,args);
+            this.outmsg+='\n'
+            this.outmsg+=args.join(' ');
+            this.out.text = this.outmsg;
+        }
+    }
 
-    //组件被启用后执行，例如节点被添加到舞台后
-    //onEnable(): void {}
-
-    //组件被禁用时执行，例如从节点从舞台移除后
-    //onDisable(): void {}
-
-    //第一次执行update之前执行，只会执行一次
-    //onStart(): void {}
-
-    //手动调用节点销毁时执行
-    //onDestroy(): void {}
-
-    //每帧更新时执行，尽量不要在这里写大循环逻辑或者使用getComponent方法
-    //onUpdate(): void {}
-
-    //每帧更新时执行，在update之后执行，尽量不要在这里写大循环逻辑或者使用getComponent方法
-    //onLateUpdate(): void {}
-
-    //鼠标点击后执行。与交互相关的还有onMouseDown等十多个函数，具体请参阅文档。
     async onMouseClick() {
         switch(this.cmd){
             case 'imgSrc':
@@ -82,7 +73,7 @@ export class AllTest extends Laya.Script {
 
         //用相对目录访问
         let ab = await dcc.readFile("txt.txt");
-        let tt = (new TextDecoder()).decode(ab);
+        let tt = Env.dcodeUtf8(ab);
         console.log('tt:',tt)
 
         //测试绝对地址的
@@ -103,15 +94,24 @@ export class AllTest extends Laya.Script {
     }
 
     private async commonDown(){
-        let urlbase = 'http://localhost:8899/';
-        let dccurl = 'http://localhost:7788/'
-        let headFile = 'http://localhost:7788/version.3.0.0.json'
+        /**
+         * android测试：
+         * 不选择打包资源
+         * 版本号1.0.0
+         * 导出android
+         * 在android的resource开 8899
+         * 针对android的resource生成dcc，放到android/dccout,开7788
+         */
+        let urlbase = 'http://10.10.20.26:8899/';
+        let dccurl = 'http://10.10.20.26:7788/'
+        let headFile = 'http://10.10.20.26:7788/version.1.0.0.json'
 
         let dcc = new UniDCCClient( dccurl );
         dcc.onlyTransUrl=false;
         dcc.pathMapToDCC= urlbase;
 
         let initok = await dcc.init(headFile,null);
+        console.log('init end',initok)
         if(!initok)
             return false;
         
@@ -119,10 +119,12 @@ export class AllTest extends Laya.Script {
         let downloader = new DCCDownloader(dcc);
         downloader.injectToLaya();
 
-        let lmtl = await Laya.loader.load(urlbase+'mtls/Material.lmat');
+        let lmtl = await Laya.loader.load(urlbase+'mtls/Material.lmat',Laya.Loader.TEXT);
+        console.log('Laya load ret:',lmtl.data)
 
         downloader.removeFromLaya();
         let lmtl1 = await Laya.loader.load(urlbase+'mtls/Material.lmat');
+        console.log('Laya load ret2:',lmtl.data)
         debugger;
     }
 
@@ -136,11 +138,9 @@ export class AllTest extends Laya.Script {
                     return false;
                 }, (curlret, httpret) => {
                     if (curlret != 0 || httpret < 200 || httpret >= 300) {
-                        //onEvent('downloadError');
                         resolve(null);
                     }
                     else {
-                        //onEvent('downloadOK');
                         resolve(localfile);
                     }
                 }, 10, 100000000);        
