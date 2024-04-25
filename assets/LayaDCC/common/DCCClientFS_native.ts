@@ -16,6 +16,7 @@ function myFetch(url:string, encode:'utf8'|'buffer'='buffer') {
       // 设置请求的方法和URL
       xhr._open('GET', url, true);
       xhr.setPostCB((result)=>{
+        let cc = xhr;//保持一下xhr，避免被释放，否则回来之后xhr已经被释放了
         resolve(result);
       },(e1)=>{
         resolve(null);

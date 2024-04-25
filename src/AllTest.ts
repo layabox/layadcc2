@@ -21,10 +21,12 @@ export class AllTest extends Laya.Script {
         this.out.text='hello'
         let oldlog = console.log;
         console.log = (...args)=>{
-            oldlog.apply(console,args);
             this.outmsg+='\n'
             this.outmsg+=args.join(' ');
             this.out.text = this.outmsg;
+            try{
+            oldlog.call(console,args.join(' '));
+            }catch(e){}
         }
     }
 
