@@ -5,7 +5,7 @@ import * as fs from 'fs'
 import { promisify } from "util";
 import { GitFS } from "./gitfs/GitFS";
 import { RootDesc } from "./RootDesc";
-import { shasum, toHex } from "./gitfs/GitFSUtils";
+import { hashToArray, shasum, toHex } from "./gitfs/GitFSUtils";
 import { ObjPack } from "./ObjPack";
 
 export class Params{
@@ -89,7 +89,7 @@ export class LayaDCC {
             }
         }catch(e){}
 
-        let files = await this.walkDirectory(p,rootNode,this.config.fast,['.git','.gitignore','dccout']);
+        let files = await this.syncWithDir(p,rootNode,this.config.fast,['.git','.gitignore','dccout']);
         console.log(files.length)
         //console.log(files)
         //更新修订版本
@@ -198,7 +198,7 @@ export class LayaDCC {
      * @param ignorePatterns 忽略目录或者文件，只是影响当前目录
      * @returns 
      */
-    private async walkDirectory(dir: string, node:TreeNode,fast:boolean, ignorePatterns: string[]|null = null): Promise<string[]> {
+    private async syncWithDir(dir: string, node:TreeNode,fast:boolean, ignorePatterns: string[]|null = null): Promise<string[]> {
         let files: string[] = [];
         const dirents = await promisify(fs.readdir)(dir, { withFileTypes: true });
 
@@ -226,7 +226,7 @@ export class LayaDCC {
 
             if (dirent.isDirectory()) {
                 if(!entry){
-                    // 如果目录不存在，创建一个
+                    // 如果treenode中没有记录这个entry，创建一个
                     // 在当前node下添entry
                     entry = node.addEntry(filename, true, null);
                     let cNode = new TreeNode(null, node, this.frw);
@@ -235,12 +235,21 @@ export class LayaDCC {
                 }else{
                     if(!entry.treeNode){
                         //有entry没有treenode，则表示可以加载
-                        entry.treeNode = await this.gitfs.getTreeNode(toHex(entry.oid),null);
+                        try{
+                            entry.treeNode = await this.gitfs.getTreeNode(toHex(entry.oid),null);
+                        }catch(e){
+                            //获得treenode失败了，很大可能是目录内容改变了，所以需要重新生成
+                            let cNode = new TreeNode(null, node, this.frw);
+                            // 在当前node添加entry
+                            entry.treeNode = cNode;
+                            node.needSha();
+                        }
                     }
                 }
 
                 entry.touchFlag = 0;
-                let rets = await this.walkDirectory(res,entry.treeNode!,fast,[]);
+                let rets = await this.syncWithDir(res,entry.treeNode!,fast,[]);
+                entry.oid = hashToArray(entry.treeNode.sha);
                 files = files.concat(rets);
             } else {
                 let check=true;
@@ -275,14 +284,5 @@ export class LayaDCC {
         let gitfs = this.gitfs;
         await gitfs.checkoutToLocal(null,null);
     }
-
-    /**
-     * 只要本版信息
-     * 从roottree开始
-     */
-    private outCache(){
-
-    }
-
 }
 

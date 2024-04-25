@@ -113,6 +113,7 @@ export class TreeNode{
 		return this._getFullPath(this,null);
 	}
 
+	//得到名字为name的子目录
 	getEntry(name:string){
 		let ents = this._entries;
 		for(let i=0,n=ents.length; i<n; i++){
