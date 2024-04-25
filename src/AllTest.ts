@@ -119,12 +119,14 @@ export class AllTest extends Laya.Script {
         let downloader = new DCCDownloader(dcc);
         downloader.injectToLaya();
 
+        await dcc.updateAll((p)=>{console.log(`${p*100}%`)});
+        console.log('iiiii')
         let lmtl = await Laya.loader.load(urlbase+'mtls/Material.lmat',Laya.Loader.TEXT);
         console.log('Laya load ret:',lmtl.data)
 
         downloader.removeFromLaya();
-        let lmtl1 = await Laya.loader.load(urlbase+'mtls/Material.lmat');
-        console.log('Laya load ret2:',lmtl.data)
+        let lmtl1 = await Laya.loader.load(urlbase+'mtls/Material.lmat',Laya.Loader.TEXT);
+        console.log('Laya load ret2:',lmtl1.data)
         debugger;
     }
 

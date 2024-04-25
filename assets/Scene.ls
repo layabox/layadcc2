@@ -236,7 +236,7 @@
           "_$id": "t3b6bbqb",
           "_$type": "ProgressBar",
           "name": "ProgressBar",
-          "x": 205.94028553592125,
+          "x": 166.94028553592125,
           "y": 5.237863740726198,
           "width": 120,
           "height": 30,
@@ -347,6 +347,45 @@
           "leading": 2
         }
       ]
+    },
+    {
+      "_$id": "ge5970b9",
+      "_$type": "Text",
+      "name": "Text",
+      "x": 18,
+      "y": 9,
+      "width": 634,
+      "height": 147,
+      "text": "服务器地址:10.10.20.26\n游戏服务器:7788\ndcc服务器:8899\ndcc头文件:head.json\nzip文件：",
+      "fontSize": 20,
+      "color": "rgba(0, 0, 0, 1)",
+      "leading": 2
+    },
+    {
+      "_$id": "9sjmte3s",
+      "_$type": "TextArea",
+      "name": "TextArea",
+      "x": 616,
+      "y": 10,
+      "width": 484,
+      "height": 632,
+      "_mouseState": 2,
+      "text": "",
+      "fontSize": 12,
+      "color": "#FFFFFF",
+      "valign": "top",
+      "bgColor": "rgba(75, 75, 75, 1)",
+      "overflow": "scroll",
+      "padding": "6,6,6,6",
+      "strokeColor": "rgba(255, 255, 255, 1)",
+      "type": "text",
+      "maxChars": 0,
+      "prompt": "",
+      "promptColor": "#A9A9A9",
+      "editable": false,
+      "scrollType": 3,
+      "vScrollBarSkin": "res://d79c761b-6bc3-49e0-9e51-bd2ba385cfe0",
+      "hScrollBarSkin": "res://5344e14f-1c62-43c8-a00a-5593ca19bdbf"
     }
   ]
 }

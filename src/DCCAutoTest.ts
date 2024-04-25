@@ -52,10 +52,56 @@ export class DCCAutoTest{
     }
 
     static async run(){
+        await testGenDCC();
         await test_nodePack_downloadOnce();
         await testZip();
         await testZip1();
     }
+}
+
+async function testGenDCC(){
+    let dir = Editor.projectPath+'/dcctest/dynamic/resexample';
+    let subdir = dir+'/dir'
+    if(fs.existsSync(dir)){
+        fs.rmdirSync(dir,{recursive:true});
+    }
+    verify(!fs.existsSync(dir),'测试目录要不存在');
+    fs.mkdirSync(dir,{recursive:true});
+    fs.mkdirSync(subdir,{recursive:true});
+    //生成dcc
+    fs.writeFileSync(path.join(dir,'rootText.txt'),'file in root',);
+    fs.writeFileSync(path.join(subdir,'subDirText.txt'),'file in subdir');
+
+    let dccdir = Editor.projectPath+'/dcctest/dynamic/dccout';
+    if(fs.existsSync(dccdir)){
+        fs.rmdirSync(dccdir,{recursive:true});
+    }
+    verify(!fs.existsSync(dccdir),'dcc输出目录要为空');
+
+    let dcc = new LayaDCC();
+    let param = new Params();
+    param.version = '1.0.0';
+    dcc.params = param;
+    param.dccout = dccdir;
+    await dcc.genDCC(dir);
+
+    let head = JSON.parse(fs.readFileSync(path.join(dccdir,'head.json'),{encoding:'utf8'}));
+    let root1=head.root;
+    //修改文件内容，再次生成
+    fs.writeFileSync(path.join(subdir,'subDirText1.txt'),'file2 in subdir');
+    param.version = '2.0.0';
+    dcc.params = param;
+    param.dccout = dccdir;
+    await dcc.genDCC(dir);    
+    head = JSON.parse(fs.readFileSync(path.join(dccdir,'head.json'),{encoding:'utf8'}));
+    verify(head.root!=root1,"root要改变");
+
+    let dcc2 = new LayaDCCClient(DCCClientFS_NodeJS,dccdir, null);
+    verify(await dcc2.init(path.join(dccdir,'head.json'),null),"dcc初始化");
+    let buf = await dcc2.readFile('dir/subDirText1.txt');
+    let c = (new TextDecoder()).decode(new Uint8Array(buf));
+    verify(c=='file2 in subdir','打开新的文件成功')
+
 }
 
 //第二次不会再次下载节点包

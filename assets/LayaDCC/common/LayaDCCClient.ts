@@ -196,7 +196,7 @@ export class LayaDCCClient{
      */
     async readFile(url:string):Promise<ArrayBuffer|null>{
         let gitfs = this._gitfs;
-        if(!gitfs)return null;
+        if(!gitfs)throw 'dcc没有正确init';
         if( url.startsWith('http:')||url.startsWith('https:')||url.startsWith('file:')){//绝对路径
             if(!this._pathMapToDCC){
                 url = (new URL(url)).pathname;;
