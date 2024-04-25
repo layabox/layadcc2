@@ -3,6 +3,7 @@
  * 
  */
 
+import { DCCConfig } from "./Config";
 import { Env } from "./Env";
 import { IGitFSFileIO } from "./gitfs/GitFS";
 
@@ -69,7 +70,7 @@ export class DCCClientFS_native implements IGitFSFileIO{
         if(!fs_exists(objpath)){
             fs_mkdir(objpath);
         }
-        console.log('DCCClientFS: path='+conch.getCachePath());
+        DCCConfig.log && console.log('DCCClientFS: path='+conch.getCachePath());
     }
     
     //远程下载

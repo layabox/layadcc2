@@ -1,4 +1,5 @@
 import { AppResReader_Native } from "./AppResReader_Native";
+import { DCCConfig } from "./Config";
 import { ObjPack_AppRes } from "./ObjPack_AppRes";
 import { RootDesc } from "./RootDesc";
 import { GitFS, IGitFSFileIO } from "./gitfs/GitFS";
@@ -57,6 +58,10 @@ export class LayaDCCClient{
         this.checkEnv();
     }
 
+    enableLog(b:boolean){
+        DCCConfig.log=b;
+    }
+
     checkEnv(){
         // if(!window.TextDecoder){
         //     alert('DCC需要TextDecoder');
@@ -68,7 +73,7 @@ export class LayaDCCClient{
     }
 
     private log(msg:string){
-        console.log(msg);
+        if(DCCConfig.log) console.log(msg);
         this._logger && this._logger.checkLog(msg);
     }
 
@@ -100,7 +105,7 @@ export class LayaDCCClient{
                     await this._frw.write('head.json',apphead,true);
                 }
             }catch(e){
-                console.log('LayaDCCClient init error: no head.json in package')
+                DCCConfig.log && console.log('LayaDCCClient init error: no head.json in package')
             }
         }
 
@@ -328,7 +333,9 @@ export class LayaDCCClient{
         })
         //
         for(let id of removed ){
-            console.log('清理节点:',id)
+            if(DCCConfig.log){
+                console.log('清理节点:',id);
+            }
             gitfs.removeObject(id);
         }
     }

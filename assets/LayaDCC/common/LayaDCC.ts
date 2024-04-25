@@ -90,7 +90,7 @@ export class LayaDCC {
         }catch(e){}
 
         let files = await this.syncWithDir(p,rootNode,this.config.fast,['.git','.gitignore','dccout']);
-        console.log(files.length)
+        //console.log(files.length)
         //console.log(files)
         //更新修订版本
         if(rootNode.sha!==lastRevRoot){

@@ -1,4 +1,5 @@
 import { AppResReader_Native, FileIO_AppRes } from "./AppResReader_Native";
+import { DCCConfig } from "./Config";
 import { ObjPack } from "./ObjPack";
 import { IObjectPack } from "./gitfs/GitFS";
 
@@ -76,8 +77,10 @@ export class ObjPack_AppRes implements IObjectPack{
             if(await pack.has(oid)){
                 buff = await pack.get(oid)
             }
-            if(buff)
+            if(buff){
+                DCCLog(`Get Object from TreePack:${oid}`);
                 return buff;
+            }
         }
 
         for(let pack of this.blobPacks){
@@ -85,10 +88,18 @@ export class ObjPack_AppRes implements IObjectPack{
             if(await pack.has(oid)){
                 buff = await pack.get(oid)
             }
-            if(buff)
+            if(buff){
+                DCCLog(`Get Object from TreePack:${oid}`);
                 return buff;
+            }
         }
 
         return await this.resReader.getRes(path,'buffer') as ArrayBuffer
+    }
+}
+
+function DCCLog(msg:string){
+    if(DCCConfig.log){
+        console.log(msg)
     }
 }
