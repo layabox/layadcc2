@@ -5,21 +5,57 @@ import { LayaDCCClient } from "./LayaDCCClient";
 export class DCCDownloader extends Laya.Downloader{
     private originDownloader:Laya.Downloader;
     private dcc:LayaDCCClient;
+    private originNativeDownloader:(url:string, force:boolean, onok:(data:string)=>void, onerr:()=>void)=>void;
+    private myNativeDownloadFunc:(url:string, force:boolean, onok:(data:string)=>void, onerr:()=>void)=>void;
 
     constructor(dcc:LayaDCCClient){
         super()
         this.dcc = dcc;
     }
 
+    //插入到laya引擎的下载流程，实现下载的接管
     injectToLaya(){
         if(Laya.Loader.downloader==this)return;
         this.originDownloader = Laya.Loader.downloader;
         Laya.Loader.downloader = this;
     }
 
+    //取消对laya下载引擎的插入
     removeFromLaya(){
         if(Laya.Loader.downloader==this){
             Laya.Loader.downloader = this.originDownloader;
+        }
+    }
+
+    /**
+     * 插入到runtime中.
+     * 这个是替换 window.downloadfile 函数，因为加载引擎是通过项目的 index.js中的loadLib函数实现的，
+     * 而loadLib函数就是调用的 window.downloadfile 
+     * 所以为了有效，这个最好是写在 apploader.js最后加载index.js的地方，或者在 项目index.js的最开始的地方
+     */
+    injectToNativeFileReader(){
+        let win = window as any;
+        if(win.downloadfile==this.myNativeDownloadFunc)
+            return;
+        this.originNativeDownloader = win.downloadfile;
+        this.myNativeDownloadFunc = (url:string, force:boolean, onok:(data:string)=>void, onerr:()=>void)=>{
+            let q = url.indexOf('?');
+            if(q>0){
+                url = url.substring(0,q);
+            }
+            this.dcc.readFile(url).then(v=>{
+                onok(Env.dcodeUtf8(v));
+            },reason=>{
+                onerr();
+            })
+        }
+        win.downloadfile  = this.myNativeDownloadFunc;
+    }
+
+    removeFromNative(){
+        let win = window as any;
+        if(win.downloadfile==this.myNativeDownloadFunc){
+            win.downloadfile = this.originNativeDownloader;
         }
     }
 

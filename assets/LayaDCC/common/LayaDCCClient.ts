@@ -220,7 +220,7 @@ export class LayaDCCClient{
     }
 
     /**
-     * 
+     *  读取缓存中的一个文件，url是相对地址
      * @param url 用户认识的地址。如果是绝对地址，并且设置是映射地址，则计算一个相对地址。如果是相对地址，则直接使用
      * @returns 
      */
@@ -245,6 +245,11 @@ export class LayaDCCClient{
         return this._gitfs.getObjUrl(objid)
     }
 
+    /**
+     * 把一个原始地址转换成cache服务器对象地址
+     * @param url 原始资源地址
+     * @returns 
+     */
     async transUrl(url:string){
         let gitfs = this._gitfs;
         if(!gitfs)return url;
@@ -346,6 +351,10 @@ export class LayaDCCClient{
         return this._gitfs.saveObject(objid,content);
     }
 
+    /**
+     * 清理缓存。
+     * 根据根文件遍历所有本版本依赖的文件，删除不属于本版本的缓存文件
+     */
     async clean(){
         let gitfs = this._gitfs;
         //遍历file
