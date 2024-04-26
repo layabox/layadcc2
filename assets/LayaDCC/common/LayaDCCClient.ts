@@ -1,5 +1,8 @@
 import { AppResReader_Native } from "./AppResReader_Native";
 import { DCCConfig } from "./Config";
+import { DCCClientFS_native } from "./DCCClientFS_native";
+import { DCCClientFS_web } from "./DCCClientFS_web";
+import { Env } from "./Env";
 import { ObjPack_AppRes } from "./ObjPack_AppRes";
 import { RootDesc } from "./RootDesc";
 import { GitFS, IGitFSFileIO } from "./gitfs/GitFS";
@@ -29,6 +32,11 @@ export interface IZip{
     close():void;
 }
 
+let DCCClientFS = {
+    "layaNative":DCCClientFS_native,
+    "web":DCCClientFS_web
+}[Env.runtimeName];
+
 export class LayaDCCClient{
     static VERSION='1.0.0';
     private _frw:IGitFSFileIO;
@@ -44,12 +52,16 @@ export class LayaDCCClient{
 
     /**
      * 
-     * @param frw 
+     * @param frw 文件访问接口，不同的平台需要不同的实现。如果为null，则自动选择网页或者native两个平台
      * @param dccurl dcc的服务器地址
      */
-    constructor(frw:new ()=>IGitFSFileIO, dccurl:string, logger:ICheckLog=null){
+    constructor(frw:new ()=>IGitFSFileIO|null, dccurl:string, logger:ICheckLog=null){
         if(dccurl && !dccurl.endsWith('/')) dccurl+='/';
         this._dccServer=dccurl;
+
+        if(!frw) frw = DCCClientFS;
+        if(!frw) throw "没有正确的文件访问接口";
+        
         this._frw = new frw();
         if(logger){
             this._logger=logger;
@@ -63,9 +75,18 @@ export class LayaDCCClient{
     }
 
     checkEnv(){
-        // if(!window.TextDecoder){
-        //     alert('DCC需要TextDecoder');
-        // }
+        //检查必须得native的接口
+        if(window.conch){
+            if(!ZipFile){throw 'native 环境不对'}
+            if(!_XMLHttpRequest){throw 'native 环境不对'}
+            if(!conch.getCachePath){throw 'native 环境不对'}
+            if(!fs_exists){throw 'native 环境不对'}
+            if(!fs_mkdir){throw 'native 环境不对'}
+            if(!fs_readFileSync){throw 'native 环境不对'}
+            if(!fs_writeFileSync){throw 'native 环境不对'}
+            if(!fs_rm){throw 'native 环境不对'}
+            if(!fs_readdirSync){throw 'native 环境不对'}
+        }
     }
 
     get fileIO(){
@@ -85,8 +106,12 @@ export class LayaDCCClient{
         return this._pathMapToDCC;
     }
 
-    //初始化，下载必须信息
-    //headfile为null则不下载，仅仅使用本地缓存
+    /**
+     * 初始化，下载必须信息 
+     * @param headfile dcc根文件，这个文件作为入口，用来同步本地缓存。如果为null则仅仅使用本地缓存
+     * @param cachePath 这个暂时设置为null即可 
+     * @returns 
+     */
     async init(headfile:string|null,cachePath:string){
         if(this._gitfs){
             throw '重复初始化'
@@ -215,6 +240,7 @@ export class LayaDCCClient{
         return buff;
     }
 
+    //获取某个对象（用hash表示的文件或者目录）在缓存中的地址
     async getObjectUrl(objid:string){
         return this._gitfs.getObjUrl(objid)
     }
@@ -237,8 +263,14 @@ export class LayaDCCClient{
         return this._frw.repoPath+objpath;
     }
 
-    //在第一次调用progress之前是下载节点的过程
-    //初始话的时候已经保存head.json了所以这里不必更新
+    /**
+     * 与DCC服务器同步本版本的所有文件。
+     * 可以用这个函数来实现集中下载。
+     * 
+     * @param progress 进度回调，从0到1
+     * 注意：在开始同步之前可能会有一定的延迟，这期间会进行目录节点的下载。不过目前的实现这一步在init的时候就完成了
+     * 
+     */
     async updateAll(progress:(p:number)=>void){
         let gitfs = this._gitfs;
         //为了能统计，需要先下载所有的目录节点，这段时间是无法统计的
@@ -278,10 +310,12 @@ export class LayaDCCClient{
     }
 
     /**
-     * 根据zip更新
+     * 根据指定的zip文件更新本地缓存。
+     * 这个zip文件可以通过DCC插件的补丁生成工具来生成。
+     * 
      * 这个会修改本地保存的root
-     * @param zipfile 
-     * @param progress 
+     * @param zipfile 打补丁的zip文件，注意这里必须是本地目录，所以需要自己实现下载zip到本地之后才能调用这个函数。
+     * @param progress 进度提示，暂时没有实现。
      */
     async updateByZip(zipfile:string,zipClass:new()=>IZip, progress:(p:number)=>void){
         let zip = new zipClass();
@@ -308,7 +342,7 @@ export class LayaDCCClient{
      * @param content 
      * @returns 
      */
-    async addObject(objid:string, content:ArrayBuffer){
+    private async addObject(objid:string, content:ArrayBuffer){
         return this._gitfs.saveObject(objid,content);
     }
 
@@ -338,9 +372,5 @@ export class LayaDCCClient{
             }
             gitfs.removeObject(id);
         }
-    }
-
-    isFileChanged(url:string){
-
     }
 }

@@ -1,18 +1,9 @@
-import { DCCClientFS_native } from "../assets/LayaDCC/common/DCCClientFS_native";
-import { DCCClientFS_web } from "../assets/LayaDCC/common/DCCClientFS_web";
 import { DCCDownloader } from "../assets/LayaDCC/common/DCCDownloader";
-import { Env } from "../assets/LayaDCC/common/Env";
 import { LayaDCCClient as DCCClient } from "../assets/LayaDCC/common/LayaDCCClient";
-import { IGitFSFileIO } from "../assets/LayaDCC/common/gitfs/GitFS";
-
-let DCCClientFS = {
-    "layaNative":DCCClientFS_native,
-    "web":DCCClientFS_web
-}[Env.runtimeName];
 
 export class UniDCCClient extends DCCClient{
     constructor(dccurl:string){
-        super(DCCClientFS,dccurl);
+        super(null,dccurl);
     }
 }
 
@@ -23,7 +14,7 @@ export class DCCUpdate{
         let dccurl = 'http://localhost:7788/'
         let headFile = 'http://localhost:7788/'+head;// Editor.serverURL;
 
-        let dcc = this.dcc = new DCCClient( DCCClientFS,dccurl );
+        let dcc = this.dcc = new UniDCCClient(dccurl );
         dcc.onlyTransUrl=false;
 
         console.log('初始化dcc开始');
@@ -49,7 +40,7 @@ export class DCCUpdate{
         let dccurl = 'http://localhost:7788/'
         let headFile = 'http://localhost:7788/'+head;// Editor.serverURL;
 
-        let dcc = this.dcc = new DCCClient( DCCClientFS,dccurl );
+        let dcc = this.dcc = new DCCClient(null,dccurl );
         dcc.onlyTransUrl=false;
 
         console.log('初始化dcc开始');
@@ -62,7 +53,7 @@ export class DCCUpdate{
     }
 
     async clean(){
-        let dcc = this.dcc = new DCCClient( DCCClientFS, null);
+        let dcc = this.dcc = new DCCClient( null, null);
         dcc.onlyTransUrl=false;
         console.log('初始化dcc开始');
         let initok = await dcc.init(null,null);
