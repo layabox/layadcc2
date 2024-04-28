@@ -356,7 +356,7 @@
       "y": 9,
       "width": 634,
       "height": 147,
-      "text": "服务器地址:10.10.20.26\n游戏服务器:7788\ndcc服务器:8899\ndcc头文件:head.json\nzip文件：",
+      "text": "服务器地址:10.10.20.26\n游戏服务器:8899\ndcc服务器:7788\ndcc头文件:head.json\nzip文件：",
       "fontSize": 20,
       "color": "rgba(0, 0, 0, 1)",
       "leading": 2
