@@ -6,6 +6,8 @@ import { Env } from "../assets/LayaDCC/common/Env";
 
 const { regClass, property, Loader} = Laya;
 
+var keyevt=false;
+
 @regClass()
 export class AllTest extends Laya.Script {
     //declare owner : Laya.Sprite3D;
@@ -27,6 +29,13 @@ export class AllTest extends Laya.Script {
             try{
             oldlog.call(console,args.join(' '));
             }catch(e){}
+        }
+
+        if(!keyevt){
+            Laya.stage.on(Laya.Event.KEY_DOWN,(event:Laya.Event)=>{
+                console.log(`keycode ${event.keyCode}, ${event.charCode}, ctrl:${event.ctrlKey},shift:${event.shiftKey},alt:${event.altKey}`);
+            })
+            keyevt=true;
         }
     }
 
