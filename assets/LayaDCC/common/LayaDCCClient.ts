@@ -2,6 +2,7 @@ import { AppResReader_Native } from "./AppResReader_Native";
 import { DCCConfig } from "./Config";
 import { DCCClientFS_native } from "./DCCClientFS_native";
 import { DCCClientFS_web } from "./DCCClientFS_web";
+import { DCCDownloader } from "./DCCDownloader";
 import { Env } from "./Env";
 import { ObjPack_AppRes } from "./ObjPack_AppRes";
 import { RootDesc } from "./RootDesc";
@@ -55,7 +56,7 @@ export class LayaDCCClient{
      * @param frw 文件访问接口，不同的平台需要不同的实现。如果为null，则自动选择网页或者native两个平台
      * @param dccurl dcc的服务器地址
      */
-    constructor(frw:new ()=>IGitFSFileIO|null, dccurl:string, logger:ICheckLog=null){
+    constructor(dccurl:string, frw:new ()=>IGitFSFileIO|null=null, logger:ICheckLog=null){
         if(dccurl && !dccurl.endsWith('/')) dccurl+='/';
         this._dccServer=dccurl;
 
@@ -382,4 +383,38 @@ export class LayaDCCClient{
             gitfs.removeObject(id);
         }
     }
+
+    private _downloader:DCCDownloader;
+    //插入到laya引擎的下载流程，实现下载的接管
+    injectToLaya(){
+        if(!this._downloader){
+            this._downloader=new DCCDownloader(this,this._logger);
+        }
+        this._downloader.injectToLaya();
+    }
+
+    //取消对laya下载引擎的插入
+    removeFromLaya(){
+        if(!this._downloader)
+            return;
+        this._downloader.removeFromLaya();
+    }
+
+    /**
+     * 插入到runtime中.
+     * 这个是替换 window.downloadfile 函数，因为加载引擎是通过项目的 index.js中的loadLib函数实现的，
+     * 而loadLib函数就是调用的 window.downloadfile 
+     * 所以为了有效，这个最好是写在 apploader.js最后加载index.js的地方，或者在 项目index.js的最开始的地方
+     */    
+    injectToNativeFileReader(){
+        if(!this._downloader){
+            this._downloader=new DCCDownloader(this,this._logger);
+        }
+        this._downloader.injectToNativeFileReader();
+    }
+    removeFromNative(){
+        if(!this._downloader)return;
+        this._downloader.removeFromNative();
+    }
+
 }

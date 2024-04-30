@@ -3,7 +3,7 @@ import { LayaDCCClient as DCCClient } from "../assets/LayaDCC/common/LayaDCCClie
 
 export class UniDCCClient extends DCCClient{
     constructor(dccurl:string){
-        super(null,dccurl);
+        super(dccurl,null);
     }
 }
 
@@ -40,7 +40,7 @@ export class DCCUpdate{
         let dccurl = 'http://localhost:7788/'
         let headFile = 'http://localhost:7788/'+head;// Editor.serverURL;
 
-        let dcc = this.dcc = new DCCClient(null,dccurl );
+        let dcc = this.dcc = new DCCClient(dccurl );
         dcc.onlyTransUrl=false;
 
         console.log('初始化dcc开始');

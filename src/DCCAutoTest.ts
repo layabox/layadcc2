@@ -96,7 +96,7 @@ async function testGenDCC(){
     head = JSON.parse(fs.readFileSync(path.join(dccdir,'head.json'),{encoding:'utf8'}));
     verify(head.root!=root1,"root要改变");
 
-    let dcc2 = new LayaDCCClient(DCCClientFS_NodeJS,dccdir, null);
+    let dcc2 = new LayaDCCClient(dccdir,DCCClientFS_NodeJS, null);
     verify(await dcc2.init(path.join(dccdir,'head.json'),null),"dcc初始化");
     let buf = await dcc2.readFile('dir/subDirText1.txt');
     let c = (new TextDecoder()).decode(new Uint8Array(buf));
@@ -120,7 +120,7 @@ async function test_nodePack_downloadOnce(){
     let headFile = `file:///${Editor.projectPath}/dcctest/dccout/version.1.0.0.json`
 
     //let localFS = new DCCClientFS_NodeJS(dccCache);
-    let dcc1 = new LayaDCCClient(DCCClientFS_NodeJS,dccurl);
+    let dcc1 = new LayaDCCClient(dccurl,DCCClientFS_NodeJS);
     dcc1.onlyTransUrl=false;
     dcc1.pathMapToDCC= urlbase;
 
@@ -130,7 +130,7 @@ async function test_nodePack_downloadOnce(){
 
     //这个不应该再次下载index包
     let logger = new TestCheckLog();
-    let dcc2 = new LayaDCCClient(DCCClientFS_NodeJS,dccurl, logger);
+    let dcc2 = new LayaDCCClient(dccurl,DCCClientFS_NodeJS, logger);
     await dcc2.init(headFile,null);
     verify(!logger.has('需要下载treenode'),'不应该下载treenode包');
     logger.clear();
@@ -169,7 +169,7 @@ async function testZip(){
 
     //应用zip
     let dccurl = getAbs('dccout1');
-    let client = new LayaDCCClient(DCCClientFS_NodeJS,dccurl);
+    let client = new LayaDCCClient(dccurl,DCCClientFS_NodeJS);
     let iniok = await client.init(path.join(dccurl,'head.json'), null);
     verify(iniok,'initok')
     await client.updateAll(null);
@@ -223,7 +223,7 @@ async function ttt(){
     let headFile = `file:///${Editor.projectPath}/dcctest/dccout/version.1.0.0.json`
 
     //let localFS = new DCCClientFS_NodeJS(dccCache);
-    let dcc1 = new LayaDCCClient(DCCClientFS_NodeJS,dccurl);
+    let dcc1 = new LayaDCCClient(dccurl,DCCClientFS_NodeJS);
     dcc1.onlyTransUrl=false;
     dcc1.pathMapToDCC= urlbase;
 
@@ -232,6 +232,6 @@ async function ttt(){
         return false;
 
     //这个不应该再次下载index包
-    let dcc2 = new LayaDCCClient(DCCClientFS_NodeJS,dccurl);
+    let dcc2 = new LayaDCCClient(dccurl,DCCClientFS_NodeJS);
     dcc2.init(headFile,null);    
 }

@@ -39,9 +39,9 @@ export class LayaDCCTools{
         await promisify(fs.mkdir)(basepath) ;
         }catch(e){}
         //由于有打包文件，因此需要用完整的dccclient，不能简单的遍历目录
-        let dccclient1 = new LayaDCCClient(DCCClientFS_NodeJS,dccold);
+        let dccclient1 = new LayaDCCClient(dccold,DCCClientFS_NodeJS);
         await dccclient1.init(path.join(dccold,'head.json'), basepath+'/zip/cache1');
-        let dccclientNew = new LayaDCCClient(DCCClientFS_NodeJS,dccnew);
+        let dccclientNew = new LayaDCCClient(dccnew,DCCClientFS_NodeJS);
         await dccclientNew.init(path.join(dccnew,'head.json'), basepath+'/zip/cache2');
         
         let allold:string[]=[];

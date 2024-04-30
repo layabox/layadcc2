@@ -1,28 +1,36 @@
 import { Env } from "./Env";
-import { LayaDCCClient } from "./LayaDCCClient";
+import { ICheckLog, LayaDCCClient } from "./LayaDCCClient";
 
 
-export class DCCDownloader extends Laya.Downloader{
+export class DCCDownloader {
     private originDownloader:Laya.Downloader;
     private dcc:LayaDCCClient;
     private originNativeDownloader:(url:string, force:boolean, onok:(data:string)=>void, onerr:()=>void)=>void;
     private myNativeDownloadFunc:(url:string, force:boolean, onok:(data:string)=>void, onerr:()=>void)=>void;
-
-    constructor(dcc:LayaDCCClient){
-        super()
+    //因为可能没有laya环境，所以需要做成动态的，所以变成成员而不是使用继承
+    private myDownloader:Laya.Downloader;
+    private _logger:ICheckLog;
+    constructor(dcc:LayaDCCClient,logger:ICheckLog=null){
         this.dcc = dcc;
+        this._logger=logger;
     }
 
     //插入到laya引擎的下载流程，实现下载的接管
     injectToLaya(){
-        if(Laya.Loader.downloader==this)return;
+        if(this.myDownloader && Laya.Loader.downloader==this.myDownloader)return;
         this.originDownloader = Laya.Loader.downloader;
-        Laya.Loader.downloader = this;
+        let downloader = this.myDownloader  = new Laya.Downloader();
+        downloader.audio = this.audio.bind(this);
+        downloader.image = this.image.bind(this);
+        downloader.common = this.common.bind(this);
+        downloader.imageWithBlob = this.imageWithBlob.bind(this);
+        downloader.imageWithWorker = this.imageWithWorker.bind(this);
+        Laya.Loader.downloader = downloader;
     }
 
     //取消对laya下载引擎的插入
     removeFromLaya(){
-        if(Laya.Loader.downloader==this){
+        if(Laya.Loader.downloader==this.myDownloader){
             Laya.Loader.downloader = this.originDownloader;
         }
     }
@@ -59,24 +67,34 @@ export class DCCDownloader extends Laya.Downloader{
         }
     }
 
-    override imageWithBlob(owner: any, blob: ArrayBuffer, originalUrl: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void{
+    imageWithBlob(owner: any, blob: ArrayBuffer, originalUrl: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void{
+        this._logger&&this._logger.checkLog(`download:imageWithBlob:${originalUrl}`);
         this.originDownloader.imageWithBlob.call(this.originDownloader,owner,blob,originalUrl,onProgress,onComplete);
     }
-    override imageWithWorker(owner: any, url: string, originalUrl: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void){
+    imageWithWorker(owner: any, url: string, originalUrl: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void){
+        this._logger&&this._logger.checkLog(`download:imageWithWorker:${originalUrl}`);
         this.originDownloader.imageWithWorker.call(this.originDownloader,owner,url,originalUrl,onProgress,onComplete);
     }
-    override audio(owner: any, url: string, originalUrl: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void{
+    audio(owner: any, url: string, originalUrl: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void{
+        this._logger&&this._logger.checkLog(`download:audio:${originalUrl}`);
         this.originDownloader.audio.call(this.originDownloader,owner,url,originalUrl,onProgress,onComplete);
     }
 
-    override common(owner: any, url: string, originalUrl: string, contentType: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void {
+    common(owner: any, url: string, originalUrl: string, contentType: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void {
+        this._logger&&this._logger.checkLog(`download:common:${originalUrl}`);
         let promise:Promise<string>;
         if(this.dcc.onlyTransUrl){
             promise = this.dcc.transUrl(url);
+            this._logger&&this._logger.checkLog(`download:common:onlyTransUrl:${originalUrl}`);
         }else{
             promise = (async ()=>{
                     let buff = await this.dcc.readFile(url);
-                    if(!buff) return url;
+                    if(!buff){ 
+                        this._logger&&this._logger.checkLog(`download:common:readFile(${url}) error`);
+                        return url;
+                    }else{
+                        this._logger&&this._logger.checkLog(`download:common:readFile(${url}) OK`);
+                    }
                     switch(contentType){
                         case 'text':
                             onComplete( Env.dcodeUtf8(buff));
@@ -95,13 +113,15 @@ export class DCCDownloader extends Laya.Downloader{
             )();
         }
         promise.then(transed=>{
-            if(transed)
+            if(transed){
                 this.originDownloader.common.call(this.originDownloader,owner, transed, originalUrl, contentType, onProgress, onComplete);
+                this._logger&&this._logger.checkLog(`download:common:originCommon(${originalUrl})`);
+            }
         });
 
     }
 
-    override image(owner: any, url: string, originalUrl: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void {
+    image(owner: any, url: string, originalUrl: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void {
         let promise:Promise<string>;
         if(this.dcc.onlyTransUrl){
             promise = this.dcc.transUrl(url);

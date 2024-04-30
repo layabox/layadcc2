@@ -1,8 +1,8 @@
 import { AppResReader_Native } from "../assets/LayaDCC/common/AppResReader_Native";
-import { DCCDownloader } from "../assets/LayaDCC/common/DCCDownloader";
 import { DCCUpdate, UniDCCClient } from "./DCCUpdate";
 import { Zip_Native } from "../assets/LayaDCC/common/Zip_Native";
 import { Env } from "../assets/LayaDCC/common/Env";
+import { LayaDCCClient } from "../assets/LayaDCC/common/LayaDCCClient";
 
 const { regClass, property, Loader} = Laya;
 
@@ -90,8 +90,7 @@ export class AllTest extends Laya.Script {
         //测试绝对地址的
         dcc.pathMapToDCC= 'http://bu.cun.zai:8899/';
 
-        let down = new DCCDownloader(dcc)
-        down.injectToLaya();
+        dcc.injectToLaya();
 
         let layaload = await Laya.loader.load('http://bu.cun.zai:8899/txt.txt',Laya.Loader.TEXT)
         console.log(''+layaload.data)
@@ -117,7 +116,7 @@ export class AllTest extends Laya.Script {
         let dccurl = 'http://10.10.20.26:7788/'
         let headFile = 'http://10.10.20.26:7788/version.1.0.0.json'
 
-        let dcc = new UniDCCClient( dccurl );
+        let dcc = new LayaDCCClient( dccurl,null,{enableLogCheck:true, clear:()=>{},checkLog:console.log} );
         dcc.onlyTransUrl=false;
         dcc.pathMapToDCC= urlbase;
 
@@ -127,16 +126,17 @@ export class AllTest extends Laya.Script {
             return false;
         
         //把具有dcc功能的下载器插入laya引擎
-        let downloader = new DCCDownloader(dcc);
-        downloader.injectToLaya();
+        dcc.injectToLaya();
 
         await dcc.updateAll((p)=>{console.log(`${p*100}%`)});
         console.log('iiiii')
-        let lmtl = await Laya.loader.load(urlbase+'mtls/Material.lmat',Laya.Loader.TEXT);
+        //由于dcc接管了，所以不应该有到服务器的请求了
+        let lmtl = await Laya.loader.load(urlbase+'mtls/fordcc.txt',Laya.Loader.TEXT);
         console.log('Laya load ret:',lmtl.data)
 
-        downloader.removeFromLaya();
-        let lmtl1 = await Laya.loader.load(urlbase+'mtls/Material.lmat',Laya.Loader.TEXT);
+        dcc.removeFromLaya();
+        //由于dcc不再接管，会真正下载，特意改成另外一个文件避免被资源缓存
+        let lmtl1 = await Laya.loader.load(urlbase+'mtls/dccCompare.txt',Laya.Loader.TEXT);
         console.log('Laya load ret2:',lmtl1.data)
         debugger;
     }
