@@ -15,7 +15,7 @@ export class DCCZipSettings {
                             absolutePath: true,
                             properties: ["openDirectory"]
                         },
-                        type:"string",
+                        type: "string",
                     },
                     {
                         name: "dcc2",
@@ -25,7 +25,7 @@ export class DCCZipSettings {
                             absolutePath: true,
                             properties: ["openDirectory"]
                         },
-                        type:"string",
+                        type: "string",
                     },
                     {
                         name: "outputPath",
@@ -35,25 +35,25 @@ export class DCCZipSettings {
                             absolutePath: true,
                             properties: ["openDirectory"]
                         },
-                        type:"string",
+                        type: "string",
                     },
                     {
-                        name:"outputFile",
-                        caption:"输出文件",
-                        type:"string",
-                        default:'dcc.zip'
+                        name: "outputFile",
+                        caption: "输出文件",
+                        type: "string",
+                        default: 'dcc.zip'
                     },
                     {
-                        name:"zipFile",
-                        type:"string",
-                        readonly:true,
+                        name: "zipFile",
+                        type: "string",
+                        readonly: true,
                     },
-                    { 
-                        name : "actions", 
+                    {
+                        name: "actions",
                         inspector: "Buttons",
-                        options : { buttons : [ { caption : "生成", event: "click_gen" } ] }
+                        options: { buttons: [{ caption: "生成", event: "click_gen" }] }
                     }
-                                       
+
                 ]
             }
         ]);

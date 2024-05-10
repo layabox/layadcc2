@@ -1,6 +1,6 @@
 
-export class ZipFileReader{
-    read(){
+export class ZipFileReader {
+    read() {
         let zip = new ZipFile();
         zip.setSrc('')
         zip.forEach((id, name, dir, sz) => {
@@ -8,7 +8,7 @@ export class ZipFileReader{
                 let buf = zip.readFile(id);
             }
         });
-        zip.close();        
+        zip.close();
 
     }
 }

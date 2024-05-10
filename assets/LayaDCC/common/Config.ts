@@ -1,3 +1,3 @@
-export class DCCConfig{
-    static log=true;
+export class DCCConfig {
+    static log = true;
 }

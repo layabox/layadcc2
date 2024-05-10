@@ -5,7 +5,7 @@ export class IndexDBFileRW implements IGitFSFileIO {
     private storeName: string;
     private dbVersion: number;
     private db: IDBDatabase | null;
-    repoPath='';
+    repoPath = '';
     constructor() {
         this.dbName = 'filesDB';
         this.storeName = 'files';
@@ -14,18 +14,18 @@ export class IndexDBFileRW implements IGitFSFileIO {
         // 初始化数据库
         //this.initDB();
     }
-    
+
     fetch(url: string): Promise<Response> {
         throw new Error("Method not implemented.");
     }
-    async init(repoPath:string,cachePath:string): Promise<void> {
+    async init(repoPath: string, cachePath: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             if (!window.indexedDB) {
                 console.error("Your browser doesn't support IndexedDB");
                 reject("Your browser doesn't support IndexedDB"); // 使用 reject 报告错误
                 return;
             }
-    
+
             const request = indexedDB.open(this.dbName, this.dbVersion);
             request.onerror = (event) => {
                 console.error('Database error: ', (event.target as IDBRequest).error);
@@ -45,7 +45,7 @@ export class IndexDBFileRW implements IGitFSFileIO {
         });
     }
 
-    async read(url: string, encode: 'utf8' | 'buffer',onlylocal:boolean): Promise<string | ArrayBuffer> {
+    async read(url: string, encode: 'utf8' | 'buffer', onlylocal: boolean): Promise<string | ArrayBuffer> {
         return new Promise((resolve, reject) => {
             if (!this.db) {
                 reject('Database not initialized');
@@ -54,21 +54,21 @@ export class IndexDBFileRW implements IGitFSFileIO {
             const transaction = this.db.transaction([this.storeName]);
             const objectStore = transaction.objectStore(this.storeName);
             const request = objectStore.get(url);
-            request.onerror = function(event) {
+            request.onerror = function (event) {
                 reject('Unable to retrieve data');
             };
-            request.onsuccess = function(event) {
+            request.onsuccess = function (event) {
                 if (request.result && request.result.content) {
                     const result: ArrayBuffer = request.result.content;
-                    if(typeof result == 'string'){
-                        if(encode==='utf8') resolve(result);
-                        else{
+                    if (typeof result == 'string') {
+                        if (encode === 'utf8') resolve(result);
+                        else {
                             resolve(new TextEncoder().encode(result));
                         }
-                    }else{
+                    } else {
                         //保存的是buffer
-                        if(encode=='buffer') resolve(result);
-                        else{
+                        if (encode == 'buffer') resolve(result);
+                        else {
                             resolve(new TextDecoder().decode(result));
                         }
                     }
@@ -139,7 +139,7 @@ export class IndexDBFileRW implements IGitFSFileIO {
     }
     async mv(src: string, dst: string): Promise<void> {
         try {
-            const data = await this.read(src, 'buffer',true);
+            const data = await this.read(src, 'buffer', true);
             await this.write(dst, data as ArrayBuffer);
             await this.delete(src);
         } catch (error) {
@@ -153,43 +153,43 @@ export class IndexDBFileRW implements IGitFSFileIO {
                 return;
             }
             const request = this.db.transaction([this.storeName], 'readwrite')
-                              .objectStore(this.storeName)
-                              .delete(url);
+                .objectStore(this.storeName)
+                .delete(url);
             request.onsuccess = () => resolve();
             request.onerror = (event) => reject('Delete operation failed: ' + event);
         });
     }
 
-    async rm(url:string):Promise<void>{
+    async rm(url: string): Promise<void> {
         await this.delete(url);
     }
 
-    async enumCachedObjects(callback:(objid:string)=>void):Promise<void>{
+    async enumCachedObjects(callback: (objid: string) => void): Promise<void> {
         return new Promise((resolve, reject) => {
             if (!this.db) {
                 reject('Database not initialized');
                 return;
             }
-    
+
             // 创建一个用于读写的事务来访问文件存储
             const transaction = this.db.transaction([this.storeName], 'readwrite');
             const objectStore = transaction.objectStore(this.storeName);
-    
+
             // 打开具有游标的请求来遍历所有记录
             const request = objectStore.openCursor();
-            
-            request.onerror = function(event) {
+
+            request.onerror = function (event) {
                 console.error('Error reading data.');
                 reject('Failed to open cursor on object store');
             };
-    
+
             request.onsuccess = async (event) => {
                 const cursor = request.result;
                 if (cursor) {
                     let key = cursor.key as string;
-                    if(key.startsWith('objects/')){
+                    if (key.startsWith('objects/')) {
                         key = key.substring(8);
-                        key = key.replaceAll('/','');
+                        key = key.replaceAll('/', '');
                         callback(key);
                     }
                     cursor.continue();
@@ -207,24 +207,24 @@ export class IndexDBFileRW implements IGitFSFileIO {
                 reject('Database not initialized');
                 return;
             }
-    
+
             // 创建一个用于读写的事务来访问文件存储
             const transaction = this.db.transaction([this.storeName], 'readwrite');
             const objectStore = transaction.objectStore(this.storeName);
-    
+
             // 打开具有游标的请求来遍历所有记录
             const request = objectStore.openCursor();
-            
-            request.onerror = function(event) {
+
+            request.onerror = function (event) {
                 console.error('Error reading data.');
                 reject('Failed to open cursor on object store');
             };
-    
+
             request.onsuccess = async (event) => {
                 const cursor = request.result;
                 if (cursor) {
                     // 如果有数据，则删除当前对象，并继续
-                    objectStore.delete(cursor.key).onsuccess = function() {
+                    objectStore.delete(cursor.key).onsuccess = function () {
                         console.log(`Deleted file with url: ${cursor.key}`);
                     };
                     cursor.continue();
@@ -235,5 +235,5 @@ export class IndexDBFileRW implements IGitFSFileIO {
                 }
             };
         });
-    }    
+    }
 }

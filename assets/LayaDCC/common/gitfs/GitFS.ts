@@ -4,7 +4,7 @@ import { readUTF8, shasum, toHex } from "./GitFSUtils";
 import { TreeEntry, TreeNode } from "./GitTree";
 
 export async function readBinFile(file: File) {
-    return new Promise<ArrayBuffer|null>((res, rej) => {
+    return new Promise<ArrayBuffer | null>((res, rej) => {
         let reader = new FileReader();
         reader.onload = async (event) => {
             let value = (event.target as FileReader).result as ArrayBuffer;
@@ -24,29 +24,29 @@ export async function readBinFile(file: File) {
  */
 export interface IGitFSFileIO {
     //库所在路径
-    repoPath:string;
+    repoPath: string;
     //提供一个异步初始化过程
-    init(repoPath:string,cachePath:string):Promise<void>;
+    init(repoPath: string, cachePath: string): Promise<void>;
     //远程下载。由于有的平台不支持，所以封装一下
-    fetch(url:string):Promise<Response>;
+    fetch(url: string): Promise<Response>;
     //主要是相对目录，此接口知道baseurl
-    read(url: string, encode: 'utf8' | 'buffer',onlylocal:boolean): Promise<string | ArrayBuffer>;
-    write(url: string, content: string | ArrayBuffer, overwrite?:boolean): Promise<any>;
-    isFileExist(url: string):Promise<boolean>;
+    read(url: string, encode: 'utf8' | 'buffer', onlylocal: boolean): Promise<string | ArrayBuffer>;
+    write(url: string, content: string | ArrayBuffer, overwrite?: boolean): Promise<any>;
+    isFileExist(url: string): Promise<boolean>;
     unzip(buff: ArrayBuffer): ArrayBuffer;
     zip(buff: ArrayBuffer): ArrayBuffer;
     textencode(text: string): ArrayBuffer;
     textdecode(buffer: ArrayBuffer, off: number): string;
-    rm(url:string):Promise<void>;
+    rm(url: string): Promise<void>;
     //遍历对象。只遍历本地的，用来清理用
-    enumCachedObjects(callback:(objid:string)=>void):Promise<void>;
-    mv(src:string,dst:string):Promise<unknown>;
+    enumCachedObjects(callback: (objid: string) => void): Promise<void>;
+    mv(src: string, dst: string): Promise<unknown>;
 }
 
-export interface IObjectPack{
-    init():Promise<boolean>;
-    has(oid:string):Promise<boolean>;
-    get(oid:string):Promise<ArrayBuffer>;
+export interface IObjectPack {
+    init(): Promise<boolean>;
+    has(oid: string): Promise<boolean>;
+    get(oid: string): Promise<ArrayBuffer>;
 }
 
 
@@ -59,24 +59,24 @@ var PROJINFO = '.projinfo';
  * 可以与远端进行同步
  */
 export class GitFS {
-    static OBJSUBDIRNUM=1;
-    static MAXFILESIZE = 32*1024*1024;
-    static zip=false;
+    static OBJSUBDIRNUM = 1;
+    static MAXFILESIZE = 32 * 1024 * 1024;
+    static zip = false;
     //private userUrl:string; //保存head等用户信息的地方，可以通过filerw写。从uid开始的相对路径
-    treeRoot = new TreeNode(null,null,null);
+    treeRoot = new TreeNode(null, null, null);
     // 当前准备提交的commit
     private curCommit = new CommitInfo();
     private frw: IGitFSFileIO;
     // 当前的修改
     private allchanges: TreeNode[] = [];
-    private recentCommits:string[];
+    private recentCommits: string[];
 
 
-    static touchID=0;   // 更新标记
+    static touchID = 0;   // 更新标记
     user: string;       // 用户名。提交用。
 
-    checkDownload=false;
-    private _objectPacks:IObjectPack[]=[];
+    checkDownload = false;
+    private _objectPacks: IObjectPack[] = [];
 
     /**
      * 
@@ -87,23 +87,23 @@ export class GitFS {
         this.frw = filerw;
     }
 
-    addObjectPack(pack:IObjectPack,first=false){
+    addObjectPack(pack: IObjectPack, first = false) {
         let idx = this._objectPacks.indexOf(pack);
-        if(idx<0){
-            if(first){
-                this._objectPacks.splice(0,0,pack);
+        if (idx < 0) {
+            if (first) {
+                this._objectPacks.splice(0, 0, pack);
             }
             this._objectPacks.push(pack);
         }
     }
-    removeObjectPack(pack:IObjectPack){
+    removeObjectPack(pack: IObjectPack) {
         let idx = this._objectPacks.indexOf(pack);
-        if(idx>=0){
-            this._objectPacks.splice(idx,1);
+        if (idx >= 0) {
+            this._objectPacks.splice(idx, 1);
         }
     }
-    clearObjectPack(){
-        this._objectPacks.length=0;
+    clearObjectPack() {
+        this._objectPacks.length = 0;
     }
 
     /**
@@ -112,21 +112,21 @@ export class GitFS {
      * @param subdirnum  分成几个子目录
      * @returns 
      */
-    getObjUrl(objid: string){
+    getObjUrl(objid: string) {
         let subdirnum = GitFS.OBJSUBDIRNUM;
         let ret = 'objects/';
         let ostr = objid;
-        for(let i=0; i<subdirnum;i++){
-            let dir = ostr.substring(0,2);
+        for (let i = 0; i < subdirnum; i++) {
+            let dir = ostr.substring(0, 2);
             ostr = ostr.substring(2);
-            ret+=dir;
-            ret+='/';
+            ret += dir;
+            ret += '/';
         }
-        ret+=ostr;
+        ret += ostr;
         return ret;
     }
 
-    getCurCommit(){
+    getCurCommit() {
         return this.curCommit.sha;
     }
 
@@ -139,19 +139,19 @@ export class GitFS {
         // return await this.initByCommitID(commitid);
     }
 
-    async getCommitHead(url:string){
-        let commit = await this.frw.read(url,'utf8',false) as string;
-        if(commit){
+    async getCommitHead(url: string) {
+        let commit = await this.frw.read(url, 'utf8', false) as string;
+        if (commit) {
             this.recentCommits = commit.split('\n');
             return this.recentCommits[0];
         }
         throw "no commit"
     }
 
-    async initByCommitID(id:string){
-        if(!id)return false;
+    async initByCommitID(id: string) {
+        if (!id) return false;
         let cc = await this.getCommit(id);
-        if(!cc) return false;
+        if (!cc) return false;
         let treeid = cc.commitinfo.tree;
         this.treeRoot = await this.getTreeNode(treeid, this.treeRoot);
         this.curCommit.tree = treeid;
@@ -165,26 +165,26 @@ export class GitFS {
      * 直接设置treeroot。例如不关心commit，只要某个版本的root
      * @param treeid 
      */
-    async setRoot(treeid:string){
-        try{
+    async setRoot(treeid: string) {
+        try {
             //getTreeNode失败要throw，但是root这里可以不存在，相当于没有gitfs
             this.treeRoot = await this.getTreeNode(treeid, this.treeRoot);
-        }catch(e){
-            this.treeRoot=null;
+        } catch (e) {
+            this.treeRoot = null;
         }
     }
 
-    async toRev(rev:number){
+    async toRev(rev: number) {
 
     }
 
     async getCommit(objid: string) {
         let commitobjFile = this.getObjUrl(objid);
-        let buff = await this.frw.read(commitobjFile, 'buffer',false) as ArrayBuffer;
-        let cc:GitCommit;
-        if(buff){
+        let buff = await this.frw.read(commitobjFile, 'buffer', false) as ArrayBuffer;
+        let cc: GitCommit;
+        if (buff) {
             cc = new GitCommit(this.frw.unzip(buff), objid);
-        }else{
+        } else {
             return null;
         }
         return cc;
@@ -193,10 +193,10 @@ export class GitFS {
     /**
      * 加载.git目录下的所有的打包文件
      */
-    async loadAllPack(){
+    async loadAllPack() {
 
     }
-    
+
     /**
      * 从文件构造treeNode.
      * 注意没有设置parent
@@ -204,35 +204,35 @@ export class GitFS {
      * @param treeNode  如果设置了，就在这个对象上初始化
      * @returns 
      */
-    async getTreeNode(objid: string, treeNode:TreeNode|null){
-        if(!objid){
+    async getTreeNode(objid: string, treeNode: TreeNode | null) {
+        if (!objid) {
             // 创建空的
-            return new TreeNode(null,null,this.frw);
+            return new TreeNode(null, null, this.frw);
         }
         let treepath = this.getObjUrl(objid);
-        let buff:ArrayBuffer;
-        try{
-            buff = await this.frw.read(treepath, 'buffer',false) as ArrayBuffer;
-        }catch(e){}
-        if(!buff){
+        let buff: ArrayBuffer;
+        try {
+            buff = await this.frw.read(treepath, 'buffer', false) as ArrayBuffer;
+        } catch (e) { }
+        if (!buff) {
             //从所有的包中查找
-            for(let pack of this._objectPacks){
-                if(!pack) continue;
-                if(await pack.has(objid)){
+            for (let pack of this._objectPacks) {
+                if (!pack) continue;
+                if (await pack.has(objid)) {
                     buff = await pack.get(objid)
                 }
-                if(buff)
+                if (buff)
                     break;
             }
 
-            if(!buff)
+            if (!buff)
                 throw "no treepath";
-        } 
+        }
         let treebuff = new Uint8Array(buff);
         let ret = treeNode;
-        if(!ret){
-            ret = new TreeNode( treebuff, null,this.frw);
-        }else{
+        if (!ret) {
+            ret = new TreeNode(treebuff, null, this.frw);
+        } else {
             ret.parseBuffer(treebuff, this.frw);
         }
         ret.sha = objid;
@@ -245,39 +245,39 @@ export class GitFS {
      * @param encode 
      * @returns 
      */
-    async getBlobNode(objid: string|Uint8Array, encode: 'utf8' | 'buffer'):Promise<string|ArrayBuffer> {
+    async getBlobNode(objid: string | Uint8Array, encode: 'utf8' | 'buffer'): Promise<string | ArrayBuffer> {
         let strid = objid as string;
-        if(typeof(objid)!='string'){
-            strid=toHex(objid);
+        if (typeof (objid) != 'string') {
+            strid = toHex(objid);
         }
         let objpath = this.getObjUrl(strid);
-        let buff:ArrayBuffer|null=null;
-        try{
-            let objbuff = await this.frw.read(objpath, 'buffer',false) as ArrayBuffer;
-            if(objbuff){
-                buff = GitFS.zip?this.frw.unzip(objbuff):objbuff;
+        let buff: ArrayBuffer | null = null;
+        try {
+            let objbuff = await this.frw.read(objpath, 'buffer', false) as ArrayBuffer;
+            if (objbuff) {
+                buff = GitFS.zip ? this.frw.unzip(objbuff) : objbuff;
             }
-        }catch(e){
+        } catch (e) {
         }
-        if(!buff){
-            for(let pack of this._objectPacks){
-                if(!pack) continue;
-                if(await pack.has(strid)){
+        if (!buff) {
+            for (let pack of this._objectPacks) {
+                if (!pack) continue;
+                if (await pack.has(strid)) {
                     buff = await pack.get(strid)
                 }
-                if(buff)
+                if (buff)
                     break;
-            }  
-            if(!buff){
-                throw new Error('download error:'+strid);
+            }
+            if (!buff) {
+                throw new Error('download error:' + strid);
             }
         }
 
         //下载文件最好不校验。影响速度。
-        if(this.checkDownload){
-            let sum = await shasum(new Uint8Array(buff),true);
-            if(sum!=strid){
-                console.log('下载的文件校验错误:',strid,sum);
+        if (this.checkDownload) {
+            let sum = await shasum(new Uint8Array(buff), true);
+            if (sum != strid) {
+                console.log('下载的文件校验错误:', strid, sum);
             }
         }
 
@@ -295,73 +295,75 @@ export class GitFS {
      * @param node 
      * @returns 
      */
-    async openNode(node:TreeEntry){
-        if(node.treeNode) return node.treeNode;
-        if(!(node instanceof TreeEntry)){
+    async openNode(node: TreeEntry) {
+        if (node.treeNode) return node.treeNode;
+        if (!(node instanceof TreeEntry)) {
             console.error('openNode param error!')
         }
         // 没有treeNode表示还没有下载。下载构造新的node
-        try{
-            if(node.isDir){
-                let ret = await this.getTreeNode(node.idstring,null);
+        try {
+            if (node.isDir) {
+                let ret = await this.getTreeNode(node.idstring, null);
                 node.treeNode = ret;
                 ret.parent = node.owner;
                 return ret;
             }
-        }catch(e){
+            else
+                return null;
+        } catch (e) {
             throw "open node error"
         }
     }
 
-    async visitAll(node:TreeNode, treecb:(cnode:TreeNode)=>Promise<void>, blobcb:(entry:TreeEntry)=>Promise<void>){
+    async visitAll(node: TreeNode, treecb: (cnode: TreeNode) => Promise<void>, blobcb: (entry: TreeEntry) => Promise<void>) {
         await treecb(node);
-		for await (const entry of node.entries) {
-            if(entry.isDir){
-                try{
-                    if(!entry.treeNode) await this.openNode(entry);
-                    await this.visitAll(entry.treeNode!, treecb,blobcb);
-                }catch(e){
+        for await (const entry of node.entries) {
+            if (entry.isDir) {
+                try {
+                    if (!entry.treeNode) await this.openNode(entry);
+                    await this.visitAll(entry.treeNode!, treecb, blobcb);
+                } catch (e) {
                     //失败了可能是遍历本地目录，但是本地还没有下载，没有设置远程或者访问远程失败
                     //在没有网的情况下容易出
                     console.log('openNode error:', toHex(entry.oid));
                 }
-            }else{
+            } else {
                 await blobcb(entry);
             }
-		}
+        }
     }
 
-    async loadFile(node:TreeEntry, encode:'utf8'|'buffer'):Promise<string|ArrayBuffer>;
-    async loadFile(node:TreeNode, file:string, encode?:'utf8'|'buffer'):Promise<string|ArrayBuffer>;
-    async loadFile(file:string, encode:'utf8'|'buffer'):Promise<string|ArrayBuffer>;
-    async loadFile(node:TreeEntry|TreeNode|string, file?:string, encode?:'utf8'|'buffer'){
-        let entry:TreeEntry;
-        if(typeof node == 'string'){
-            return await this.loadFileByPath(node,file as any);
-        }else if(node instanceof TreeNode){
+    async loadFile(node: TreeEntry, encode: 'utf8' | 'buffer'): Promise<string | ArrayBuffer>;
+    async loadFile(node: TreeNode, file: string, encode?: 'utf8' | 'buffer'): Promise<string | ArrayBuffer>;
+    async loadFile(file: string, encode: 'utf8' | 'buffer'): Promise<string | ArrayBuffer>;
+    async loadFile(node: TreeEntry | TreeNode | string, file?: string, encode?: 'utf8' | 'buffer') {
+        let entry: TreeEntry;
+        if (typeof node == 'string') {
+            return await this.loadFileByPath(node, file as any);
+        } else if (node instanceof TreeNode) {
             entry = node.getEntry(file);
-        }else if(node instanceof TreeEntry){
-            entry=node;
-            encode=file as any;
+        } else if (node instanceof TreeEntry) {
+            entry = node;
+            encode = file as any;
         }
-        if(entry){
+        if (entry) {
             return await this.getBlobNode(entry.idstring, encode)
-        }else{
+        } else {
             console.log('没有这个文件:', file);
         }
         return null;
     }
 
-    async loadFileByPath(file:string, encode:'utf8'|'buffer'){
-        let entries:TreeEntry[]=[];
-        if( await this.pathToEntries(file, entries)){
-            let end = entries[entries.length-1];
-            return await this.getBlobNode( end.idstring, encode);
+    async loadFileByPath(file: string, encode: 'utf8' | 'buffer') {
+        let entries: TreeEntry[] = [];
+        if (await this.pathToEntries(file, entries)) {
+            let end = entries[entries.length - 1];
+            return await this.getBlobNode(end.idstring, encode);
         }
         return null;
     }
 
-    async saveBlobNode(objid: string, content: ArrayBuffer, refname:string|null) {
+    async saveBlobNode(objid: string, content: ArrayBuffer, refname: string | null) {
         /*
         let exist = await this.frw.isFileExist(treepath);
         if(exist ){ 
@@ -369,19 +371,19 @@ export class GitFS {
             return ;
         }
         */
-       
-       if(content.byteLength > GitFS.MAXFILESIZE){
-           alert('文件太大，无法上传：'+refname+'\n限制为：'+GitFS.MAXFILESIZE/1024/1024+'M');
-           return false;
+
+        if (content.byteLength > GitFS.MAXFILESIZE) {
+            alert('文件太大，无法上传：' + refname + '\n限制为：' + GitFS.MAXFILESIZE / 1024 / 1024 + 'M');
+            return false;
         }
-        await this.saveObject(objid,content);
+        await this.saveObject(objid, content);
         return true;
     }
 
-    async saveObject(objid: string, content: ArrayBuffer){
+    async saveObject(objid: string, content: ArrayBuffer) {
         let treepath = this.getObjUrl(objid);
         //let ret = await this.frw.write(treepath, content);
-        await this.frw.write(treepath,content as ArrayBuffer,false);
+        await this.frw.write(treepath, content as ArrayBuffer, false);
     }
 
     /**
@@ -401,25 +403,25 @@ export class GitFS {
      * 把一个文件或者路径转换成entry列表
      * @param path  相对路径
      */
-    async pathToEntries(path:string, entrylist:TreeEntry[]){
+    async pathToEntries(path: string, entrylist: TreeEntry[]) {
         let pathes = path.split('/');
         let cNode = this.treeRoot;
-        entrylist.length=0;
+        entrylist.length = 0;
         // 定位到节点
-        for await (let path of pathes){
-        //for (let i = 0, n = pathes.length; i < n; i++) {
+        for await (let path of pathes) {
+            //for (let i = 0, n = pathes.length; i < n; i++) {
             if (path == '') continue;  // 第一个/，以及中间会有的 //
             if (path == '.') continue;
             if (path == '..') {
                 cNode = cNode.parent;
             }
             let entry = cNode.getEntry(path);
-            if(!entry){
+            if (!entry) {
                 return false;
             }
 
             entrylist.push(entry);
-            if( entry.isDir && ! (cNode = entry.treeNode)){
+            if (entry.isDir && !(cNode = entry.treeNode)) {
                 // 如果是目录，下载节点
                 cNode = await this.openNode(entry)
             }
@@ -428,14 +430,14 @@ export class GitFS {
         return true;
     }
 
-    async pathToObjPath(relUrl:string){
-        let entries:TreeEntry[]=[]
-        if(await this.pathToEntries(relUrl,entries)){
-            let last = entries[entries.length-1];
+    async pathToObjPath(relUrl: string) {
+        let entries: TreeEntry[] = []
+        if (await this.pathToEntries(relUrl, entries)) {
+            let last = entries[entries.length - 1];
             let objid = toHex(last.oid);
             let path = this.getObjUrl(objid);
             return path;
-        }else{
+        } else {
             return null;
         }
     }
@@ -445,7 +447,7 @@ export class GitFS {
      * 
      * @param path 例如 '/Assets/env/' 只能是路径，不能是文件
      */
-    async getNodeByPath(path:string, create=false, startNode:TreeNode|null=null){
+    async getNodeByPath(path: string, create = false, startNode: TreeNode | null = null) {
         let pathes = path.split('/');
         let cNode = startNode || this.treeRoot;
         // 定位到path指定的节点
@@ -459,21 +461,21 @@ export class GitFS {
             let entry = cNode.getEntry(path);
             // 当前目录是否存在
             if (entry) {
-                if(!entry.treeNode){
+                if (!entry.treeNode) {
                     cNode = await this.openNode(entry);
-                }else{
+                } else {
                     cNode = entry.treeNode;
                 }
             } else {
-                if(create){
+                if (create) {
                     // 如果目录不存在，创建一个
                     // 在当前node添加entry
                     let entry = cNode.addEntry(path, true, null);
                     // 由于是目录，添加新的节点
                     cNode = new TreeNode(null, cNode, this.frw);
-                    entry.treeNode=cNode;
+                    entry.treeNode = cNode;
                     cNode.needSha();
-                }else
+                } else
                     return null;
             }
         }
@@ -486,14 +488,14 @@ export class GitFS {
      * @param name      文件名。无目录
      * @param content 
      */
-    async setFileAtNode(node:TreeNode, name:string, content: string | ArrayBuffer | File){
+    async setFileAtNode(node: TreeNode, name: string, content: string | ArrayBuffer | File) {
         //if(!node) return null;
         let buff: ArrayBuffer;
         if (content instanceof ArrayBuffer) {
             buff = content;
         } else if (content instanceof File) {
             buff = await readBinFile(content) as ArrayBuffer
-        }else{
+        } else {
             //string
             buff = (new TextEncoder()).encode(content).buffer;
         }
@@ -516,10 +518,10 @@ export class GitFS {
             // 如果entry不存在，则要创建新的
             entry = node.addEntry(name, false, oid);
         }
-        console.log('[gitfs] 提交变化文件:',node.fullPath+'/'+name);
-        if(!await this.saveBlobNode(hash, buff, node.fullPath+'/'+name)){
+        //console.debug('[gitfs] 提交变化文件:', node.fullPath + '/' + name);
+        if (!await this.saveBlobNode(hash, buff, node.fullPath + '/' + name)) {
             // 上传失败。设置一个无效的oid。避免形成永久性错误。
-            entry.oid!.fill(0);  
+            entry.oid!.fill(0);
         }
         return entry;
     }
@@ -529,47 +531,47 @@ export class GitFS {
      * @param gitfsNode 
      * @param localNode 
      */
-     async checkoutToLocal(gitfsNode:TreeNode, localNode:FileNode){
-		if (!localNode.child || Object.keys(localNode.child).length === 0) {
-			await localNode.readChild();
-		}
-        for( let f of gitfsNode){
+    async checkoutToLocal(gitfsNode: TreeNode, localNode: FileNode) {
+        if (!localNode.child || Object.keys(localNode.child).length === 0) {
+            await localNode.readChild();
+        }
+        for (let f of gitfsNode) {
             let pathname = f.path;
             // 如果是目录，就创建目录
-            if(f.isDir){
+            if (f.isDir) {
                 let fsnode = await localNode.mkdir(pathname) as FileNode;
                 let nextgitfsNode = gitfsNode.getEntry(pathname);
-                if(!nextgitfsNode){
+                if (!nextgitfsNode) {
                     console.error('gitfs 没有这个节点:', pathname);
                     return;
                 }
-                if(!nextgitfsNode.treeNode){
+                if (!nextgitfsNode.treeNode) {
                     await this.openNode(nextgitfsNode);
                 }
-                await this.checkoutToLocal(nextgitfsNode.treeNode!,fsnode);
-            }else{
+                await this.checkoutToLocal(nextgitfsNode.treeNode!, fsnode);
+            } else {
                 // 先看文件內容是否相同
-                let  filenode = localNode.child[pathname];
-                let shalocal:string;
+                let filenode = localNode.child[pathname];
+                let shalocal: string;
                 let shaonline = toHex(f.oid!);
-                if(filenode){
+                if (filenode) {
                     let fc = await filenode.readFile('buffer');
-                    shalocal = await shasum(fc,true) as string;
-                    if( shalocal== shaonline){
+                    shalocal = await shasum(fc, true) as string;
+                    if (shalocal == shaonline) {
                         continue;
                     }
                 }
                 // 文件不相同，下载远端文件
-                if(shaonline=='0000000000000000000000000000000000000000'){
-                    console.warn('错误文件：',pathname);
+                if (shaonline == '0000000000000000000000000000000000000000') {
+                    console.warn('错误文件：', pathname);
                     continue;
                 }
-                let fscontent = await this.getBlobNode(f.oid!,'buffer');
-                if(fscontent){
-                    console.log('gitfs update file:',localNode.getFullPath()+'/'+pathname);
+                let fscontent = await this.getBlobNode(f.oid!, 'buffer');
+                if (fscontent) {
+                    console.log('gitfs update file:', localNode.getFullPath() + '/' + pathname);
                     await localNode.createFile(pathname, fscontent);
                 }
-                else{
+                else {
                     console.error('下载文件失败。')
                 }
             }
@@ -582,10 +584,10 @@ export class GitFS {
      * @param path 相对路径
      * @param newname 新的名字
      */
-    async rename(path:string, newname:string) {
-        let entries:TreeEntry[]=[];
-        if( await this.pathToEntries(path, entries)){
-            let end = entries[entries.length-1];
+    async rename(path: string, newname: string) {
+        let entries: TreeEntry[] = [];
+        if (await this.pathToEntries(path, entries)) {
+            let end = entries[entries.length - 1];
             end.path = newname;
             end.owner.needSha();
             return true;
@@ -598,16 +600,16 @@ export class GitFS {
      * 
      * @param path  相对路径
      */
-    async remove(path:string) {
-        let entries:TreeEntry[]=[];
-        if( await this.pathToEntries(path, entries)){
-            let end = entries[entries.length-1];
+    async remove(path: string) {
+        let entries: TreeEntry[] = [];
+        if (await this.pathToEntries(path, entries)) {
+            let end = entries[entries.length - 1];
             return end.owner.rmEntry(end);
         }
         return false;
     }
 
-    async removeObject(oid:string){
+    async removeObject(oid: string) {
         let url = this.getObjUrl(oid);
         await this.frw.rm(url);
     }
@@ -617,28 +619,28 @@ export class GitFS {
      * @param dstNode 
      * @param srcentry 
      */
-    copy(dstNode:TreeNode, srcentry:TreeEntry){
-        dstNode.addEntry( srcentry.path, srcentry.isDir, srcentry.oid);
+    copy(dstNode: TreeNode, srcentry: TreeEntry) {
+        dstNode.addEntry(srcentry.path, srcentry.isDir, srcentry.oid);
     }
 
     private async makeCommit(msg: string) {
         // 注意，这时候的sha必须要已经计算了
-        if(!this.treeRoot.sha){
+        if (!this.treeRoot.sha) {
             console.error('[gitfs] makecommit 需要先计算sha');
             return null;
         }
-        if(this.curCommit.tree==this.treeRoot.sha){
+        if (this.curCommit.tree == this.treeRoot.sha) {
             console.log('[gitfs] makecommit parent 和现在的相同');
             return null;
         }
         let cmtinfo = new CommitInfo();
         cmtinfo.commitMessage = msg;
         cmtinfo.author = this.user;
-        cmtinfo.author_timestamp=new Date();
+        cmtinfo.author_timestamp = new Date();
         cmtinfo.parent = this.curCommit.sha;
         //await this.treeRoot.updateAllSha(this.frw,this.allchanges);
         cmtinfo.tree = this.treeRoot.sha;
-        console.log('[gitfs] makecommit tree:',this.treeRoot.sha);
+        console.log('[gitfs] makecommit tree:', this.treeRoot.sha);
         let cmt = new GitCommit(cmtinfo, 'nosha');
         let buff = await cmt.toBuffer(this.frw);
         this.curCommit = cmtinfo;
@@ -651,7 +653,7 @@ export class GitFS {
      * 
      * @param rootpash 通过同步本地文件执行的push，这时候需要记录一个head。如果是程序动态创建的，则不要记录head，否则会在提交资源的时候被冲掉
      */
-    async push(commitmsg:string, rootpash:FileNode) {
+    async push(commitmsg: string, rootpash: FileNode) {
         // await this.treeRoot.updateAllSha(this.frw,this.allchanges);
         // let allchanges = this.allchanges;
         // let n = allchanges.length;
@@ -713,27 +715,27 @@ export class GitFS {
 
 
     //TODO 保存head应该带目录。否则一旦切换不同的目录会导致出问题（保存的是最新的，但是选中的目录实际是旧的）
-    async saveHeadToLocal(commit:string|Object, fs:FileNode){
+    async saveHeadToLocal(commit: string | Object, fs: FileNode) {
         //this.frw.saveUserData(this.name+'_'+this.branch+'_head', commit);
-        if(typeof(commit)=='object'){
+        if (typeof (commit) == 'object') {
             commit = JSON.stringify(commit);
         }
         let git = await fs.mkdir(PROJINFO);
-        await git.createFile('head',commit as string);
+        await git.createFile('head', commit as string);
     }
 
-    async getHeadFromLocal(fs:FileNode){
+    async getHeadFromLocal(fs: FileNode) {
         await fs.readChild();
         let git = fs.child[PROJINFO];
-        if(!git) return null;
+        if (!git) return null;
         await git.readChild();
         let head = git.child['head'];
-        if(!head) return head;
+        if (!head) return head;
         return head.readFile('utf8');
         //return this.frw.getUserData(this.name+'_'+this.branch+'_head');
     }
 
-    private printCommit(cmt:CommitInfo){
+    private printCommit(cmt: CommitInfo) {
         console.log('-----------------------------')
         console.log(cmt.commitMessage, cmt.sha, cmt.tree);
     }
@@ -744,12 +746,12 @@ export class GitFS {
         for (let i = 0; i < num; i++) {
             let par = curCommit.parent;
             if (!par) break;
-            if(par=='0') break;
+            if (par == '0') break;
             let pcommit = await this.getCommit(par)
             if (pcommit) {
                 this.printCommit(pcommit.commitinfo);
                 curCommit = pcommit.commitinfo;
-            }else{
+            } else {
                 break;
             }
         }

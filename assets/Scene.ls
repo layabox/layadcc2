@@ -386,6 +386,49 @@
       "scrollType": 3,
       "vScrollBarSkin": "res://d79c761b-6bc3-49e0-9e51-bd2ba385cfe0",
       "hScrollBarSkin": "res://5344e14f-1c62-43c8-a00a-5593ca19bdbf"
+    },
+    {
+      "_$id": "djds7vz8",
+      "_$type": "Text",
+      "name": "Text(1)",
+      "x": 349,
+      "y": 163,
+      "width": 66,
+      "height": 139,
+      "text": "Q",
+      "fontSize": 136,
+      "color": "#FFFFFF",
+      "leading": 2
+    },
+    {
+      "_$id": "5qvrbeak",
+      "_$type": "Text",
+      "name": "Text(2)",
+      "x": 434,
+      "y": 159,
+      "width": 66,
+      "height": 139,
+      "text": "Q",
+      "fontSize": 136,
+      "color": "rgba(255, 0, 0, 1)",
+      "leading": 2,
+      "underlineColor": "rgba(255, 255, 255, 1)"
+    },
+    {
+      "_$id": "rcyvskn8",
+      "_$type": "Text",
+      "name": "Text(3)",
+      "x": 518,
+      "y": 157,
+      "width": 66,
+      "height": 139,
+      "text": "Q",
+      "fontSize": 136,
+      "color": "rgba(0, 255, 0, 1)",
+      "bgColor": "rgba(255, 255, 255, 1)",
+      "borderColor": "rgba(255, 0, 0, 1)",
+      "leading": 2,
+      "stroke": 11
     }
   ]
 }

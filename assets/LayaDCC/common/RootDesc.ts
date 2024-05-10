@@ -1,15 +1,15 @@
-export class RootDesc{
+export class RootDesc {
     //根的id。这里不记revision是为了使用方便，省的再次下载
-    root:string;
+    root: string;
     //revision:number;
     //对象包
-    objPackages:string[];
+    objPackages: string[];
     //节点包
-    treePackages:string[];
+    treePackages: string[];
     //文件总数。用于集中下载计算进度
-    fileCounts=0;
-    time:Date;
-    version='1.0.0';    //上一次的id
-    parentVersion:string;
-    desc:string;
+    fileCounts = 0;
+    time: Date;
+    version = '1.0.0';    //上一次的id
+    parentVersion: string;
+    desc: string;
 }

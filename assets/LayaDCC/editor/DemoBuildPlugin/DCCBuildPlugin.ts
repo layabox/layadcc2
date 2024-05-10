@@ -27,25 +27,25 @@ export class DCCBuildPlugin implements IEditorEnv.IBuildPlugin {
         // });
     }
 
-    async onCreatePackage(task: IEditorEnv.IBuildTask): Promise<void>{
+    async onCreatePackage(task: IEditorEnv.IBuildTask): Promise<void> {
     }
 
-    async onCreateManifest?(task: IEditorEnv.IBuildTask): Promise<void>{
-    }    
-    
-    async onEnd(task: IEditorEnv.IBuildTask): Promise<void>{
+    async onCreateManifest?(task: IEditorEnv.IBuildTask): Promise<void> {
+    }
+
+    async onEnd(task: IEditorEnv.IBuildTask): Promise<void> {
         if (!this.config.data.enable)
             return;
-    
+
         let platform = task.platform;
-        let platformParam:'android'|'ios'|'windows';
-        if(platform=='android')platformParam='android';
-        else if(platform=='ios')platformParam='ios';
-        else{
+        let platformParam: 'android' | 'ios' | 'windows';
+        if (platform == 'android') platformParam = 'android';
+        else if (platform == 'ios') platformParam = 'ios';
+        else {
             return;
         }
         let dir = task.destPath;//xxx/relase/platform
         let cmd = new LayaDCCCmd();
-        await cmd.genDCCCache(dir,platformParam)
+        await cmd.genDCCCache(dir, platformParam)
     }
 }

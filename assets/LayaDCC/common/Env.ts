@@ -1,29 +1,29 @@
 
-export class Env{
-    static get runtimeName(){
-        if((window as any).conch){
+export class Env {
+    static get runtimeName() {
+        if ((window as any).conch) {
             return 'layaNative';
         }
         return 'web';
     }
-    static isNative(){}
-    static isWeb(){}
-    static isNode(){}
+    static isNative() { }
+    static isWeb() { }
+    static isNode() { }
 
     //根据不同的平台实现
-    static dcodeUtf8(buf:ArrayBuffer){
-        if(window.conch){
+    static dcodeUtf8(buf: ArrayBuffer) {
+        if (window.conch) {
             //return conch.bufferToString(buf);
             let str = decodeBuffer(buf);
             return str;
-        }else{
+        } else {
             return (new TextDecoder()).decode(buf);
         }
     }
 }
 
 
-function decodeBuffer(buf:ArrayBuffer): string {
+function decodeBuffer(buf: ArrayBuffer): string {
     let len = buf.byteLength;
     let pos = 0;
     var v = "", max = len, c: number, c2: number, c3: number, f = String.fromCharCode;

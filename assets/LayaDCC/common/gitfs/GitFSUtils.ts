@@ -7,40 +7,40 @@ import { Env } from "../Env";
 import { createHash } from "./sha1";
 
 
-export function readUTF8(buf:Uint8Array|ArrayBuffer){
-	return Env.dcodeUtf8(buf);
+export function readUTF8(buf: Uint8Array | ArrayBuffer) {
+    return Env.dcodeUtf8(buf);
 }
 
 // 返回写了多少
-export function writeUTF8(buf:Uint8Array, str:string, off:number){
-	let strbuf = new TextEncoder().encode(str);
-	buf.set(strbuf,off);
-	return strbuf.length;
+export function writeUTF8(buf: Uint8Array, str: string, off: number) {
+    let strbuf = new TextEncoder().encode(str);
+    buf.set(strbuf, off);
+    return strbuf.length;
 }
 
 
-let supportsSubtleSHA1:boolean|null = null
+let supportsSubtleSHA1: boolean | null = null
 
 /**
  * 把一个Uint8Array转成16进制字符串。没有0x
  * @param buffer 
  * @returns 
  */
-export function toHex(buffer:Uint8Array) {
-	let hex = ''
-	for (const byte of new Uint8Array(buffer)) {
-		if (byte < 16) hex += '0'
-		hex += byte.toString(16)
-	}
-	return hex
+export function toHex(buffer: Uint8Array) {
+    let hex = ''
+    for (const byte of new Uint8Array(buffer)) {
+        if (byte < 16) hex += '0'
+        hex += byte.toString(16)
+    }
+    return hex
 }
 
-export function hashToArray(hash:string){
-	const paddedHex = hash.padStart(40, '0');
+export function hashToArray(hash: string) {
+    const paddedHex = hash.padStart(40, '0');
     //let len = hash.length/2;
     let ret = new Uint8Array(20);
-    for(let i=0; i<20; i++){
-        ret[i]= parseInt( paddedHex.substring(i*2,i*2+2),16);
+    for (let i = 0; i < 20; i++) {
+        ret[i] = parseInt(paddedHex.substring(i * 2, i * 2 + 2), 16);
     }
     return ret;
 }
@@ -50,39 +50,39 @@ export function hashToArray(hash:string){
  * @param buffer 
  * @returns 
  */
-export async function shasum(buffer:Uint8Array, tostring=true) {
-	if (supportsSubtleSHA1 === null) {
-		supportsSubtleSHA1 = await testSubtleSHA1()
-	}
-	return supportsSubtleSHA1 ? subtleSHA1(buffer,tostring) : shasumSync(buffer, tostring);
+export async function shasum(buffer: Uint8Array, tostring = true) {
+    if (supportsSubtleSHA1 === null) {
+        supportsSubtleSHA1 = await testSubtleSHA1()
+    }
+    return supportsSubtleSHA1 ? subtleSHA1(buffer, tostring) : shasumSync(buffer, tostring);
 }
 
 
-function shasumSync(data:Uint8Array,tostring=true) {
-	let ret:string|Uint8Array;
-	if(tostring){
-		ret = createHash().update(data).digest('hex');
-	}else{
-		ret = createHash().update(data).digest();
-	}
+function shasumSync(data: Uint8Array, tostring = true) {
+    let ret: string | Uint8Array;
+    if (tostring) {
+        ret = createHash().update(data).digest('hex');
+    } else {
+        ret = createHash().update(data).digest();
+    }
     return ret;
 }
 
-async function subtleSHA1(buffer:Uint8Array,tostring=true) {
-	const hash = new Uint8Array( await crypto.subtle.digest('SHA-1', buffer) );
-	if(tostring)
-		return toHex(hash)
-	return hash;
+async function subtleSHA1(buffer: Uint8Array, tostring = true) {
+    const hash = new Uint8Array(await crypto.subtle.digest('SHA-1', buffer));
+    if (tostring)
+        return toHex(hash)
+    return hash;
 }
 
 async function testSubtleSHA1() {
-	try {
-		const hash = await subtleSHA1(new Uint8Array([]))
-		if (hash === 'da39a3ee5e6b4b0d3255bfef95601890afd80709') return true
-	} catch (_) {
-		// no bother
-	}
-	return false
+    try {
+        const hash = await subtleSHA1(new Uint8Array([]))
+        if (hash === 'da39a3ee5e6b4b0d3255bfef95601890afd80709') return true
+    } catch (_) {
+        // no bother
+    }
+    return false
 }
 
 /*

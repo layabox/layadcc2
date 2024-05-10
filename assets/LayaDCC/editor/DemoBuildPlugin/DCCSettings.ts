@@ -5,62 +5,62 @@ export class DCCSettings extends IEditor.EditorPanel {
         Editor.typeRegistry.addTypes([
             {
                 name: "DCCSettings",
-                catalogBarStyle : "hidden",
+                catalogBarStyle: "hidden",
                 properties: [
                     {
                         name: "enable",
-                        caption:"开启",
+                        caption: "开启",
                         type: "boolean",
                         default: false
                     },
                     {
                         name: "buildCache",
-                        caption:"打包资源到native",
+                        caption: "打包资源到native",
                         type: "boolean",
                         default: false,
                         hidden: "!data.enable",
-                        tips:'是否把资源打包到native应用中',
+                        tips: '是否把资源打包到native应用中',
                     },
                     {
                         name: "desc",
-                        caption:"描述",
+                        caption: "描述",
                         type: "string",
                         default: "dcc update",
-                        tips:'本次版本描述',
+                        tips: '本次版本描述',
                         hidden: "!data.enable",
                     },
                     {
                         name: "targetPath",
-                        caption:'资源目录',
+                        caption: '资源目录',
                         type: "string",
                         inspector: "File",
                         options: {
                             absolutePath: true,
                             properties: ["openDirectory"]
                         },
-                        default: Editor.projectPath+'/release/web/',
+                        default: Editor.projectPath + '/release/web/',
                         hidden: "!data.enable",
                     },
                     {
                         name: "outputPath",
-                        caption:"输出目录",
+                        caption: "输出目录",
                         type: "string",
                         inspector: "File",
                         options: {
                             absolutePath: true,
                             properties: ["openDirectory"]
                         },
-                        default: Editor.projectPath+'/release/web/dccout',
+                        default: Editor.projectPath + '/release/web/dccout',
                         hidden: "!data.enable",
-                    },    
+                    },
                     {
                         name: "version",
-                        caption:"版本",
+                        caption: "版本",
                         type: "string",
                         default: '1.0.0',
                         hidden: "!data.enable",
-                        tips:"指定资源版本，如果保留老的资源，则不同的版本可以共存",
-                    },                           
+                        tips: "指定资源版本，如果保留老的资源，则不同的版本可以共存",
+                    },
                     // {
                     //     name: "reserveOldAssets",
                     //     caption:"保留老的资源",
@@ -70,12 +70,12 @@ export class DCCSettings extends IEditor.EditorPanel {
                     // },               
                     {
                         name: "fastMode",
-                        caption:"快速模式",
+                        caption: "快速模式",
                         type: "boolean",
                         default: true,
                         hidden: "!data.enable",
-                        tips:"生成dcc的时候，会比较文件修改时间，时间没变则不再计算"
-                    },               
+                        tips: "生成dcc的时候，会比较文件修改时间，时间没变则不再计算"
+                    },
                     /*        
                     {
                         name: "mergeSmallFiles",
@@ -102,7 +102,7 @@ export class DCCSettings extends IEditor.EditorPanel {
                         default: 1000,
                         hidden: "!(data.mergeSmallFiles&&data.enable)",
                     },          
-                    */      
+                    */
 
                 ]
             }

@@ -4,7 +4,7 @@
  * sha1-uint8array.ts
  */
 
- const K = [
+const K = [
     0x5a827999 | 0,
     0x6ed9eba1 | 0,
     0x8f1bbcdc | 0,
@@ -100,7 +100,7 @@ class Hash {
     }
 
     private _uint8(data: Uint8Array, offset?: number) {
-        const {_byte, _word} = this;
+        const { _byte, _word } = this;
         const length = data.length;
         offset = offset!! | 0;
 
@@ -123,7 +123,7 @@ class Hash {
     }
 
     private _utf8(text: string): this {
-        const {_byte, _word} = this;
+        const { _byte, _word } = this;
         const length = text.length;
         let surrogate = this._sp;
 
@@ -171,7 +171,7 @@ class Hash {
     }
 
     private _int32(data: Int32Array, offset?: number): void {
-        let {A, B, C, D, E} = this;
+        let { A, B, C, D, E } = this;
         let i = 0;
         offset = offset!! | 0;
 
@@ -203,7 +203,7 @@ class Hash {
     digest(): Uint8Array;
     digest(encoding: string): string;
     digest(encoding?: string) {
-        const {_byte, _word} = this;
+        const { _byte, _word } = this;
         let i = (this._size % N.inputBytes) | 0;
         _byte[i++] = 0x80;
 
@@ -239,13 +239,13 @@ class Hash {
     }
 
     private _hex(): string {
-        const {A, B, C, D, E} = this;
+        const { A, B, C, D, E } = this;
 
         return hex32(A) + hex32(B) + hex32(C) + hex32(D) + hex32(E);
     }
 
     private _bin(): Uint8Array {
-        const {A, B, C, D, E, _byte, _word} = this;
+        const { A, B, C, D, E, _byte, _word } = this;
 
         _word[0] = swap32(A);
         _word[1] = swap32(B);

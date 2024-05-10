@@ -7,103 +7,103 @@ import { DCCConfig } from "./Config";
 import { Env } from "./Env";
 import { IGitFSFileIO } from "./gitfs/GitFS";
 
-function myFetch(url:string, encode:'utf8'|'buffer'='buffer') {
+function myFetch(url: string, encode: 'utf8' | 'buffer' = 'buffer') {
     return new Promise<any>((resolve, reject) => {
-      const xhr = new _XMLHttpRequest();
-      if(encode=='utf8')
-        xhr.responseTypeCode=1;
-      else 
-        xhr.responseTypeCode=5;
-      // 设置请求的方法和URL
-      xhr._open('GET', url, true);
-      xhr.setPostCB((result)=>{
-        let cc = xhr;//保持一下xhr，避免被释放，否则回来之后xhr已经被释放了
-        resolve(result);
-      },(e1)=>{
-        resolve(null);
-      });
-      xhr.getData(url);
+        const xhr = new _XMLHttpRequest();
+        if (encode == 'utf8')
+            xhr.responseTypeCode = 1;
+        else
+            xhr.responseTypeCode = 5;
+        // 设置请求的方法和URL
+        xhr._open('GET', url, true);
+        xhr.setPostCB((result) => {
+            let cc = xhr;//保持一下xhr，避免被释放，否则回来之后xhr已经被释放了
+            resolve(result);
+        }, (e1) => {
+            resolve(null);
+        });
+        xhr.getData(url);
     });
-  }
+}
 
 //访问服务器文件的接口。只要读就行了
-export class DCCClientFS_native implements IGitFSFileIO{
-    repoPath:string;
+export class DCCClientFS_native implements IGitFSFileIO {
+    repoPath: string;
 
-    private getAbsPath(path:string){
+    private getAbsPath(path: string) {
         let cachePath = conch.getCachePath();
-        if(path.includes(':/')||path.includes(':\\')){
+        if (path.includes(':/') || path.includes(':\\')) {
             return path;
         }
-        else{
-            if(!cachePath.endsWith('/')){
-                cachePath+='/';
+        else {
+            if (!cachePath.endsWith('/')) {
+                cachePath += '/';
             }
-            return cachePath+path;
+            return cachePath + path;
         }
     }
 
     //file是相对cache的目录
-    private makeDirsInCachePath(file:string){
+    private makeDirsInCachePath(file: string) {
         file = file.replace(/\\/g, '/');
         //file = file.replaceAll('\\','/'); 当前native不支持replaceAll
         let paths = file.split('/');
         paths.pop();//去掉文件
-        if(paths.length<=0)
+        if (paths.length <= 0)
             return;
 
         let cpath = this.getAbsPath('');
-        for(let p of paths){
-            cpath=cpath+'/'+p;
-            if(!fs_exists(cpath)){
+        for (let p of paths) {
+            cpath = cpath + '/' + p;
+            if (!fs_exists(cpath)) {
                 fs_mkdir(cpath);
             }
         }
     }
 
-    async init(repoPath:string|null,cachePath:string){
-        if(repoPath && !repoPath.endsWith('/'))repoPath+='/';
-        this.repoPath =repoPath;
+    async init(repoPath: string | null, cachePath: string) {
+        if (repoPath && !repoPath.endsWith('/')) repoPath += '/';
+        this.repoPath = repoPath;
 
         //创建基本目录
         let objpath = this.getAbsPath('objects');
-        if(!fs_exists(objpath)){
+        if (!fs_exists(objpath)) {
             fs_mkdir(objpath);
         }
-        DCCConfig.log && console.log('DCCClientFS: path='+conch.getCachePath());
+        DCCConfig.log && console.log('DCCClientFS: path=' + conch.getCachePath());
     }
-    
+
     //远程下载
     async fetch(url: string): Promise<Response> {
         let ret = await myFetch(url);
         return {
-            ok:!!ret,
-            arrayBuffer:async ()=>{return ret;},
-            text:async ()=>{ return Env.dcodeUtf8(ret);}
+            ok: !!ret,
+            arrayBuffer: async () => { return ret; },
+            text: async () => { return Env.dcodeUtf8(ret); }
         } as unknown as Response;
     }
 
-    async read(url: string, encode: "utf8" | "buffer",onlylocal:boolean): Promise<string | ArrayBuffer> {
+    async read(url: string, encode: "utf8" | "buffer", onlylocal: boolean): Promise<string | ArrayBuffer> {
         //先从本地读取，如果没有就从远程下载
-        let ret:string|ArrayBuffer;
-        try{
+        let ret: string | ArrayBuffer;
+        try {
             ret = fs_readFileSync(this.getAbsPath(url));
-            if(encode=='utf8'){
+            if (encode == 'utf8') {
                 ret = Env.dcodeUtf8(ret);
             }
-        }catch(e:any){
+        } catch (e: any) {
         }
-        if(!ret){
-            if(onlylocal)
+        if (!ret) {
+            if (onlylocal)
                 return null;
-            if(this.repoPath){
-                let resp = await this.fetch(this.repoPath+url);
-                if(encode=='utf8'){
+            if (this.repoPath) {
+                let resp = await this.fetch(this.repoPath + url);
+                if (encode == 'utf8') {
                     ret = await resp.text();
-                }else{
+                } else {
                     ret = await resp.arrayBuffer();
                 }
-                await this.write(url,ret);
+                await this.write(url, ret);
             }
         }
         return ret;
@@ -114,15 +114,15 @@ export class DCCClientFS_native implements IGitFSFileIO{
         //确保路径都存在
         this.makeDirsInCachePath(url);
         url = this.getAbsPath(url);
-        if(!overwrite && fs_exists(url)){
+        if (!overwrite && fs_exists(url)) {
             return;
         }
-        fs_writeFileSync(url,content);
+        fs_writeFileSync(url, content);
     }
 
     //只能判断本地的
     async isFileExist(url: string): Promise<boolean> {
-        return Promise.resolve().then(()=>{return fs_exists(url);})
+        return Promise.resolve().then(() => { return fs_exists(url); })
     }
 
     async mv(src: string, dst: string) {
@@ -154,11 +154,11 @@ export class DCCClientFS_native implements IGitFSFileIO{
     async enumCachedObjects(callback: (objid: string) => void): Promise<void> {
         let objects = this.getAbsPath('objects');
         let idPres = fs_readdirSync(objects);
-        for(let pre of idPres){
-            let cpath = objects+'/'+pre;
+        for (let pre of idPres) {
+            let cpath = objects + '/' + pre;
             let objs = fs_readdirSync(cpath);
-            for(let o of objs){
-                callback(pre+o);
+            for (let o of objs) {
+                callback(pre + o);
             }
         }
     }

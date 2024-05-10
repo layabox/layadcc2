@@ -1,17 +1,17 @@
 import { IGitFSFileIO } from "./gitfs/GitFS";
 
-export class AppResReader_Native{
+export class AppResReader_Native {
     //注意这里的file是相对于资源目录的，windows下是debug目录，android下是？？？
-    async getRes(file:string, encode:'utf8'|'buffer'){
-        return conch.readFileFromAsset(file,encode)
+    async getRes(file: string, encode: 'utf8' | 'buffer') {
+        return conch.readFileFromAsset(file, encode)
     }
 }
 
 //这个封装是为了方便，给ObjPack使用
-export class FileIO_AppRes implements IGitFSFileIO{
+export class FileIO_AppRes implements IGitFSFileIO {
     repoPath: string;
-    constructor(cachePath:string){
-        this.repoPath=cachePath;
+    constructor(cachePath: string) {
+        this.repoPath = cachePath;
     }
     init(repoPath: string, cachePath: string): Promise<void> {
         throw new Error("Method not implemented.");
@@ -21,10 +21,10 @@ export class FileIO_AppRes implements IGitFSFileIO{
     }
 
     async read(url: string, encode: "utf8" | "buffer", onlylocal: boolean): Promise<string | ArrayBuffer> {
-        let path = this.repoPath+'/'+url;
-        return conch.readFileFromAsset(path,encode)
+        let path = this.repoPath + '/' + url;
+        return conch.readFileFromAsset(path, encode)
     }
-    
+
     write(url: string, content: string | ArrayBuffer, overwrite?: boolean): Promise<any> {
         throw new Error("Method not implemented.");
     }
