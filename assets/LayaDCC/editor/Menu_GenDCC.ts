@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { LayaDCCCmd } from "../common";
 import { Params } from "../common/LayaDCC";
 import { GenDCCZipDialog } from "./GenDCCZipDialog";
+import { LayaDCCTools } from '../ExpTools/LayaDCCTools';
 
 interface IConfigData {
     enable: boolean;
@@ -60,6 +61,11 @@ export class testDCC {
         Editor.showDialog(GenDCCZipDialog, null);
         //let a = new LayaDCCCmd();
         //a.genzip('','');
+    }
+
+    @IEditor.menu('App/tool/打包目录生成Zip')
+    async testDCCPackPath() {
+        let zipfile = await LayaDCCTools.genZipByPath('D:/work/ideproj/DCCPlugin/release/web/internal','d:/temp/ddd.zip');
     }
 
 }

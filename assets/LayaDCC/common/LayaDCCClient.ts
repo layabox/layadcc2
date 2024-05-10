@@ -361,13 +361,17 @@ export class LayaDCCClient {
                 await this.addObject(entry.entryName, entry.getData())
             }
         })
-        //写head
-        let buf = zip.getEntry('head.json');
-        await this._frw.write('head.json', buf.getData().buffer, true);
-        //更新自己的root
-        let localHeadStr = await this._frw.read('head.json', 'utf8', true) as string;
-        let localHead = JSON.parse(localHeadStr) as RootDesc;
-        await this._gitfs.setRoot(localHead.root);
+        //写head。zip中可能没有head.json，例如只是某个目录，这时候就不要更新root了
+        try {
+            let buf = zip.getEntry('head.json');
+            await this._frw.write('head.json', buf.getData().buffer, true);
+            //更新自己的root
+            let localHeadStr = await this._frw.read('head.json', 'utf8', true) as string;
+            let localHead = JSON.parse(localHeadStr) as RootDesc;
+            await this._gitfs.setRoot(localHead.root);
+        } catch (e) {
+
+        }
     }
 
     /**

@@ -33,10 +33,11 @@ export class LayaDCC {
     set params(p: Params) {
         this.config = p;
     }
+    
     /**
      * 生成目录p的dcc信息
-     * 默认保存在当前目录的.dcc目录下
-     * @param p 
+     * 默认保存在当前目录的dccout目录下
+     * @param p 针对这个目录生成dcc
      */
     async genDCC(p: string) {
         let dccout = this.dccout = path.resolve(p, this.config.dccout)
@@ -286,5 +287,14 @@ export class LayaDCC {
         let gitfs = this.gitfs;
         await gitfs.checkoutToLocal(null, null);
     }
+
+    get fileIO() {
+        return this.frw;
+    }    
+
+    //获取某个对象（用hash表示的文件或者目录）在缓存中的地址
+    getObjectUrl(objid: string) {
+        return this.gitfs.getObjUrl(objid)
+    }    
 }
 

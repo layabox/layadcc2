@@ -31,15 +31,46 @@ export class LayaDCCTools {
         let all = enumDccObjects(dccpath);
     }
 
+    /**
+     * 把一个目录打包成更新包
+     * 这个不修改root，所以不做一致性保证，只是对象更新
+     * @param dir 
+     * @param outfile 
+     */
     static async genZipByPath(dir: string, outfile: string) {
-        // let dcc = new LayaDCC();
-        // let params = new Params();
-        // params.mergeFile = true;
-        // dcc.params = params;
+        //针对这个目录执行一下生成dcc，然后打包所有的对象，最后删掉临时dcc目录
 
-        // params.dccout = fpath.join(this.projectPath, "app/src/main/assets/cache/dcc2.0");
-        // await dcc.genDCC(task.resourcePath);
+        //创建一个临时目录
+        let dccoutBasepath = path.join(os.tmpdir(), 'layadcc');
+        try {
+            await promisify(fs.mkdir)(dccoutBasepath);
+        } catch (e) { }        
+        let dccout = path.join(dccoutBasepath, "_tempdccout_dir_pack");
+        if(fs.existsSync(dccout)){
+            //如果有这个目录先删掉
+            fs.rmdirSync(dccout,{recursive:true});
+        }
+        await promisify(fs.mkdir)(dccout);
 
+        //生成dcc
+        let dcc = new LayaDCC();
+        let params = new Params();
+        params.mergeFile = false;
+        dcc.params = params;
+        params.dccout=dccout;
+        await dcc.genDCC(dir);
+
+        //打包结果
+        let zip = new IEditor.ZipFileW(outfile);
+        dcc.fileIO.enumCachedObjects((objid) => {
+            let file = path.join(params.dccout, dcc.getObjectUrl(objid));
+            let buf = fs.readFileSync(file);
+            zip.addBuffer(objid, new Uint8Array(buf));
+        })
+        await zip.save(outfile);
+
+        //删除临时dcc目录
+        fs.rmdirSync(params.dccout, { recursive: true });
     }
 
     //比较两个dcc目录，把差异（只是new增加的）打包，使用new的root作为root
