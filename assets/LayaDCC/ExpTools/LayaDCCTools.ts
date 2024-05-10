@@ -6,6 +6,8 @@ import * as os from 'os';
 import { promisify } from 'util'
 import { LayaDCCClient } from "../common/LayaDCCClient";
 import { DCCClientFS_NodeJS } from "../common/DCCClientFS_NodeJS";
+import { shasum, toHex } from "../common/gitfs/GitFSUtils";
+import { DCCFS_NodeJS } from "../common/DCCFS_NodeJS";
 
 function enumDccObjects(dccpath: string) {
     let ret: string[] = [];
@@ -35,7 +37,7 @@ export class LayaDCCTools {
      * 把一个目录打包成更新包
      * 这个不修改root，所以不做一致性保证，只是对象更新
      * @param dir 
-     * @param outfile 
+     * @param outfile
      */
     static async genZipByPath(dir: string, outfile: string) {
         //针对这个目录执行一下生成dcc，然后打包所有的对象，最后删掉临时dcc目录
@@ -71,6 +73,24 @@ export class LayaDCCTools {
 
         //删除临时dcc目录
         fs.rmdirSync(params.dccout, { recursive: true });
+    }
+
+    /**
+     * 根据文件列表打包对象到dcczip文件
+     * @param files 绝对文件名列表
+     * @param outfile 
+     */
+    static async genZipByDCCFiles(files:string[], outfile: string) {
+        let zip = new IEditor.ZipFileW(outfile);
+        let frw = new DCCFS_NodeJS();
+
+        for(let f of files){
+            let buff = await frw.read(f, 'buffer', true) as ArrayBuffer;
+            let oid = await shasum(new Uint8Array(buff), false) as Uint8Array;
+            let hash = toHex(oid);
+            zip.addBuffer(hash,new Uint8Array(buff));
+        }
+        await zip.save(outfile);
     }
 
     //比较两个dcc目录，把差异（只是new增加的）打包，使用new的root作为root

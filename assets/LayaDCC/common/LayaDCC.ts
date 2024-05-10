@@ -296,5 +296,25 @@ export class LayaDCC {
     getObjectUrl(objid: string) {
         return this.gitfs.getObjUrl(objid)
     }    
+
+    /**
+     * 把一个相对目录转换成对象目录
+     * @param path 相对目录
+     * @returns 对象目录，相对dcc根目录
+     */
+    async transUrl(path: string) {
+        let gitfs = this.gitfs;
+        if (!gitfs) return null;
+
+        let objpath = await gitfs.pathToObjPath(path);
+        if (!objpath) {
+            return null;
+        }
+        return objpath;
+    }
+
+    getRepoPath(){
+        return this.dccout;
+    }
 }
 
