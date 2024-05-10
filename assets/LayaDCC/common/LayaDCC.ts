@@ -155,6 +155,10 @@ export class LayaDCC {
             blobNodes.push(toHex(entry.oid));
         })
 
+        //过滤重复文件。例如内容完全相同的两个目录，会记录多次
+        if(treeNodes.length) treeNodes = [... new Set(treeNodes)];
+        if(blobNodes.length) blobNodes = [... new Set(blobNodes)];
+
         let treeSize = 0;
         let reservBuff = new Uint8Array(this.config.mergedFileSize);
         let objInPacks: { id: string, start: number, length: number }[] = [];

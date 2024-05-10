@@ -46,7 +46,7 @@ export class testDCC {
         params.version = data.version;
         params.fast = data.fastMode;
         params.desc = data.desc;
-        params.mergeFile = data.mergeSmallFiles;
+        params.mergeFile = data.mergeSmallFiles??true;
         params.fileToMerge = data.maxSmallFileSize ?? 100 * 1024;
         params.mergedFileSize = data.maxPackSize ?? 1000 * 1024;
         a.dir = data.targetPath;
