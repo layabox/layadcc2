@@ -458,7 +458,7 @@ export class LayaDCCClient {
      * @param callToC 
      * @param data 目前是c++那边传过来的一个数据，必须在调用callToC的时候作为第一个参数传回去 
      */
-    private _jsdown(url:string, callToC:(cdata:any, buff:ArrayBuffer, localpath:string)=>void,data:any){
+    private _jsdown(url:string, cbObj:{onDownloadEnd:(buff:ArrayBuffer, localpath:string)=>void,external_onok:any}){
         if (this.onlyTransUrl) {
             this.transUrl(url).then((url:string)=>{
                 //@ts-ignore
@@ -466,17 +466,16 @@ export class LayaDCCClient {
                     ()=>{},
                     (buff:ArrayBuffer, localip:string, svip:string)=>{
                         //下载完成
-                        callToC(data, buff,'');
+                        cbObj.onDownloadEnd(buff,'');
                     },
                     ()=>{})
             });
         } else {
-            debugger;
             this.readFile(url).then((buff:ArrayBuffer)=>{
                 this.transUrl(url).then((svObjUrl:string)=>{
                     let rpath = svObjUrl.substring(this._dccServer.length);
                     let localPath = conch.getCachePath()+'/'+rpath;
-                    callToC(data, buff, localPath);
+                    cbObj.onDownloadEnd( buff, localPath);
                 });
             });
         }
