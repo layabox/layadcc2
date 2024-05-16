@@ -198,7 +198,7 @@ export class LayaDCCClient {
 
         if (!localRoot || (remoteHead && localRoot != remoteHead.root)) {//本地不等于远端
             //处理打包
-            if (remoteHead.treePackages.length) {
+            if (remoteHead.treePackages && remoteHead.treePackages.length) {
                 this.log('需要下载treenode')
                 for (let packid of remoteHead.treePackages) {
                     if (this._loadedPacks[packid]) {
@@ -228,7 +228,7 @@ export class LayaDCCClient {
         await this._frw.write('head.json', remoteHeadStr, true);
         await gitfs.setRoot(rootNode);
         //记录下载的包文件
-        if (remoteHead) {
+        if (remoteHead && remoteHead.treePackages) {
             for (let packid of remoteHead.treePackages) {
                 this._loadedPacks[packid] = 1;
             }
@@ -450,6 +450,41 @@ export class LayaDCCClient {
     removeFromNative() {
         if (!this._downloader) return;
         this._downloader.removeFromNative();
+    }
+
+    /**
+     * 
+     * @param url 
+     * @param callToC 
+     * @param data 目前是c++那边传过来的一个数据，必须在调用callToC的时候作为第一个参数传回去 
+     */
+    private _jsdown(url:string, callToC:(cdata:any, buff:ArrayBuffer, localpath:string)=>void,data:any){
+        if (this.onlyTransUrl) {
+            this.transUrl(url).then((url:string)=>{
+                //@ts-ignore
+                conch.downloadNoCache(url,
+                    ()=>{},
+                    (buff:ArrayBuffer, localip:string, svip:string)=>{
+                        //下载完成
+                        callToC(data, buff,'');
+                    },
+                    ()=>{})
+            });
+        } else {
+            debugger;
+            this.readFile(url).then((buff:ArrayBuffer)=>{
+                this.transUrl(url).then((svObjUrl:string)=>{
+                    let rpath = svObjUrl.substring(this._dccServer.length);
+                    let localPath = conch.getCachePath()+'/'+rpath;
+                    callToC(data, buff, localPath);
+                });
+            });
+        }
+    }
+
+    injectToNative3(){
+        //@ts-ignore
+        conch.setDownloader(this._jsdown.bind(this));
     }
 
 }

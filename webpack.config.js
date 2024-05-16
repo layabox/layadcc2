@@ -3,8 +3,8 @@ const { library } = require('webpack');
 
 module.exports = {
   entry: './assets/LayaDCC/common/pack_index.ts' ,
-  //mode:'development',
-  mode:'production',
+  mode:'none',//'development',
+  //mode:'production',
   module: {
     rules: [
       {
@@ -23,7 +23,7 @@ module.exports = {
     library:{
         name:'layadcc',
         type:'umd',
-
-    }
+      },
+    globalObject:'window',//不要用self
   },
 };
