@@ -152,10 +152,13 @@ export class LayaDCCClient {
         //本地记录的下载包信息
         try {
             let loadedpacks: string[] = [];
-            loadedpacks = JSON.parse(await this._frw.read('downloaded_packs.json', 'utf8', true) as string);
-            if (loadedpacks && loadedpacks.length) {
-                for (let m of loadedpacks) {
-                    this._loadedPacks[m] = 1;
+            let str1 = await this._frw.read('downloaded_packs.json', 'utf8', true) as string;
+            if(str1){
+                loadedpacks = JSON.parse(str1);
+                if (loadedpacks && loadedpacks.length) {
+                    for (let m of loadedpacks) {
+                        this._loadedPacks[m] = 1;
+                    }
                 }
             }
         } catch (e) {
@@ -225,19 +228,24 @@ export class LayaDCCClient {
         }
 
         //初始化完成，记录head到本地
-        await this._frw.write('head.json', remoteHeadStr, true);
-        await gitfs.setRoot(rootNode);
-        //记录下载的包文件
-        if (remoteHead && remoteHead.treePackages) {
-            for (let packid of remoteHead.treePackages) {
-                this._loadedPacks[packid] = 1;
+        try{
+            if(!await gitfs.setRoot(rootNode))
+                return false;
+       
+            //记录下载的包文件
+            if (remoteHead && remoteHead.treePackages) {
+                for (let packid of remoteHead.treePackages) {
+                    this._loadedPacks[packid] = 1;
+                }
+                //记录下载包。TODO如果有动态下载，则都要记录
+                await this._frw.write('downloaded_packs.json', JSON.stringify(Object.keys(this._loadedPacks)), true);
             }
-            //记录下载包。TODO如果有动态下载，则都要记录
-            await this._frw.write('downloaded_packs.json', JSON.stringify(Object.keys(this._loadedPacks)), true);
+
+            if(remoteHeadStr) await this._frw.write('head.json', remoteHeadStr, true);
+        }catch(e:any){
+            //例如root不存在：先有资源，后来有删除了资源
+            return false;
         }
-
-        await this._frw.write('head.json', remoteHeadStr, true);
-
         return true;
     }
 

@@ -172,6 +172,7 @@ export class GitFS {
         } catch (e) {
             this.treeRoot = null;
         }
+        return !!this.treeRoot;
     }
 
     async toRev(rev: number) {

@@ -88,7 +88,7 @@ export class DCCClientFS_native implements IGitFSFileIO {
         let ret: string | ArrayBuffer;
         try {
             ret = fs_readFileSync(this.getAbsPath(url));
-            if (encode == 'utf8') {
+            if (ret && encode == 'utf8') {
                 ret = Env.dcodeUtf8(ret);
             }
         } catch (e: any) {
