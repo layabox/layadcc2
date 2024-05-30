@@ -52,11 +52,23 @@ export class DCCAutoTest {
     }
 
     static async run() {
+        await testNullDCCHead();
         await testGenDCC();
         await test_nodePack_downloadOnce();
         await testZip();
         await testZip1();
     }
+}
+
+async function testNullDCCHead(){
+    debugger;
+    let dcc1 = new LayaDCCClient("", DCCClientFS_NodeJS);
+    dcc1.onlyTransUrl = false;
+
+    let initok = await dcc1.init('', null);
+    if (!initok)
+        return false;
+
 }
 
 async function testGenDCC() {

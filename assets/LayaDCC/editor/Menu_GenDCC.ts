@@ -3,6 +3,7 @@ import { LayaDCCCmd } from "../common";
 import { LayaDCC, Params } from "../common/LayaDCC";
 import { GenDCCZipDialog } from "./GenDCCZipDialog";
 import { LayaDCCTools } from '../ExpTools/LayaDCCTools';
+import { PackRaw, PackWZip } from '../ExpTools/DCCPackWriters';
 
 interface IConfigData {
     enable: boolean;
@@ -70,11 +71,20 @@ export class testDCC {
 
     @IEditor.menu('App/tool/打包文件列表生成Zip')
     async testDCCPackFiles() {
-        let zipfile = await LayaDCCTools.genZipByDCCFiles(
+        let zipfile = await LayaDCCTools.genPackByDCCFiles(
             ['D:/work/ideproj/DCCPlugin/release/web/internal/Box.lm',
             'D:/work/ideproj/DCCPlugin/release/web/internal/sky.jpg',
             ],
-            'd:/temp/ddd1.zip');
+            'd:/temp/ddd1.zip', PackWZip);
+    }    
+
+    @IEditor.menu('App/tool/打包文件列表到pack')
+    async testDCCPackToPack() {
+        let zipfile = await LayaDCCTools.genPackByDCCFiles(
+            ['D:/work/ideproj/DCCPlugin/release/web/internal/Box.lm',
+            'D:/work/ideproj/DCCPlugin/release/web/internal/sky.jpg',
+            ],
+            'd:/temp/ddd1.pack', PackRaw);
     }    
 
 }

@@ -72,7 +72,7 @@
         },
         {
           "_$id": "6ni3p096l5",
-          "_$type": "DirectionLight",
+          "_$type": "LightSprite",
           "name": "Direction Light",
           "transform": {
             "localPosition": {
@@ -125,6 +125,9 @@
             },
             {
               "_$type": "MeshRenderer",
+              "lightmapScaleOffset": {
+                "_$type": "Vector4"
+              },
               "sharedMaterials": [
                 {
                   "_$uuid": "6f90bbb0-bcb2-4311-8a9d-3d8277522098",
@@ -295,11 +298,11 @@
       "name": "Button(6)",
       "x": 179,
       "y": 504,
-      "width": 120,
+      "width": 184,
       "height": 40,
       "_mouseState": 2,
       "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
-      "label": "zip",
+      "label": "update by zip",
       "labelSize": 20,
       "labelAlign": "center",
       "labelVAlign": "middle",
@@ -429,6 +432,28 @@
       "borderColor": "rgba(255, 0, 0, 1)",
       "leading": 2,
       "stroke": 11
+    },
+    {
+      "_$id": "00g6d0jo",
+      "_$type": "Button",
+      "name": "Button(8)",
+      "x": 179,
+      "y": 555,
+      "width": 184,
+      "height": 40,
+      "_mouseState": 2,
+      "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
+      "label": "update by pack",
+      "labelSize": 20,
+      "labelAlign": "center",
+      "labelVAlign": "middle",
+      "_$comp": [
+        {
+          "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
+          "scriptPath": "../src/AllTest.ts",
+          "cmd": "packupdate"
+        }
+      ]
     }
   ]
 }

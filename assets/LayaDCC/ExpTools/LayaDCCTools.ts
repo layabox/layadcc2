@@ -8,6 +8,7 @@ import { LayaDCCClient } from "../common/LayaDCCClient";
 import { DCCClientFS_NodeJS } from "../common/DCCClientFS_NodeJS";
 import { shasum, toHex } from "../common/gitfs/GitFSUtils";
 import { DCCFS_NodeJS } from "../common/DCCFS_NodeJS";
+import { IPackW } from "./DCCPackWriters";
 
 function enumDccObjects(dccpath: string) {
     let ret: string[] = [];
@@ -80,17 +81,17 @@ export class LayaDCCTools {
      * @param files 绝对文件名列表
      * @param outfile 
      */
-    static async genZipByDCCFiles(files:string[], outfile: string) {
-        let zip = new IEditor.ZipFileW(outfile);
+    static async genPackByDCCFiles(files:string[], outfile: string, packerCls:new()=>IPackW) {
+        let packer = new packerCls();//IEditor.ZipFileW(outfile);
         let frw = new DCCFS_NodeJS();
 
         for(let f of files){
             let buff = await frw.read(f, 'buffer', true) as ArrayBuffer;
             let oid = await shasum(new Uint8Array(buff), false) as Uint8Array;
             let hash = toHex(oid);
-            zip.addBuffer(hash,new Uint8Array(buff));
+            packer.addObject(hash,new Uint8Array(buff));
         }
-        await zip.save(outfile);
+        await packer.save(outfile);
     }
 
     //比较两个dcc目录，把差异（只是new增加的）打包，使用new的root作为root

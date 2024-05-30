@@ -8,6 +8,7 @@ import { ObjPack_AppRes } from "./ObjPack_AppRes";
 import { RootDesc } from "./RootDesc";
 import { GitFS, IGitFSFileIO } from "./gitfs/GitFS";
 import { toHex } from "./gitfs/GitFSUtils";
+import { DCCPackR, IindexItem } from "./DCCPackRW";
 
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -256,6 +257,14 @@ export class LayaDCCClient {
         return this._onlyTransUrl;
     }
 
+    async unpackBuffer(idxs:{ id: string, start: number, length: number }[],buff:ArrayBuffer,offset:number=0){
+        //把这些对象写到本地
+        for (let nodeinfo of idxs) {
+            let nodebuff = buff.slice(nodeinfo.start+offset, nodeinfo.start+offset + nodeinfo.length);
+            await this._gitfs.saveObject(nodeinfo.id, nodebuff)
+        }
+    }
+
     /**
      *  读取缓存中的一个文件，url是相对地址
      * @param url 用户认识的地址。如果是绝对地址，并且设置是映射地址，则计算一个相对地址。如果是相对地址，则直接使用
@@ -379,6 +388,30 @@ export class LayaDCCClient {
             await this._gitfs.setRoot(localHead.root);
         } catch (e) {
 
+        }
+    }
+
+    //利用一个pack文件更新，这个pack包含idx,文件内容。
+    async updateByPack(pack:string|ArrayBuffer){
+        let indices:IindexItem[];
+        let packBuff:ArrayBuffer;
+        let content:ArrayBuffer;
+        if(typeof pack  == 'string'){
+            let res = await this._frw.fetch(pack);
+            packBuff = await res.arrayBuffer();
+        }else if(pack instanceof ArrayBuffer){
+            packBuff = pack;
+        }else{
+            throw "bad param"
+        }
+
+        let packR = new DCCPackR();
+        const [ind,cont,error] = packR.split(packBuff);
+        indices = ind as IindexItem[];
+        content = cont as ArrayBuffer;;
+        for (let nodeinfo of indices) {
+            let nodebuff = content.slice(nodeinfo.start, nodeinfo.start + nodeinfo.length);
+            await this._gitfs.saveObject(nodeinfo.id, nodebuff)
         }
     }
 

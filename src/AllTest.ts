@@ -59,6 +59,9 @@ export class AllTest extends Laya.Script {
             case 'zipupdate':
                 await this.zipUpdate();
                 break;
+            case 'packupdate':
+                await this.packUpdate();
+                break;
             case 'apkres':
                 await this.apkRes();
                 break;
@@ -141,7 +144,7 @@ export class AllTest extends Laya.Script {
         debugger;
     }
 
-    private async downloadBigZip(url: string): Promise<string | null> {
+    private async downloadBigFile(url: string): Promise<string | null> {
         let cachePath = conch.getCachePath();
         let localfile = cachePath + url.substring(url.lastIndexOf('/'));
 
@@ -169,7 +172,7 @@ export class AllTest extends Laya.Script {
 3. 下载zip更新。最后再取 txt.txt应该是 "ver1.txt"
     */
     private async zipUpdate() {
-        let zipfile = await this.downloadBigZip('http://10.10.20.26:8899/update/dccout1.zip')
+        let zipfile = await this.downloadBigFile('http://10.10.20.26:8899/update/dccout1.zip')
         //先用dccout2
         //然后把1打包，保存到手机上
         //用zip更新
@@ -192,6 +195,21 @@ export class AllTest extends Laya.Script {
         console.log(`txt:${txt}`);
         //verify(headobj.root=='90ca87c602f132407250bcf2ae8368f629ec43d7','updateByZip 要更新head.json');
 
+    }
+
+    private async packUpdate() {
+        let packResp = await fetch('http://10.10.20.26:7788/update/ddd1.pack');
+        if(!packResp.ok)throw 'err1';
+        let packBuff = await packResp.arrayBuffer();
+        if(!packBuff) throw 'err2';
+
+        let dccurl = 'http://10.10.20.26:7788';
+        let client = new LayaDCCClient(dccurl);
+        let iniok = await client.init(dccurl + '/head.json', null);
+        await client.updateAll(null);
+        //await client.updateByZip(zipfile, window.conch?Zip_Native:Zip_Nodejs,null);
+        await client.updateByPack(packBuff);
+        await client.clean();
     }
 
     private async clean() {
