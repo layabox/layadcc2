@@ -71,7 +71,7 @@ export class testDCC {
 
     @IEditor.menu('App/tool/打包文件列表生成Zip')
     async testDCCPackFiles() {
-        let zipfile = await LayaDCCTools.genPackByDCCFiles(
+        let zipfile = await LayaDCCTools.genPackByFileList(
             ['D:/work/ideproj/DCCPlugin/release/web/internal/Box.lm',
             'D:/work/ideproj/DCCPlugin/release/web/internal/sky.jpg',
             ],
@@ -80,7 +80,7 @@ export class testDCC {
 
     @IEditor.menu('App/tool/打包文件列表到pack')
     async testDCCPackToPack() {
-        let zipfile = await LayaDCCTools.genPackByDCCFiles(
+        let zipfile = await LayaDCCTools.genPackByFileList(
             ['D:/work/ideproj/DCCPlugin/release/web/internal/Box.lm',
             'D:/work/ideproj/DCCPlugin/release/web/internal/sky.jpg',
             ],

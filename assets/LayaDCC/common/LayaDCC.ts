@@ -198,7 +198,7 @@ export class LayaDCC {
     }
 
     /**
-     * 
+     * 根据dir来生成对应的object对象保存起来
      * @param dir 
      * @param node 
      * @param fast 

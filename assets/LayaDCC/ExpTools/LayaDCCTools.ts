@@ -81,7 +81,7 @@ export class LayaDCCTools {
      * @param files 绝对文件名列表
      * @param outfile 
      */
-    static async genPackByDCCFiles(files:string[], outfile: string, packerCls:new()=>IPackW) {
+    static async genPackByFileList(files:string[], outfile: string, packerCls:new()=>IPackW) {
         let packer = new packerCls();//IEditor.ZipFileW(outfile);
         let frw = new DCCFS_NodeJS();
 
