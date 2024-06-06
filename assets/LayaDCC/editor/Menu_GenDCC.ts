@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import { LayaDCCCmd } from "../common";
 import { LayaDCC, Params } from "../common/LayaDCC";
 import { GenDCCZipDialog } from "./GenDCCZipDialog";
 import { LayaDCCTools } from '../ExpTools/LayaDCCTools';
@@ -28,7 +27,6 @@ export class testDCC {
 
     @IEditor.menu('App/tool/生成DCC')
     async genDCC() {
-        let a = new LayaDCCCmd();
         let data = Editor.getSettings("DCCSettings").data as unknown as IConfigData;
         //检查参数
         if (!data.targetPath || !fs.existsSync(data.targetPath)) {
@@ -50,18 +48,19 @@ export class testDCC {
         params.mergeFile = data.mergeSmallFiles??true;
         params.fileToMerge = data.maxSmallFileSize ?? 100 * 1024;
         params.mergedFileSize = data.maxPackSize ?? 1000 * 1024;
-        a.dir = data.targetPath;
-        a.params = params;
-
         //a.dir = path.join(Editor.projectPath,'release/web');
-        a.run();
+        let dcc = new LayaDCC();
+        dcc.params = params;
+        let st = Date.now();
+        await dcc.genDCC(data.targetPath);
+        let dt = Date.now() - st;
+        console.log('Time:', dt / 1000)
+
     }
 
     @IEditor.menu('App/tool/DCC生成Zip')
     async testDCCZip() {
         Editor.showDialog(GenDCCZipDialog, null);
-        //let a = new LayaDCCCmd();
-        //a.genzip('','');
     }
 
     @IEditor.menu('App/tool/打包目录生成Zip')
