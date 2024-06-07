@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import * as path from "path";
 import * as os from 'os';
 import { promisify } from 'util'
-import { LayaDCCClient } from "../common/LayaDCCClient";
+import { LayaDCCClient, LayaDCCClientNoRemote } from "../common/LayaDCCClient";
 import { DCCClientFS_NodeJS } from "../common/DCCClientFS_NodeJS";
 import { shasum, toHex } from "../common/gitfs/GitFSUtils";
 import { DCCFS_NodeJS } from "../common/DCCFS_NodeJS";
@@ -174,8 +174,8 @@ export class LayaDCCTools {
         fs.mkdirSync(outdir,{recursive:true});
 
         let dccurl = path.dirname(head);
-        let dccclient = new LayaDCCClient(dccurl, DCCClientFS_NodeJS);
-        await dccclient.initNoRemote(head);
+        let dccclient = new LayaDCCClientNoRemote(dccurl, DCCClientFS_NodeJS);
+        await dccclient.init(head,null);
         let frw = dccclient.fileIO;
         //遍历节点，保存成文件
         await dccclient.visitAll(async (cnode) => {
