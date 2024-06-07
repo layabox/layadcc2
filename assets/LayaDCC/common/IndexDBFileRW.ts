@@ -189,7 +189,7 @@ export class IndexDBFileRW implements IGitFSFileIO {
                     let key = cursor.key as string;
                     if (key.startsWith('objects/')) {
                         key = key.substring(8);
-                        key = key.replaceAll('/', '');
+                        key = key.replace(/\//g, '');
                         callback(key);
                     }
                     cursor.continue();

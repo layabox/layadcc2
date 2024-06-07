@@ -1,5 +1,4 @@
 import { LayaDCC, Params } from "../common/LayaDCC";
-//import AdmZip from "adm-zip"
 import * as fs from 'fs'
 import * as path from "path";
 import * as os from 'os';

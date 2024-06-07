@@ -1,6 +1,8 @@
+var isNode = typeof window =='undefined' && typeof global == 'object';
 
 export class Env {
     static get runtimeName() {
+        if(isNode) return 'node';
         if ((window as any).conch) {
             return 'layaNative';
         }

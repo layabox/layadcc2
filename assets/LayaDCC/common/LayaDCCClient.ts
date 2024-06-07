@@ -8,7 +8,7 @@ import { ObjPack_AppRes } from "./ObjPack_AppRes";
 import { RootDesc } from "./RootDesc";
 import { GitFS, IGitFSFileIO } from "./gitfs/GitFS";
 import { toHex } from "./gitfs/GitFSUtils";
-import { DCCPackR, IindexItem } from "./DCCPackRW";
+import { DCCPackR, IDCCPackR, IindexItem } from "./DCCPackRW";
 
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -36,7 +36,8 @@ export interface IZip {
 
 let DCCClientFS = {
     "layaNative": DCCClientFS_native,
-    "web": DCCClientFS_web
+    "web": DCCClientFS_web,
+    "node":null,    //web不能包含node相关
 }[Env.runtimeName];
 
 export class LayaDCCClient {
@@ -392,7 +393,7 @@ export class LayaDCCClient {
     }
 
     //利用一个pack文件更新，这个pack包含idx,文件内容。
-    async updateByPack(pack:string|ArrayBuffer){
+    async updateByPack(pack:string|ArrayBuffer, unpacker?:new()=>IDCCPackR){
         let indices:IindexItem[];
         let packBuff:ArrayBuffer;
         let content:ArrayBuffer;
@@ -405,10 +406,10 @@ export class LayaDCCClient {
             throw "bad param"
         }
 
-        let packR = new DCCPackR();
+        let packR = unpacker?new DCCPackR():new unpacker();
         const [ind,cont,error] = packR.split(packBuff);
-        indices = ind as IindexItem[];
-        content = cont as ArrayBuffer;;
+        indices = ind;
+        content = cont;
         for (let nodeinfo of indices) {
             let nodebuff = content.slice(nodeinfo.start, nodeinfo.start + nodeinfo.length);
             await this._gitfs.saveObject(nodeinfo.id, nodebuff)

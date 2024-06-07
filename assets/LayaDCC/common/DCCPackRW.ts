@@ -6,7 +6,11 @@ export interface IindexItem {
     length: number
 }
 
-export class DCCPackR {
+export interface IDCCPackR{
+    split(buff:ArrayBuffer):[IindexItem[],ArrayBuffer,number];
+}
+
+export class DCCPackR implements IDCCPackR{
     split(buff:ArrayBuffer){
         let buffu32 = new Uint32Array(buff,0,3);//必须指定3个，因为buff可能不是4的倍数
         let ver = buffu32[0];
@@ -14,7 +18,7 @@ export class DCCPackR {
         let error=0;
         if(buff.byteLength!=datalen+4){
             error=1;
-            return [null,null,error];
+            return [null,null,error] as [IindexItem[],ArrayBuffer,number];
         }
         let indexLen = buffu32[2];
         if(indexLen%28!=0)throw "bad buffer";
@@ -31,7 +35,7 @@ export class DCCPackR {
             idxPos+=4;
             indices.push({id:idstr, start, length});
         }
-        return [indices,buff,error];
+        return [indices,buff,error] as [IindexItem[],ArrayBuffer,number];
     }
 }
 
