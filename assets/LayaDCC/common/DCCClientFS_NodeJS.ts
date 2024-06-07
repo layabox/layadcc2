@@ -22,7 +22,7 @@ export class DCCClientFS_NodeJS implements IGitFSFileIO {
     async read(url: string, encode: "utf8" | "buffer", onlylocal: boolean): Promise<string | ArrayBuffer> {
         //先从本地读取，如果没有就从远程下载
         if (path.isAbsolute(url)) {
-            throw 'only 相对'
+            throw 'DCCClientFS_NodeJS 只支持读取相对目录'
         }
         let ret: string | ArrayBuffer;
         let absLocal = path.join(this.cachePath, url);

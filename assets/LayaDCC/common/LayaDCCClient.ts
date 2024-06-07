@@ -9,6 +9,7 @@ import { RootDesc } from "./RootDesc";
 import { GitFS, IGitFSFileIO } from "./gitfs/GitFS";
 import { toHex } from "./gitfs/GitFSUtils";
 import { DCCPackR, IDCCPackR, IindexItem } from "./DCCPackRW";
+import { TreeEntry, TreeNode } from "./gitfs/GitTree";
 
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -42,6 +43,7 @@ let DCCClientFS = {
 
 export class LayaDCCClient {
     static VERSION = '1.0.0';
+    //针对cache目录的操作
     private _frw: IGitFSFileIO;
     //是否只把请求的url转换成hash
     private _onlyTransUrl = false;
@@ -121,6 +123,8 @@ export class LayaDCCClient {
         if (this._gitfs) {
             throw '重复初始化'
         }
+        if(!headfile)
+            return false;
         await this._frw.init(this._dccServer, cachePath);
 
         //判断是不是新的安装
@@ -248,6 +252,58 @@ export class LayaDCCClient {
             //例如root不存在：先有资源，后来有删除了资源
             return false;
         }
+        return true;
+    }
+
+    /**
+     * 在某个库上直接初始化，不用设置缓存目录，当前这个就是缓存目录
+     * 区别是可能会有打包文件
+     * @param head 根文件，这个文件所在目录就是库目录 
+     */
+    async initNoRemote(head:string){
+        if (this._gitfs) {
+            throw '重复初始化'
+        }
+        if(!head)
+            return false;
+
+        let p = Math.max(head.lastIndexOf('/'), head.lastIndexOf('\\'));
+        let dir = head.substring(0,p);
+        await this._frw.init(dir, dir);
+
+        let rhead = head.substring(p+1);
+        let localHeadStr = await this._frw.read(rhead, 'utf8', true) as string;
+        let localHead = JSON.parse(localHeadStr) as RootDesc;
+        let gitfs = this._gitfs = new GitFS(this._frw);
+
+        //处理打包
+        if (localHead.treePackages && localHead.treePackages.length) {
+            this.log('需要下载treenode')
+            for (let packid of localHead.treePackages) {
+                if (this._loadedPacks[packid]) {
+                    this.log(`包已经下载过了${packid}`);
+                    continue;
+                }
+                this.log(`下载treenode:${packid}`);
+                let resp = await this._frw.fetch(`${this._dccServer}packfile/tree-${packid}.idx`);
+                if (!resp.ok) throw 'download treenode idx error';
+                let idxs: { id: string, start: number, length: number }[] = JSON.parse(await resp.text());
+                //先判断所有的index是不是都有了,如果都有的就不下载了
+                //TODO 这个过程会不会很慢？还不如直接下载
+
+                let resp1 = await this._frw.fetch(`${this._dccServer}packfile/tree-${packid}.pack`);
+                if (!resp1.ok) throw 'download treenode pack error';
+                let buff = await resp1.arrayBuffer();
+                //把这些对象写到本地
+                for (let nodeinfo of idxs) {
+                    let nodebuff = buff.slice(nodeinfo.start, nodeinfo.start + nodeinfo.length);
+                    await this._gitfs.saveObject(nodeinfo.id, nodebuff)
+                }
+            }
+        }
+
+        if(!await gitfs.setRoot(localHead.root))
+            return false;
         return true;
     }
 
@@ -460,6 +516,10 @@ export class LayaDCCClient {
         this._loadedPacks = {};
         await this._frw.write('downloaded_packs.json', '{}', true);
     }
+
+    async visitAll(treecb: (cnode: TreeNode) => Promise<void>, blobcb: (entry: TreeEntry) => Promise<void>) {
+        await this._gitfs.visitAll(this._gitfs.treeRoot, treecb,blobcb);
+    }    
 
     private _downloader: DCCDownloader;
     //插入到laya引擎的下载流程，实现下载的接管
