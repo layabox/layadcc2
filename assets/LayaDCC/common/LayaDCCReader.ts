@@ -7,18 +7,18 @@ import * as path from "path";
 import { toHex } from "./gitfs/GitFSUtils";
 import { TreeNode } from "./gitfs/GitTree";
 
-export class LayaDCCReader{
+export class LayaDCCReader {
     private frw: DCCFS_NodeJS;
     private gitfs: GitFS;
 
-    async init(dirOrHead:string){
-        let rootNode:TreeNode;
-        let repoDir=dirOrHead;
+    async init(dirOrHead: string) {
+        let rootNode: TreeNode;
+        let repoDir = dirOrHead;
         let head = 'head.json'
-        if(dirOrHead.endsWith('.json')){
+        if (dirOrHead.endsWith('.json')) {
             let p = Math.max(dirOrHead.lastIndexOf('/'), dirOrHead.lastIndexOf('\\'));
-            repoDir = dirOrHead.substring(0,p);
-            head = dirOrHead.substring(p+1);
+            repoDir = dirOrHead.substring(0, p);
+            head = dirOrHead.substring(p + 1);
         }
 
         this.frw = new DCCFS_NodeJS();
@@ -41,21 +41,21 @@ export class LayaDCCReader{
         }
     }
 
-    async checkout(outdir:string){
+    async checkout(outdir: string) {
         let frw = this.frw;
         //遍历节点，保存成文件
-        await this.gitfs.visitAll(this.gitfs.treeRoot,async (cnode) => {
-            let cdir = path.join(outdir,cnode.fullPath);
-            if(!fs.existsSync(cdir))
+        await this.gitfs.visitAll(this.gitfs.treeRoot, async (cnode) => {
+            let cdir = path.join(outdir, cnode.fullPath);
+            if (!fs.existsSync(cdir))
                 fs.mkdirSync(cdir);
         }, async (entry) => {
             let id = toHex(entry.oid);
-            if(entry.owner){
-                let fpath = path.join(outdir,entry.owner.fullPath,entry.path);
-                let filebuff = await frw.read(await this.gitfs.getObjUrl(id),'buffer',true) as ArrayBuffer;
+            if (entry.owner) {
+                let fpath = path.join(outdir, entry.owner.fullPath, entry.path);
+                let filebuff = await frw.read(await this.gitfs.getObjUrl(id), 'buffer', true) as ArrayBuffer;
                 fs.writeFileSync(fpath, Buffer.from(filebuff));
-                console.log('checkout file:',fpath);
-            }            
+                console.log('checkout file:', fpath);
+            }
         })
     }
 }

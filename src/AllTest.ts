@@ -199,9 +199,9 @@ export class AllTest extends Laya.Script {
 
     private async packUpdate() {
         let packResp = await fetch('http://10.10.20.26:7788/update/ddd1.pack');
-        if(!packResp.ok)throw 'err1';
+        if (!packResp.ok) throw 'err1';
         let packBuff = await packResp.arrayBuffer();
-        if(!packBuff) throw 'err2';
+        if (!packBuff) throw 'err2';
 
         let dccurl = 'http://10.10.20.26:7788';
         let client = new LayaDCCClient(dccurl);

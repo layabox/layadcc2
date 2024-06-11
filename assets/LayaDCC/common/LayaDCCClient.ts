@@ -38,7 +38,7 @@ export interface IZip {
 let DCCClientFS = {
     "layaNative": DCCClientFS_native,
     "web": DCCClientFS_web,
-    "node":null,    //web不能包含node相关
+    "node": null,    //web不能包含node相关
 }[Env.runtimeName];
 
 export class LayaDCCClient {
@@ -56,7 +56,7 @@ export class LayaDCCClient {
     dccPathInAssets = 'cache/dcc2.0'
     //已经下载过的包，用来优化，避免重复下载，执行清理之后要清零
     private _loadedPacks: { [key: string]: number } = {}
-    
+
 
     /**
      * 
@@ -124,7 +124,7 @@ export class LayaDCCClient {
         if (this._gitfs) {
             throw '重复初始化'
         }
-        if(!headfile)
+        if (!headfile)
             return false;
         await this._frw.init(this._dccServer, cachePath);
 
@@ -160,7 +160,7 @@ export class LayaDCCClient {
         try {
             let loadedpacks: string[] = [];
             let str1 = await this._frw.read('downloaded_packs.json', 'utf8', true) as string;
-            if(str1){
+            if (str1) {
                 loadedpacks = JSON.parse(str1);
                 if (loadedpacks && loadedpacks.length) {
                     for (let m of loadedpacks) {
@@ -235,10 +235,10 @@ export class LayaDCCClient {
         }
 
         //初始化完成，记录head到本地
-        try{
-            if(!await gitfs.setRoot(rootNode))
+        try {
+            if (!await gitfs.setRoot(rootNode))
                 return false;
-       
+
             //记录下载的包文件
             if (remoteHead && remoteHead.treePackages) {
                 for (let packid of remoteHead.treePackages) {
@@ -248,8 +248,8 @@ export class LayaDCCClient {
                 await this._frw.write('downloaded_packs.json', JSON.stringify(Object.keys(this._loadedPacks)), true);
             }
 
-            if(remoteHeadStr) await this._frw.write('head.json', remoteHeadStr, true);
-        }catch(e:any){
+            if (remoteHeadStr) await this._frw.write('head.json', remoteHeadStr, true);
+        } catch (e: any) {
             //例如root不存在：先有资源，后来有删除了资源
             return false;
         }
@@ -263,10 +263,10 @@ export class LayaDCCClient {
         return this._onlyTransUrl;
     }
 
-    async unpackBuffer(idxs:{ id: string, start: number, length: number }[],buff:ArrayBuffer,offset:number=0){
+    async unpackBuffer(idxs: { id: string, start: number, length: number }[], buff: ArrayBuffer, offset: number = 0) {
         //把这些对象写到本地
         for (let nodeinfo of idxs) {
-            let nodebuff = buff.slice(nodeinfo.start+offset, nodeinfo.start+offset + nodeinfo.length);
+            let nodebuff = buff.slice(nodeinfo.start + offset, nodeinfo.start + offset + nodeinfo.length);
             await this._gitfs.saveObject(nodeinfo.id, nodebuff)
         }
     }
@@ -398,21 +398,21 @@ export class LayaDCCClient {
     }
 
     //利用一个pack文件更新，这个pack包含idx,文件内容。
-    async updateByPack(pack:string|ArrayBuffer, unpacker?:new()=>IDCCPackR){
-        let indices:IindexItem[];
-        let packBuff:ArrayBuffer;
-        let content:ArrayBuffer;
-        if(typeof pack  == 'string'){
+    async updateByPack(pack: string | ArrayBuffer, unpacker?: new () => IDCCPackR) {
+        let indices: IindexItem[];
+        let packBuff: ArrayBuffer;
+        let content: ArrayBuffer;
+        if (typeof pack == 'string') {
             let res = await this._frw.fetch(pack);
             packBuff = await res.arrayBuffer();
-        }else if(pack instanceof ArrayBuffer){
+        } else if (pack instanceof ArrayBuffer) {
             packBuff = pack;
-        }else{
+        } else {
             throw "bad param"
         }
 
-        let packR = unpacker?new DCCPackR():new unpacker();
-        const [ind,cont,error] = packR.split(packBuff);
+        let packR = unpacker ? new DCCPackR() : new unpacker();
+        const [ind, cont, error] = packR.split(packBuff);
         indices = ind;
         content = cont;
         for (let nodeinfo of indices) {
@@ -467,8 +467,8 @@ export class LayaDCCClient {
     }
 
     async visitAll(treecb: (cnode: TreeNode) => Promise<void>, blobcb: (entry: TreeEntry) => Promise<void>) {
-        await this._gitfs.visitAll(this._gitfs.treeRoot, treecb,blobcb);
-    }    
+        await this._gitfs.visitAll(this._gitfs.treeRoot, treecb, blobcb);
+    }
 
     private _downloader: DCCDownloader;
     //插入到laya引擎的下载流程，实现下载的接管
@@ -509,30 +509,30 @@ export class LayaDCCClient {
      * @param callToC 
      * @param data 目前是c++那边传过来的一个数据，必须在调用callToC的时候作为第一个参数传回去 
      */
-    private _jsdown(url:string, cbObj:{onDownloadEnd:(buff:ArrayBuffer, localpath:string)=>void,external_onok:any}){
+    private _jsdown(url: string, cbObj: { onDownloadEnd: (buff: ArrayBuffer, localpath: string) => void, external_onok: any }) {
         if (this.onlyTransUrl) {
-            this.transUrl(url).then((url:string)=>{
+            this.transUrl(url).then((url: string) => {
                 //@ts-ignore
                 conch.downloadNoCache(url,
-                    ()=>{},
-                    (buff:ArrayBuffer, localip:string, svip:string)=>{
+                    () => { },
+                    (buff: ArrayBuffer, localip: string, svip: string) => {
                         //下载完成
-                        cbObj.onDownloadEnd(buff,'');
+                        cbObj.onDownloadEnd(buff, '');
                     },
-                    ()=>{})
+                    () => { })
             });
         } else {
-            this.readFile(url).then((buff:ArrayBuffer)=>{
-                this.transUrl(url).then((svObjUrl:string)=>{
+            this.readFile(url).then((buff: ArrayBuffer) => {
+                this.transUrl(url).then((svObjUrl: string) => {
                     let rpath = svObjUrl.substring(this._dccServer.length);
-                    let localPath = conch.getCachePath()+'/'+rpath;
-                    cbObj.onDownloadEnd( buff, localPath);
+                    let localPath = conch.getCachePath() + '/' + rpath;
+                    cbObj.onDownloadEnd(buff, localPath);
                 });
             });
         }
     }
 
-    injectToNative3(){
+    injectToNative3() {
         //@ts-ignore
         conch.setDownloader(this._jsdown.bind(this));
     }

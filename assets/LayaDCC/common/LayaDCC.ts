@@ -33,7 +33,7 @@ export class LayaDCC {
     set params(p: Params) {
         this.config = p;
     }
-    
+
     /**
      * 生成目录p的dcc信息
      * 默认保存在当前目录的dccout目录下
@@ -156,8 +156,8 @@ export class LayaDCC {
         })
 
         //过滤重复文件。例如内容完全相同的两个目录，会记录多次
-        if(treeNodes.length) treeNodes = [... new Set(treeNodes)];
-        if(blobNodes.length) blobNodes = [... new Set(blobNodes)];
+        if (treeNodes.length) treeNodes = [... new Set(treeNodes)];
+        if (blobNodes.length) blobNodes = [... new Set(blobNodes)];
 
         let treeSize = 0;
         let reservBuff = new Uint8Array(this.config.mergedFileSize);
@@ -294,12 +294,12 @@ export class LayaDCC {
 
     get fileIO() {
         return this.frw;
-    }    
+    }
 
     //获取某个对象（用hash表示的文件或者目录）在缓存中的地址
     getObjectUrl(objid: string) {
         return this.gitfs.getObjUrl(objid)
-    }    
+    }
 
     /**
      * 把一个相对目录转换成对象目录

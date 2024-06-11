@@ -94,7 +94,7 @@ export class DCCFS_NodeJS implements IGitFSFileIO {
         let absfile = path.resolve(this.repoPath, url);
         return promisify(fs.rm)(absfile)
     }
-    
+
     async enumCachedObjects(callback: (objid: string) => void): Promise<void> {
         let objects = path.join(this.repoPath, 'objects');
         let idPres = fs.readdirSync(objects);

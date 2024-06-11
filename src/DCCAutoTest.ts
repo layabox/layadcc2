@@ -61,11 +61,11 @@ export class DCCAutoTest {
     }
 }
 
-async function testCheckout(){
-    await LayaDCCTools.checkout('D:/work/ideproj/DCCPlugin/release/windows/dcc/head.json','d:/temp/checkout');
+async function testCheckout() {
+    await LayaDCCTools.checkout('D:/work/ideproj/DCCPlugin/release/windows/dcc/head.json', 'd:/temp/checkout');
 }
 
-async function testNullDCCHead(){
+async function testNullDCCHead() {
     debugger;
     let dcc1 = new LayaDCCClient("", DCCClientFS_NodeJS);
     dcc1.onlyTransUrl = false;

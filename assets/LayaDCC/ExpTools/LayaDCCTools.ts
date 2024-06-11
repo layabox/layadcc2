@@ -48,11 +48,11 @@ export class LayaDCCTools {
         let dccoutBasepath = path.join(os.tmpdir(), 'layadcc');
         try {
             await promisify(fs.mkdir)(dccoutBasepath);
-        } catch (e) { }        
+        } catch (e) { }
         let dccout = path.join(dccoutBasepath, "_tempdccout_dir_pack");
-        if(fs.existsSync(dccout)){
+        if (fs.existsSync(dccout)) {
             //如果有这个目录先删掉
-            fs.rmdirSync(dccout,{recursive:true});
+            fs.rmdirSync(dccout, { recursive: true });
         }
         await promisify(fs.mkdir)(dccout);
 
@@ -61,7 +61,7 @@ export class LayaDCCTools {
         let params = new Params();
         params.mergeFile = false;
         dcc.params = params;
-        params.dccout=dccout;
+        params.dccout = dccout;
         await dcc.genDCC(dir);
 
         //打包结果
@@ -82,15 +82,15 @@ export class LayaDCCTools {
      * @param files 绝对文件名列表
      * @param outfile 
      */
-    static async genPackByFileList(files:string[], outfile: string, packerCls:new()=>IPackW) {
+    static async genPackByFileList(files: string[], outfile: string, packerCls: new () => IPackW) {
         let packer = new packerCls();//IEditor.ZipFileW(outfile);
         let frw = new DCCFS_NodeJS();
 
-        for(let f of files){
+        for (let f of files) {
             let buff = await frw.read(f, 'buffer', true) as ArrayBuffer;
             let oid = await shasum(new Uint8Array(buff), false) as Uint8Array;
             let hash = toHex(oid);
-            packer.addObject(hash,new Uint8Array(buff));
+            packer.addObject(hash, new Uint8Array(buff));
         }
         await packer.save(outfile);
     }
@@ -168,14 +168,14 @@ export class LayaDCCTools {
      * 把一个版本展开
      * @param head 
      */
-    static async checkout(head:string,outdir:string){
-        if(!head.endsWith('.json')){
+    static async checkout(head: string, outdir: string) {
+        if (!head.endsWith('.json')) {
             throw 'checkout的第一个参数是head文件'
         }
-        fs.mkdirSync(outdir,{recursive:true});
+        fs.mkdirSync(outdir, { recursive: true });
 
         let dcc = new LayaDCCReader();
         await dcc.init(head)
-        dcc.checkout(outdir);        
+        dcc.checkout(outdir);
     }
 }

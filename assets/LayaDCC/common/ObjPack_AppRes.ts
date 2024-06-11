@@ -26,7 +26,7 @@ export class ObjPack_AppRes implements IObjectPack {
         try {
             let frw = new FileIO_AppRes(this.cachePath);
             let head = await frw.read('head.json', 'utf8', true) as string;
-            if(!head)return false;
+            if (!head) return false;
             let headobj = JSON.parse(head);
             if (headobj.treePackages) {
                 for (let tpack of headobj.treePackages) {
