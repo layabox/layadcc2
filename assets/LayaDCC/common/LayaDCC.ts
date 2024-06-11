@@ -316,9 +316,5 @@ export class LayaDCC {
         }
         return objpath;
     }
-
-    getRepoPath(){
-        return this.dccout;
-    }
 }
 
