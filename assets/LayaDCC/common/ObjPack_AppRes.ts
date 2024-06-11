@@ -1,5 +1,6 @@
 import { AppResReader_Native, FileIO_AppRes } from "./AppResReader_Native";
 import { DCCConfig } from "./Config";
+import { DCCObjectWrapper } from "./DCCObjectWrapper";
 import { ObjPack } from "./ObjPack";
 import { IObjectPack } from "./gitfs/GitFS";
 
@@ -70,6 +71,16 @@ export class ObjPack_AppRes implements IObjectPack {
     }
 
     async get(oid: string): Promise<ArrayBuffer> {
+        let buff = await this._get(oid);
+        let head = new DCCObjectWrapper();
+        let decryptBuff = DCCObjectWrapper.unwrapObject(buff,head);
+        if(!decryptBuff){
+            return buff;
+        }
+        return decryptBuff;
+    }
+
+    async _get(oid: string): Promise<ArrayBuffer> {
         let path = this.cachePath + '/objects/' + oid.substring(0, 2) + '/' + oid.substring(2);
         //先判断包中有没有
         let buff: ArrayBuffer;

@@ -52,6 +52,11 @@ export interface IObjectPack {
 
 var PROJINFO = '.projinfo';
 
+export interface IObjectEncrypt{
+    encode(buff:ArrayBuffer):ArrayBuffer;
+    decode(buff:ArrayBuffer):ArrayBuffer;
+}
+
 /**
  * 类似git的文件系统
  * 设置一个远端库的地址，然后通过相对地址的方式访问某个文件
@@ -77,6 +82,7 @@ export class GitFS {
 
     checkDownload = false;
     private _objectPacks: IObjectPack[] = [];
+    objectEncrypter:IObjectEncrypt|null=null;;
 
     /**
      * 
@@ -384,6 +390,9 @@ export class GitFS {
     async saveObject(objid: string, content: ArrayBuffer) {
         let treepath = this.getObjUrl(objid);
         //let ret = await this.frw.write(treepath, content);
+        if(this.objectEncrypter){
+            content = this.objectEncrypter.encode(content);
+        }
         await this.frw.write(treepath, content as ArrayBuffer, false);
     }
 

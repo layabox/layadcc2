@@ -52,6 +52,7 @@ export class DCCAutoTest {
     }
 
     static async run() {
+        await testGenDCCEncrypt();
         await testCheckout();
         await testNullDCCHead();
         await testGenDCC();
@@ -120,6 +121,87 @@ async function testGenDCC() {
     verify(c == 'file2 in subdir', '打开新的文件成功')
 
 }
+
+async function testGenDCCEncrypt() {
+/*
+测试本地资源的加密
+1. 模拟app环境，所以需要一个假的conch
+2. LayaDCCClient的缓存目录
+*/
+    let dir = Editor.projectPath + '/dcctest/dynamic/resexample';
+    let subdir = dir + '/dir'
+    if (fs.existsSync(dir)) {
+        fs.rmdirSync(dir, { recursive: true });
+    }
+    verify(!fs.existsSync(dir), '测试目录要不存在');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.mkdirSync(subdir, { recursive: true });
+    //生成dcc
+    fs.writeFileSync(path.join(dir, 'rootText.txt'), 'file in root',);
+    fs.writeFileSync(path.join(subdir, 'subDirText.txt'), 'file in subdir');
+
+    let dccdir = Editor.projectPath + '/dcctest/dynamic/dccout';
+    if (fs.existsSync(dccdir)) {
+        fs.rmdirSync(dccdir, { recursive: true });
+    }
+    verify(!fs.existsSync(dccdir), 'dcc输出目录要为空');
+
+    let dcc = new LayaDCC();
+    let param = new Params();
+    param.version = '1.0.0';
+    dcc.params = param;
+    param.dccout = dccdir;
+    //打包本地资源不要合并
+    param.mergeFile=false;
+    param.xorKey = Buffer.from('ffffxxxx');
+    await dcc.genDCC(dir);
+
+    //模拟contch环境
+    let win = window as any;
+    win.conch = {
+        readFileFromAsset:(file:string, encode:'string'|'utf8')=>{
+            let f = file.replace('cache/dcc2.0',dccdir);
+            let nbuff =  fs.readFileSync(f);
+            let buff = nbuff.buffer.slice(nbuff.byteOffset,nbuff.byteOffset+nbuff.length);
+
+            if(encode=='string'){
+                return (new TextDecoder()).decode(buff);
+            }
+            return buff;
+        },
+        getCachePath:()=>{
+            debugger;
+        }
+    };
+    Object.assign(win,
+        {ZipFile:{},
+        _XMLHttpRequest:{},
+        fs_exists:()=>{debugger;},
+        fs_mkdir:()=>{debugger;},
+        fs_readFileSync:()=>{debugger;},
+        fs_writeFileSync:()=>{debugger;},
+        fs_rm:()=>{debugger;},
+        fs_readdirSync:()=>{debugger;}
+    })
+
+    let dcc2 = new LayaDCCClient(null, DCCClientFS_NodeJS, null);
+    verify(await dcc2.init(null, null), "dcc初始化");
+    let buf = await dcc2.readFile('dir/subDirText.txt');
+    let c = (new TextDecoder()).decode(new Uint8Array(buf));
+    verify(c == 'file in subdir', '打开新的文件成功')
+
+    delete win.conch;
+    delete win.ZipFile;
+    delete win._XMLHttpRequest;
+    delete win.fs_exists;
+    delete win.fs_mkdir;
+    delete win.fs_readdirSync;
+    delete win.fs_writeFileSync;
+    delete win.fs_rm;
+    delete win.fs_readdirSync;
+
+}
+
 
 //第二次不会再次下载节点包
 async function test_nodePack_downloadOnce() {

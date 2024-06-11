@@ -124,8 +124,6 @@ export class LayaDCCClient {
         if (this._gitfs) {
             throw '重复初始化'
         }
-        if (!headfile)
-            return false;
         await this._frw.init(this._dccServer, cachePath);
 
         //判断是不是新的安装

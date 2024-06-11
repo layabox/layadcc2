@@ -7,6 +7,7 @@ import { GitFS } from "./gitfs/GitFS";
 import { RootDesc } from "./RootDesc";
 import { hashToArray, shasum, toHex } from "./gitfs/GitFSUtils";
 import { ObjPack } from "./ObjPack";
+import { DCCObjectWrapper } from "./DCCObjectWrapper";
 
 export class Params {
     mergeFile = false;
@@ -19,6 +20,7 @@ export class Params {
     //用户需要指定版本号，这样可以精确控制。如果已经存在注意提醒
     version = '1.0.0';
     fast = true;
+    xorKey:Uint8Array=null;
     desc: string;
 }
 
@@ -44,6 +46,22 @@ export class LayaDCC {
         this.frw = new DCCFS_NodeJS();
         await this.frw.init(dccout, null);
         this.gitfs = new GitFS(this.frw);
+        if(this.config.xorKey){
+            if(this.config.mergeFile){
+                throw "Once encryption is enabled, small file merging cannot be configured";
+            }
+            this.gitfs.objectEncrypter = {
+                encode:(buff:ArrayBuffer)=>{
+                    //如果需要加密。加密只影响object，且只有给app本地资源做，所以不考虑打包等问题
+                    let head = new DCCObjectWrapper();
+                    head.xorKey = this.config.xorKey;
+                    return DCCObjectWrapper.wrapObject(buff, head).buffer;
+                },
+                decode:(buff:ArrayBuffer)=>{
+                    return null;
+                },
+            }
+        }
 
         //rootNode.
         if (!fs.existsSync(dccout)) {
@@ -278,8 +296,8 @@ export class LayaDCC {
                 files.push(res);
             }
         }
-        let buff = await node.toObject(this.frw);
-        await this.gitfs.saveObject(node.sha!, buff);
+        let buff: Uint8Array = await node.toObject(this.frw);
+        await this.gitfs.saveObject(node.sha!, buff.buffer);
         return files;
     }
 
