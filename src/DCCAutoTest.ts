@@ -52,12 +52,17 @@ export class DCCAutoTest {
     }
 
     static async run() {
+        await testCheckout();
         await testNullDCCHead();
         await testGenDCC();
         await test_nodePack_downloadOnce();
         await testZip();
         await testZip1();
     }
+}
+
+async function testCheckout(){
+    await LayaDCCTools.checkout('D:/work/ideproj/DCCPlugin/release/windows/dcc/head.json','d:/temp/checkout');
 }
 
 async function testNullDCCHead(){

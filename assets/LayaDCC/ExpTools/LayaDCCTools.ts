@@ -3,12 +3,13 @@ import * as fs from 'fs'
 import * as path from "path";
 import * as os from 'os';
 import { promisify } from 'util'
-import { LayaDCCClient, LayaDCCClientNoRemote } from "../common/LayaDCCClient";
+import { LayaDCCClient } from "../common/LayaDCCClient";
 import { DCCClientFS_NodeJS } from "../common/DCCClientFS_NodeJS";
 import { shasum, toHex } from "../common/gitfs/GitFSUtils";
 import { DCCFS_NodeJS } from "../common/DCCFS_NodeJS";
 import { IPackW } from "./DCCPackWriters";
 import { TreeNode } from "../common/gitfs/GitTree";
+import { LayaDCCReader } from "../common/LayaDCCReader";
 
 function enumDccObjects(dccpath: string) {
     let ret: string[] = [];
@@ -173,24 +174,8 @@ export class LayaDCCTools {
         }
         fs.mkdirSync(outdir,{recursive:true});
 
-        let dccurl = path.dirname(head);
-        let dccclient = new LayaDCCClientNoRemote(dccurl, DCCClientFS_NodeJS);
-        await dccclient.init(head,null);
-        let frw = dccclient.fileIO;
-        //遍历节点，保存成文件
-        await dccclient.visitAll(async (cnode) => {
-            let cdir = path.join(outdir,cnode.fullPath);
-            if(!fs.existsSync(cdir))
-                fs.mkdirSync(cdir);
-        }, async (entry) => {
-            let id = toHex(entry.oid);
-            if(entry.owner){
-                let fpath = path.join(outdir,entry.owner.fullPath,entry.path);
-                let filebuff = await frw.read(await dccclient.getObjectUrl(id),'buffer',true) as ArrayBuffer;
-                fs.writeFileSync(fpath, Buffer.from(filebuff));
-                console.log('checkout file:',fpath);
-            }            
-        })
-        
+        let dcc = new LayaDCCReader();
+        await dcc.init(head)
+        dcc.checkout(outdir);        
     }
 }
