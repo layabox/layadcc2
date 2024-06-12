@@ -10,8 +10,13 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
-        exclude: /node_modules/,
+        exclude: [/node_modules/,path.resolve(__dirname, 'cli')],
+        use: {
+          loader:'ts-loader',
+          options: {
+            configFile: 'tsconfig.dcctools.json' 
+          }
+        }
       },
     ],
   },

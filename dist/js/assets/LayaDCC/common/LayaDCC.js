@@ -128,7 +128,7 @@ export class LayaDCC {
         //await this.frw.write(`${this.config.outfile}.json`,JSON.stringify(head),true);
         //合并文件
         if (this.config.mergeFile) {
-            let merges = await this.mergeSmallFile(rootNode, true, false);
+            let merges = await this.mergeSmallFile(rootNode, false, false);
             head.treePackages = merges.tree_packs;
         }
         //版本文件
@@ -148,6 +148,16 @@ export class LayaDCC {
         await this.frw.write(indexfile, JSON.stringify(indexInfo), true);
         return sha;
     }
+    /**
+     * 合并小文件。
+     * 注意：
+     * 如果dcc目录包含多个版本，则不要删除合并的原文件，否则会影响别的版本
+     * 或者做成多层，底层的合并是上层不可见的，这时候才可以删除原始文件
+     * @param rootNode
+     * @param rmMergedTreeNode
+     * @param rmMergedObjNode
+     * @returns
+     */
     async mergeSmallFile(rootNode, rmMergedTreeNode, rmMergedObjNode) {
         let dccout = this.dccout;
         let frw = this.frw;

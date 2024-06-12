@@ -2,9 +2,9 @@
   "name": "layadcc2",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/js/src/bin.js",
+  "main": "dist/js/cli/bin.js",
   "bin": {
-    "layadcc2":"./dist/js/src/bin.js"
+    "layadcc2":"./dist/js/cli/bin.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
