@@ -3,6 +3,7 @@
     "module": "ES2015",
     "target": "ES2018",
     "strict": true,
+    "outDir": "./dist/js/",  
     "strictNullChecks": false,
     "noEmitHelpers": true,
     "sourceMap": false,

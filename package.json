@@ -2,7 +2,10 @@
   "name": "layadcc2",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/js/src/bin.js",
+  "bin": {
+    "layadcc2":"./dist/js/src/bin.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ./out/index.js ./test/web"
@@ -21,6 +24,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "adm-zip": "^0.5.12"
+    "adm-zip": "^0.5.12",
+    "commander": "^12.1.0"
   }
 }
