@@ -54,6 +54,8 @@ export class LayaDCCReader {
                 let fpath = path.join(outdir, entry.owner.fullPath, entry.path);
                 let filebuff = await frw.read(await this.gitfs.getObjUrl(id), 'buffer', true) as ArrayBuffer;
                 fs.writeFileSync(fpath, Buffer.from(filebuff));
+                if(entry.fileMTime)
+                    fs.utimesSync(fpath, entry.fileMTime, entry.fileMTime);
                 console.log('checkout file:', fpath);
             }
         })

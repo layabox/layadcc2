@@ -310,7 +310,11 @@ export class TreeNode {
         cursor += writeUTF8(retbuf, entrylen.toString(), cursor);
         retbuf[cursor] = 0; cursor += 1;
         //对齐
-        cursor = (cursor + 3) & ~3
+        cursor = (cursor + 3) & ~3;
+
+        //为了去掉修改时间对sha的影响，计算sha的时候先不记录时间，计算完了再把时间加上
+        let mtimeRec: any[] = [];
+
         entries.map(entry => {
             let mode = entry.mode.replace(/^0/, '');
             cursor += writeUTF8(retbuf, mode, cursor);
@@ -337,15 +341,24 @@ export class TreeNode {
             let high = Math.floor(mtime / 0x100000000); // 获取高32位
             let low = mtime & 0xFFFFFFFF; // 获取低32位		
             let timeArr = new Uint32Array(retbuf.buffer, cursor, 2);
-            timeArr[0] = high;
-            timeArr[1] = low;
+            //timeArr[0] = high;
+            //timeArr[1] = low;
+            mtimeRec.push(timeArr, high, low);
             cursor += 8;
         });
+        //sha的计算放到zip之前了，否则无法修改时间了
+        this.sha = await shasum(retbuf, true) as string;
+
+        //计算完sha了,给时间填上正确的值。注意这个打破了sha就是buffer内容的规则
+        for (let i = 0; i < mtimeRec.length / 3; i++) {
+            let arr = mtimeRec[i * 3] as Uint32Array;
+            arr[0] = mtimeRec[i * 3 + 1];//high
+            arr[1] = mtimeRec[i * 3 + 2];//low
+        }
 
         if (frw && GitFS.zip) {
             retbuf = new Uint8Array(frw.zip(retbuf.buffer));
         }
-        this.sha = await shasum(retbuf, true) as string;
         this.buff = retbuf;
         return retbuf;
     }

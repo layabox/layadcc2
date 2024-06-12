@@ -4,8 +4,8 @@ const { library } = require('webpack');
 module.exports = {
   target:'node',
   entry: './assets/LayaDCC/common/pack_tools.ts' ,
-  mode:'none',//'development',
-  //mode:'production',
+  //mode:'none',//'development',
+  mode:'production',
   module: {
     rules: [
       {

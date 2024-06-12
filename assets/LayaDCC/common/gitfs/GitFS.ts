@@ -52,9 +52,9 @@ export interface IObjectPack {
 
 var PROJINFO = '.projinfo';
 
-export interface IObjectEncrypt{
-    encode(buff:ArrayBuffer):ArrayBuffer;
-    decode(buff:ArrayBuffer):ArrayBuffer;
+export interface IObjectEncrypt {
+    encode(buff: ArrayBuffer): ArrayBuffer;
+    decode(buff: ArrayBuffer): ArrayBuffer;
 }
 
 /**
@@ -82,7 +82,7 @@ export class GitFS {
 
     checkDownload = false;
     private _objectPacks: IObjectPack[] = [];
-    objectEncrypter:IObjectEncrypt|null=null;;
+    objectEncrypter: IObjectEncrypt | null = null;;
 
     /**
      * 
@@ -390,10 +390,11 @@ export class GitFS {
     async saveObject(objid: string, content: ArrayBuffer) {
         let treepath = this.getObjUrl(objid);
         //let ret = await this.frw.write(treepath, content);
-        if(this.objectEncrypter){
+        if (this.objectEncrypter) {
             content = this.objectEncrypter.encode(content);
         }
-        await this.frw.write(treepath, content as ArrayBuffer, false);
+        // 由于有可能会有加密的开关，当文件存在的时候，如果不覆盖可能会有问题，先全部覆盖把
+        await this.frw.write(treepath, content as ArrayBuffer, true);
     }
 
     /**
@@ -518,7 +519,7 @@ export class GitFS {
             // 看是否修改
             let shastr = toHex(entry.oid!);
             if (shastr === hash) {
-                console.log('文件没有修改。');
+                //console.log('文件没有修改。');
                 return entry;
             }
             // 文件修改了。

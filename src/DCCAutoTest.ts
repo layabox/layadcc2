@@ -264,7 +264,7 @@ async function testZip() {
     verify(decode(cc) == 'ver2', '文件内容不对');
 
     let root = JSON.parse(decode(zip.getEntry('head.json').getData())).root;
-    verify(root == '90ca87c602f132407250bcf2ae8368f629ec43d7', '必须包含新版的root')
+    verify(root == '00bda77c303e822e9501198a639ee3cab0da538f', '必须包含新版的root')
 
     //应用zip
     let dccurl = getAbs('dccout1');
@@ -278,7 +278,7 @@ async function testZip() {
     //head.json不是gitfs的，需要底层访问
     let headAfterUpdate = await client.fileIO.read('head.json', 'utf8', true) as string;
     let headobj = JSON.parse(headAfterUpdate)
-    verify(headobj.root == '90ca87c602f132407250bcf2ae8368f629ec43d7', 'updateByZip 要更新head.json');
+    verify(headobj.root == '00bda77c303e822e9501198a639ee3cab0da538f', 'updateByZip 要更新head.json');
 }
 
 /**

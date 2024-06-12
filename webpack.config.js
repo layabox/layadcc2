@@ -3,8 +3,8 @@ const { library } = require('webpack');
 
 module.exports = {
   entry: './assets/LayaDCC/common/pack_index.ts' ,
-  mode:'none',//'development',
-  //mode:'production',
+  //mode:'none',//'development',
+  mode:'production',
   module: {
     rules: [
       {

@@ -20,7 +20,13 @@ export class Params {
     //用户需要指定版本号，这样可以精确控制。如果已经存在注意提醒
     version = '1.0.0';
     fast = true;
-    xorKey:Uint8Array=null;
+    /**
+     * 混淆秘钥，注意这个只能用于本地资源，dcc服务器不要加混淆
+     * 可能得问题：
+     * 1. 混淆之后文件名不再是hash值，无法判断是否要覆盖
+     * 2. 服务器会有碎文件打包
+     */
+    xorKey: Uint8Array = null;
     desc: string;
 }
 
@@ -46,18 +52,18 @@ export class LayaDCC {
         this.frw = new DCCFS_NodeJS();
         await this.frw.init(dccout, null);
         this.gitfs = new GitFS(this.frw);
-        if(this.config.xorKey){
-            if(this.config.mergeFile){
+        if (this.config.xorKey) {
+            if (this.config.mergeFile) {
                 throw "Once encryption is enabled, small file merging cannot be configured";
             }
             this.gitfs.objectEncrypter = {
-                encode:(buff:ArrayBuffer)=>{
+                encode: (buff: ArrayBuffer) => {
                     //如果需要加密。加密只影响object，且只有给app本地资源做，所以不考虑打包等问题
                     let head = new DCCObjectWrapper();
                     head.xorKey = this.config.xorKey;
                     return DCCObjectWrapper.wrapObject(buff, head).buffer;
                 },
-                decode:(buff:ArrayBuffer)=>{
+                decode: (buff: ArrayBuffer) => {
                     return null;
                 },
             }
