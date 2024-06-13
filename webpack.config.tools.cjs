@@ -28,7 +28,8 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'), // 打包文件的输出目录
     library:{
         name:'layadcctools',
-        type:'commonjs',
+        //type:'commonjs',
+        type:'window',
       }
   },
 };
