@@ -14,3 +14,8 @@ npm deprecate --force xx@ver "不维护了"
 npm version major
 npm version minor
 npm version patch
+
+
+layadcc2命令行的编译：
+tsc
+node add-js-extention.js        #这个是给js的import加.js扩展名。

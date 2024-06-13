@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/js/cli/bin.js",
+  "type": "module",
   "bin": {
     "layadcc2":"./dist/js/cli/bin.js"
   },
