@@ -1,4 +1,4 @@
-import { Env } from "./Env";
+import { Env } from './Env.js';
 export class DCCDownloader {
     constructor(dcc, logger = null) {
         this.dcc = dcc;

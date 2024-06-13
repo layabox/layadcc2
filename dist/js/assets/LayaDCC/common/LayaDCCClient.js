@@ -1,13 +1,13 @@
-import { AppResReader_Native } from "./AppResReader_Native";
-import { DCCConfig } from "./Config";
-import { DCCClientFS_native } from "./DCCClientFS_native";
-import { DCCClientFS_web } from "./DCCClientFS_web";
-import { DCCDownloader } from "./DCCDownloader";
-import { Env } from "./Env";
-import { ObjPack_AppRes } from "./ObjPack_AppRes";
-import { GitFS } from "./gitfs/GitFS";
-import { toHex } from "./gitfs/GitFSUtils";
-import { DCCPackR } from "./DCCPackRW";
+import { AppResReader_Native } from './AppResReader_Native.js';
+import { DCCConfig } from './Config.js';
+import { DCCClientFS_native } from './DCCClientFS_native.js';
+import { DCCClientFS_web } from './DCCClientFS_web.js';
+import { DCCDownloader } from './DCCDownloader.js';
+import { Env } from './Env.js';
+import { ObjPack_AppRes } from './ObjPack_AppRes.js';
+import { GitFS } from './gitfs/GitFS.js';
+import { toHex } from './gitfs/GitFSUtils.js';
+import { DCCPackR } from './DCCPackRW.js';
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }

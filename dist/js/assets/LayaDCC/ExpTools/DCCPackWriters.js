@@ -1,4 +1,4 @@
-import { DCCPackW } from "../common/DCCPackRW";
+import { DCCPackW } from '../common/DCCPackRW.js';
 import * as fs from 'fs';
 export class PackWZip {
     constructor() {

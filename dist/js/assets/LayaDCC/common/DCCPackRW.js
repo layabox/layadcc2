@@ -1,4 +1,4 @@
-import { hashToArray, toHex } from "./gitfs/GitFSUtils";
+import { hashToArray, toHex } from './gitfs/GitFSUtils.js';
 export class DCCPackR {
     split(buff) {
         let buffu32 = new Uint32Array(buff, 0, 3); //必须指定3个，因为buff可能不是4的倍数

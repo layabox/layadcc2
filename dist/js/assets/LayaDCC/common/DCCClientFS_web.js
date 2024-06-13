@@ -2,7 +2,7 @@
  * web端的dcc文件接口
  *
  */
-import { IndexDBFileRW } from "./IndexDBFileRW";
+import { IndexDBFileRW } from './IndexDBFileRW.js';
 //访问服务器文件的接口。只要读就行了
 export class DCCClientFS_web {
     async init(repoPath, cachePath) {

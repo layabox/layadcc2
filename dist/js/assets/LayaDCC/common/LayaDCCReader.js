@@ -1,9 +1,9 @@
-import { DCCFS_NodeJS } from "./DCCFS_NodeJS";
-import { ObjPack } from "./ObjPack";
-import { GitFS } from "./gitfs/GitFS";
+import { DCCFS_NodeJS } from './DCCFS_NodeJS.js';
+import { ObjPack } from './ObjPack.js';
+import { GitFS } from './gitfs/GitFS.js';
 import * as fs from 'fs';
 import * as path from "path";
-import { toHex } from "./gitfs/GitFSUtils";
+import { toHex } from './gitfs/GitFSUtils.js';
 export class LayaDCCReader {
     async init(dirOrHead) {
         let rootNode;

@@ -2,8 +2,8 @@
  * web端的dcc文件接口
  *
  */
-import { DCCConfig } from "./Config";
-import { Env } from "./Env";
+import { DCCConfig } from './Config.js';
+import { Env } from './Env.js';
 function myFetch(url, encode = 'buffer') {
     return new Promise((resolve, reject) => {
         const xhr = new _XMLHttpRequest();

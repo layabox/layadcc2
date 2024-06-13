@@ -1,7 +1,7 @@
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from "path";
-import { Env } from './Env';
+import { Env } from './Env.js';
 /**
  * 客户端使用的基于nodejs的文件接口
  * 主要是封装了一个缓存目录

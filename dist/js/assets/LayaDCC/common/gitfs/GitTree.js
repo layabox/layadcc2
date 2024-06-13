@@ -1,5 +1,5 @@
-import { GitFS } from "./GitFS";
-import { hashToArray, readUTF8, shasum, toHex, writeUTF8 } from "./GitFSUtils";
+import { GitFS } from './GitFS.js';
+import { hashToArray, readUTF8, shasum, toHex, writeUTF8 } from './GitFSUtils.js';
 export var EntryType;
 (function (EntryType) {
     EntryType["TREE"] = "tree";

@@ -1,4 +1,4 @@
-import { readUTF8, shasum, toHex } from "./GitFSUtils";
+import { readUTF8, shasum, toHex } from './GitFSUtils.js';
 export class CommitInfo {
     constructor() {
         this.parent = '0';

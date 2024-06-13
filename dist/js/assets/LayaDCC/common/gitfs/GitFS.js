@@ -1,6 +1,6 @@
-import { CommitInfo, GitCommit } from "./GitCommit";
-import { readUTF8, shasum, toHex } from "./GitFSUtils";
-import { TreeEntry, TreeNode } from "./GitTree";
+import { CommitInfo, GitCommit } from './GitCommit.js';
+import { readUTF8, shasum, toHex } from './GitFSUtils.js';
+import { TreeEntry, TreeNode } from './GitTree.js';
 export async function readBinFile(file) {
     return new Promise((res, rej) => {
         let reader = new FileReader();

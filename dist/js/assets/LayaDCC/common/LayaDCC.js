@@ -1,13 +1,13 @@
 import * as path from "path";
-import { DCCFS_NodeJS } from "./DCCFS_NodeJS";
-import { TreeNode } from "./gitfs/GitTree";
+import { DCCFS_NodeJS } from './DCCFS_NodeJS.js';
+import { TreeNode } from './gitfs/GitTree.js';
 import * as fs from 'fs';
 import { promisify } from "util";
-import { GitFS } from "./gitfs/GitFS";
-import { RootDesc } from "./RootDesc";
-import { hashToArray, shasum, toHex } from "./gitfs/GitFSUtils";
-import { ObjPack } from "./ObjPack";
-import { DCCObjectWrapper } from "./DCCObjectWrapper";
+import { GitFS } from './gitfs/GitFS.js';
+import { RootDesc } from './RootDesc.js';
+import { hashToArray, shasum, toHex } from './gitfs/GitFSUtils.js';
+import { ObjPack } from './ObjPack.js';
+import { DCCObjectWrapper } from './DCCObjectWrapper.js';
 export class Params {
     constructor() {
         this.mergeFile = false;

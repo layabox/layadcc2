@@ -1,13 +1,13 @@
-import { LayaDCC, Params } from "../common/LayaDCC";
+import { LayaDCC, Params } from '../common/LayaDCC.js';
 import * as fs from 'fs';
 import * as path from "path";
 import * as os from 'os';
 import { promisify } from 'util';
-import { LayaDCCClient } from "../common/LayaDCCClient";
-import { DCCClientFS_NodeJS } from "../common/DCCClientFS_NodeJS";
-import { shasum, toHex } from "../common/gitfs/GitFSUtils";
-import { DCCFS_NodeJS } from "../common/DCCFS_NodeJS";
-import { LayaDCCReader } from "../common/LayaDCCReader";
+import { LayaDCCClient } from '../common/LayaDCCClient.js';
+import { DCCClientFS_NodeJS } from '../common/DCCClientFS_NodeJS.js';
+import { shasum, toHex } from '../common/gitfs/GitFSUtils.js';
+import { DCCFS_NodeJS } from '../common/DCCFS_NodeJS.js';
+import { LayaDCCReader } from '../common/LayaDCCReader.js';
 function enumDccObjects(dccpath) {
     let ret = [];
     let objects = path.resolve(dccpath, 'objects');

@@ -2,8 +2,8 @@
  * GitFS依赖的东西。
  *
  */
-import { Env } from "../Env";
-import { createHash } from "./sha1";
+import { Env } from '../Env.js';
+import { createHash } from './sha1.js';
 export function readUTF8(buf) {
     return Env.dcodeUtf8(buf);
 }

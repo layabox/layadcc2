@@ -1,7 +1,7 @@
-import { AppResReader_Native, FileIO_AppRes } from "./AppResReader_Native";
-import { DCCConfig } from "./Config";
-import { DCCObjectWrapper } from "./DCCObjectWrapper";
-import { ObjPack } from "./ObjPack";
+import { AppResReader_Native, FileIO_AppRes } from './AppResReader_Native.js';
+import { DCCConfig } from './Config.js';
+import { DCCObjectWrapper } from './DCCObjectWrapper.js';
+import { ObjPack } from './ObjPack.js';
 /**
  * 保存在apk资源中的对象包
  * 对android来说是相对于assets目录

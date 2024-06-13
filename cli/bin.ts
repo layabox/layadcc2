@@ -1,13 +1,18 @@
+import path from "path";
+import fs from 'fs'
 import { LayaDCC, Params } from "../assets/LayaDCC/common/LayaDCC";
 import {program} from 'commander'
+import * as readline from 'node:readline/promises';
 
+let curDir = process.cwd();
 // 主命令配置
 program
     .version('0.1.0')
     .description('layadcc2命令工具')
     .argument('<dir>', '输入目录')
-    .option('-o, --output <type>', '指定输出目录', 'dcc')
+    .option('-o, --output <type>', '指定输出目录,如果是相对目录，则是相对于输入目录', 'dccout')
     .option('-m, --merge', '是否合并小文件')
+    .option('-y, --overwrite','是否覆盖输出目录（保留历史记录需要覆盖）')
     .action(genDCC)
 
 // 子命令：genpatch
@@ -44,19 +49,37 @@ function main() {
 }
 main();
 
-function genDCC(dir:string, options:{output?:string}) {
-    console.log(`为${dir}生成dcc`)
-    if (options.output) {
-        console.log(`输出目录将是：${options.output}`);
+async function genDCC(dir:string, options:{output?:string,overwrite?:boolean}) {
+    console.log(`start generating dcc for ${dir}`)
+    if(!path.isAbsolute(dir)){
+        dir = path.join(curDir,dir);
     }
+    let output = options.output??path.join(dir,'dccout');
+    if(!path.isAbsolute(output)){
+        output = path.join(dir,output);
+    }
+    if(fs.existsSync(output) && !options.overwrite){
+        const rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+        let userR = await rl.question(`the dccout directory:
+${output}
+already exists, do you want to continue? (y/n)`);
+        if(userR=='y'||userR=='yes'){
+        }else{
+            //直接退出
+            process.exit(0);
+        }
+        rl.close();
+    }
+    console.log(`dccout dir:${output}`);
     let dcc = new LayaDCC();
     let param = new Params();
-    // dcc.params = param;
-    // param.dccout = Editor.projectPath + '/dcctest/dccout1'
-    // dcc.genDCC(Editor.projectPath + '/dcctest/ver1').then(v=>{
-    //     console.log('ok');
-    // });
-
+    dcc.params = param;
+    param.dccout = output;
+    await dcc.genDCC(dir);
+    console.log('ok');
 }
 
 function getPatchZip(inputDir1:string, inputDir2:string, options:{outputFile?:string}) {
