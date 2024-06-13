@@ -14,12 +14,16 @@ export class Env {
 
     //根据不同的平台实现
     static dcodeUtf8(buf: ArrayBuffer) {
-        if (window.conch) {
-            //return conch.bufferToString(buf);
-            let str = decodeBuffer(buf);
-            return str;
-        } else {
+        if(isNode){
             return (new TextDecoder()).decode(buf);
+        }else{
+            if (window.conch) {
+                //return conch.bufferToString(buf);
+                let str = decodeBuffer(buf);
+                return str;
+            } else {
+                return (new TextDecoder()).decode(buf);
+            }
         }
     }
 }

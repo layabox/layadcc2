@@ -7,5 +7,10 @@ node_modules
 /bin/
 /cli/
 /assets/
+/library/
+/.vscode/
+/local/
 *.md
+*.png
+*.jpg
 *.laya

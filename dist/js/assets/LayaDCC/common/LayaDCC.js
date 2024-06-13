@@ -20,6 +20,7 @@ export class Params {
         //用户需要指定版本号，这样可以精确控制。如果已经存在注意提醒
         this.version = '1.0.0';
         this.fast = true;
+        this.progressCB = null;
         /**
          * 混淆秘钥，注意这个只能用于本地资源，dcc服务器不要加混淆
          * 可能得问题：
@@ -239,6 +240,9 @@ export class LayaDCC {
         for (const dirent of dirents) {
             let filename = dirent.name;
             const res = path.resolve(dir, filename);
+            if (this.config.progressCB) {
+                this.config.progressCB(res, 0);
+            }
             let entry = node.getEntry(filename);
             // 如果路径符合忽略模式，则跳过此路径
             if (ignorePatterns && ignorePatterns.some(pattern => filename == pattern)) {

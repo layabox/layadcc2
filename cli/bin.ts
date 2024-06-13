@@ -1,8 +1,10 @@
+#!/usr/bin/env node
 import path from "path";
 import fs from 'fs'
 import { LayaDCC, Params } from "../assets/LayaDCC/common/LayaDCC";
 import { program } from 'commander'
 import * as readline from 'node:readline/promises';
+import { LayaDCCTools } from "../assets/LayaDCC/ExpTools/LayaDCCTools";
 
 let curDir = process.cwd();
 
@@ -38,7 +40,7 @@ program
     .version('0.1.0')
     .description('layadcc2命令工具')
     .argument('<dir>', '输入目录')
-    .option('-o, --output <type>', '指定输出目录,如果是相对目录，则是相对于输入目录', 'dccout')
+    .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于输入目录', 'dccout')
     .option('-m, --merge', '是否合并小文件')
     .option('-y, --overwrite', '是否覆盖输出目录（保留历史记录需要覆盖）')
     .action(genDCC)
@@ -49,13 +51,15 @@ program
     .description('生成补丁文件')
     .argument('<inputDir1>', '输入目录1')
     .argument('<inputDir2>', '输入目录2')
-    .option('-o, --output-file <filename>', '输出文件', 'patch.zip')
-    .action(getPatchZip);
+    .option('-f, --output-file <filename>', '输出文件', 'patch.zip')
+    .action(genPatchZip);
 
 program
     .command('checkout')
+    .description('把dcc目录恢复成原始结构')
     .argument('<inputDir>', '输入目录')
-    .option('-o, --output <filename>', '输出目录', 'checkout')
+    .option('--head <headFile>','根文件,不指定则使用head.json','head.json')
+    .option('-d, --outdir <outDir>', '输出目录', 'checkout')
     .action(checkout)
 
 
@@ -130,11 +134,31 @@ already exists, do you want to continue? (y/n)`);
     console.log('ok');
 }
 
-function getPatchZip(inputDir1: string, inputDir2: string, options: { outputFile?: string }) {
-    console.log(`生成补丁文件从 ${inputDir1} 到 ${inputDir2}`);
-    console.log(`输出文件：${options.outputFile}`);
-
+async function genPatchZip(inputDir1: string, inputDir2: string, options: { outputFile?: string }) {
+    if(!path.isAbsolute(inputDir1)){
+        inputDir1 = path.join(curDir,inputDir1);
+    }
+    if(!path.isAbsolute(inputDir2)){
+        inputDir2 = path.join(curDir,inputDir2);
+    }
+    let output = options.outputFile??"patch.zip"
+    if(!path.isAbsolute(output)){
+        output = path.join(curDir,output);
+    }
+    console.log(`generate patch zip  ${inputDir1} to ${inputDir2}`);
+    let zipfile = await LayaDCCTools.genZipByComparePath(inputDir1, inputDir2, '', output);
+    console.log(`ok. patch file：${zipfile}`);
 }
 
-function checkout(inputDir: string, options: any) {
+async function checkout(inputDir: string, options:{head?:string,outdir?:string}) {
+    let head = options.head;
+    let outDir = options.outdir;
+    inputDir = path.isAbsolute(inputDir)?inputDir:path.join(curDir, inputDir);
+    if(!fs.existsSync(inputDir)){
+        console.log('input directory not exist!');
+        process.exit(1);
+    }
+    head = path.join(inputDir,head);
+    await LayaDCCTools.checkout(head, outDir);    
+    console.log('ok, checkedout to :',outDir)
 }
