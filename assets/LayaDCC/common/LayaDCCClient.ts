@@ -269,6 +269,24 @@ export class LayaDCCClient {
         }
     }
 
+    async hasFile(url: string){
+        let gitfs = this._gitfs;
+        if (!gitfs) throw 'dcc没有正确init';
+        if (url.startsWith('http:') || url.startsWith('https:') || url.startsWith('file:')) {//绝对路径
+            if (!this._pathMapToDCC) {
+                url = (new URL(url)).pathname;;
+            } else {
+                if (!url.startsWith(this._pathMapToDCC)) return null;
+                url = url.substring(this._pathMapToDCC.length);
+            }
+        }
+
+        let objPath = await gitfs.pathToObjPath(url);
+        if(!objPath)
+            return false;
+        return await this._frw.isFileExist(objPath);
+    }
+
     /**
      *  读取缓存中的一个文件，url是相对地址
      * @param url 用户认识的地址。如果是绝对地址，并且设置是映射地址，则计算一个相对地址。如果是相对地址，则直接使用
