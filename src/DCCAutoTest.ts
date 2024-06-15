@@ -239,6 +239,10 @@ async function test_nodePack_downloadOnce() {
     cont = decode(await dcc2.readFile('file:///a/b/dir/txtindir.txt'));
     verify(cont == 'txtindir.txt', '带目录替换的地址文件内容不对')
 
+    let b1 = await dcc2.hasFile('dd/c.png')
+    verify(b1==false,'这个文件应该不存在');
+    let b2 = await dcc2.hasFile('file:///a/b/dir/txtindir.txt')
+    verify(b2,'这个文件应该存在');
 }
 
 async function testZip() {

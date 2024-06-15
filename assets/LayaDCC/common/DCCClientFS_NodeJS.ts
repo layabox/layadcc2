@@ -108,6 +108,9 @@ export class DCCClientFS_NodeJS implements IGitFSFileIO {
     }
     async isFileExist(url: string): Promise<boolean> {
         try {
+            if(!path.isAbsolute(url)){
+                url = path.join(this.cachePath,url);
+            }
             await promisify(fs.access)(url, fs.constants.F_OK);
             return true;
         } catch (e) {

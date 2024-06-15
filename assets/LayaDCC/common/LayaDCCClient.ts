@@ -276,7 +276,7 @@ export class LayaDCCClient {
             if (!this._pathMapToDCC) {
                 url = (new URL(url)).pathname;;
             } else {
-                if (!url.startsWith(this._pathMapToDCC)) return null;
+                if (!url.startsWith(this._pathMapToDCC)) return false;
                 url = url.substring(this._pathMapToDCC.length);
             }
         }
