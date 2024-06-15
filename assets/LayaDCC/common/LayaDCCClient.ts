@@ -409,7 +409,7 @@ export class LayaDCCClient {
             throw "bad param"
         }
 
-        let packR = unpacker ? new DCCPackR() : new unpacker();
+        let packR = unpacker ? new unpacker() : new DCCPackR();
         const [ind, cont, error] = packR.split(packBuff);
         indices = ind;
         content = cont;
