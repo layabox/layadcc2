@@ -29,7 +29,7 @@ export class DCCPackR implements IDCCPackR {
         for (let i = 0; i < indexNum; i++) {
             let idstr = toHex(new Uint8Array(buff, idxPos, 20));
             idxPos += 20;
-            let start = (new Uint32Array(buff, idxPos, 4))[0];
+            let start = (new Uint32Array(buff, idxPos, 4))[0]+indexLen+12;
             idxPos += 4;
             let length = (new Uint32Array(buff, idxPos, 4))[0];
             idxPos += 4;
