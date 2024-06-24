@@ -62,7 +62,9 @@ export class DCCAutoTest {
         await testZip();
         await testZip1();
         await updateByPack();
+        //await testNoBlobs();
         await testDiff();
+        await testDiff1();
     }
 }
 
@@ -368,6 +370,14 @@ async function ttt() {
 }
 
 async function testNoBlobs(){
+    let testdir_ver = Editor.projectPath + '/dcctest/getdiff'
+    let dcc = new LayaDCC();
+    let param = new Params();
+    param.version = '2.0.0';
+    param.dontSaveBlobs=true;
+    dcc.params = param;
+    param.dccout = Editor.projectPath + '/dcctest/dccoutnoblobs'
+    await dcc.genDCC(testdir_ver);
 
 }
 
@@ -407,5 +417,46 @@ async function testDiff(){
 
     verify(diff.rename.length==1,'重命名一个文件');
     verify(diff.rename[0].old=='/txt.txt' && diff.rename[0].new=='/txt2.txt','txt.txt=>txt2.txt')
+}
 
+//不保存文件的测试
+async function testDiff1(){
+    let dir = Editor.projectPath + '/dcctest/dccoutNoBlobs';
+    if (fs.existsSync(dir)) {
+        fs.rmdirSync(dir, { recursive: true });
+    }
+
+    {
+    let testdir_ver = Editor.projectPath + '/dcctest/getdiff'
+    let dcc = new LayaDCC();
+    let param = new Params();
+    param.version = '2.0.0';
+    param.dontSaveBlobs=true;
+    dcc.params = param;
+    param.dccout = Editor.projectPath + '/dcctest/dccoutNoBlobs'
+    await dcc.genDCC(testdir_ver);
+    }
+    
+    {
+    let testdir_ver = Editor.projectPath + '/dcctest/getdiff1'
+    let dcc = new LayaDCC();
+    let param = new Params();
+    param.dontSaveBlobs=true;
+    param.version = '3.0.0';
+    dcc.params = param;
+    param.dccout = Editor.projectPath + '/dcctest/dccoutNoBlobs'
+    await dcc.genDCC(testdir_ver);    
+    }
+    let diff = await DccDiffer.getDiff(
+        Editor.projectPath + '/dcctest/dccout/version.2.0.0.json',
+        Editor.projectPath + '/dcctest/dccout/version.3.0.0.json'
+    );
+    verify(diff.add.length==3,'添加了3个对象');
+    verify(diff.add.some(v=>v.path=='dir/addfile.txt'),'addfile.txt是添加的文件');
+
+    verify(diff.del.length==4,'删除了4个对象');
+    verify(diff.del.indexOf("dir/dirindir/t1.txt")>=0,'删除了dir/dirindir/t1.txt');
+
+    verify(diff.rename.length==1,'重命名一个文件');
+    verify(diff.rename[0].old=='/txt.txt' && diff.rename[0].new=='/txt2.txt','txt.txt=>txt2.txt')
 }

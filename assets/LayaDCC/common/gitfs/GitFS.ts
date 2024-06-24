@@ -82,7 +82,9 @@ export class GitFS {
 
     checkDownload = false;
     private _objectPacks: IObjectPack[] = [];
-    objectEncrypter: IObjectEncrypt | null = null;;
+    objectEncrypter: IObjectEncrypt | null = null;
+
+    saveBlob=true;
 
     /**
      * 
@@ -383,7 +385,8 @@ export class GitFS {
             alert('文件太大，无法上传：' + refname + '\n限制为：' + GitFS.MAXFILESIZE / 1024 / 1024 + 'M');
             return false;
         }
-        await this.saveObject(objid, content);
+        if(this.saveBlob)
+            await this.saveObject(objid, content);
         return true;
     }
 

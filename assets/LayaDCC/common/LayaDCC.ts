@@ -22,6 +22,9 @@ export class Params {
     fast = true;
     //不保存文件，只是用来比较差异
     dontSaveBlobs=false;
+    //忽略目录
+    ignorePathes:string[]=[];
+
     progressCB:(curfile:string,percent:number)=>void=null;
     /**
      * 混淆秘钥，注意这个只能用于本地资源，dcc服务器不要加混淆
@@ -55,6 +58,9 @@ export class LayaDCC {
         this.frw = new DCCFS_NodeJS();
         await this.frw.init(dccout, null);
         this.gitfs = new GitFS(this.frw);
+        if(this.config.dontSaveBlobs){
+            this.gitfs.saveBlob=false;
+        }
         if (this.config.xorKey) {
             if (this.config.mergeFile) {
                 throw "Once encryption is enabled, small file merging cannot be configured";
@@ -117,7 +123,11 @@ export class LayaDCC {
             }
         } catch (e) { }
 
-        let files = await this.syncWithDir(p, rootNode, this.config.fast, ['.git', '.gitignore', 'dccout']);
+        let ignores=['.git', '.gitignore', 'dccout'];
+        if(this.config.ignorePathes){
+            ignores.concat(this.config.ignorePathes);
+        }
+        let files = await this.syncWithDir(p, rootNode, this.config.fast, ignores);
         //console.log(files.length)
         //console.log(files)
         //更新修订版本
@@ -253,7 +263,7 @@ export class LayaDCC {
                 if (!ignorePatterns) ignorePatterns = [];
                 ignoresstr.split('\n').forEach(ign => {
                     if (ign.endsWith('\r')) ign = ign.substring(0, ign.length - 1);
-                    ignorePatterns!.push(ign);
+                    ignorePatterns.push(ign);
                 });
             }
         }
