@@ -62,7 +62,7 @@ export class TreeNode {
     parent: TreeNode | null = null;
     buff: Uint8Array | null = null; 	// 计算sha需要先转成buff。由于计算sha和提交都需要这个buff，所以，每次计算sha都会更新并保存这个buff。 如果有zip的话，这个是zip之后的
     sha: string | null = null;				// null或者'' 表示没有计算，或者原来的失效了，需要重新计算
-    rtData:any=null;
+    rtData: any = null;
 
     constructor(entries: Uint8Array | TreeEntry[] | null, parent: TreeNode | null, frw: IGitFSFileIO) {
         this.parent = parent;
@@ -85,11 +85,11 @@ export class TreeNode {
         return this._entries
     }
 
-    clearUntouched(){
-        let lefted:TreeEntry[] = [];
-        this.entries.forEach(e=>{
+    clearUntouched() {
+        let lefted: TreeEntry[] = [];
+        this.entries.forEach(e => {
             //清理touch标记。如果后面设置1了，表示使用，那么是0的就是要删除的
-            if(e.touchFlag==1){
+            if (e.touchFlag == 1) {
                 lefted.push(e);
             }
         });

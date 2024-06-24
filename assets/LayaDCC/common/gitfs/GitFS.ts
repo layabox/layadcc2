@@ -84,7 +84,7 @@ export class GitFS {
     private _objectPacks: IObjectPack[] = [];
     objectEncrypter: IObjectEncrypt | null = null;
 
-    saveBlob=true;
+    saveBlob = true;
 
     /**
      * 
@@ -324,8 +324,8 @@ export class GitFS {
         }
     }
 
-    async visitAll(node: TreeNode, treecb: (cnode: TreeNode, entry:TreeEntry) => Promise<void>, blobcb: (entry: TreeEntry) => Promise<void>, inEntry:TreeEntry) {
-        await treecb(node,inEntry);
+    async visitAll(node: TreeNode, treecb: (cnode: TreeNode, entry: TreeEntry) => Promise<void>, blobcb: (entry: TreeEntry) => Promise<void>, inEntry: TreeEntry) {
+        await treecb(node, inEntry);
         for await (const entry of node.entries) {
             if (entry.isDir) {
                 try {
@@ -385,7 +385,7 @@ export class GitFS {
             alert('文件太大，无法上传：' + refname + '\n限制为：' + GitFS.MAXFILESIZE / 1024 / 1024 + 'M');
             return false;
         }
-        if(this.saveBlob)
+        if (this.saveBlob)
             await this.saveObject(objid, content);
         return true;
     }
