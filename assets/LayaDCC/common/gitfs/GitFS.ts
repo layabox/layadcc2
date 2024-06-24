@@ -322,13 +322,13 @@ export class GitFS {
         }
     }
 
-    async visitAll(node: TreeNode, treecb: (cnode: TreeNode) => Promise<void>, blobcb: (entry: TreeEntry) => Promise<void>) {
-        await treecb(node);
+    async visitAll(node: TreeNode, treecb: (cnode: TreeNode, entry:TreeEntry) => Promise<void>, blobcb: (entry: TreeEntry) => Promise<void>, inEntry:TreeEntry) {
+        await treecb(node,inEntry);
         for await (const entry of node.entries) {
             if (entry.isDir) {
                 try {
                     if (!entry.treeNode) await this.openNode(entry);
-                    await this.visitAll(entry.treeNode!, treecb, blobcb);
+                    await this.visitAll(entry.treeNode!, treecb, blobcb, entry);
                 } catch (e) {
                     //失败了可能是遍历本地目录，但是本地还没有下载，没有设置远程或者访问远程失败
                     //在没有网的情况下容易出

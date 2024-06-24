@@ -9,6 +9,8 @@ import * as path from "path";
 import * as os from 'os';
 import { Zip_Native } from "../assets/LayaDCC/common/Zip_Native";
 import { Zip_Nodejs } from "./Zip_NodeJS";
+import { DccDiffer } from "../assets/LayaDCC/common/LayaDCCDiffer";
+import { PackRaw } from "../assets/LayaDCC/ExpTools/DCCPackWriters";
 
 
 function verify(v: boolean, desc: string) {
@@ -59,6 +61,8 @@ export class DCCAutoTest {
         await test_nodePack_downloadOnce();
         await testZip();
         await testZip1();
+        await updateByPack();
+        await testDiff();
     }
 }
 
@@ -67,7 +71,6 @@ async function testCheckout() {
 }
 
 async function testNullDCCHead() {
-    debugger;
     let dcc1 = new LayaDCCClient("", DCCClientFS_NodeJS);
     dcc1.onlyTransUrl = false;
 
@@ -311,6 +314,31 @@ async function testZip1() {
     verify(1 == zip.getEntryCount(), '相同目录生成的zi里面只有一个head.json');
 }
 
+async function updateByPack(){
+    let packfile = await LayaDCCTools.genPackByFileList(
+        ['D:/work/ideproj/DCCPlugin/release/web/internal/Box.lm',
+        'D:/work/ideproj/DCCPlugin/release/web/internal/sky.jpg',
+        ],
+        'd:/temp/ddd1.pack', PackRaw);
+
+
+    let dcc = new LayaDCC();
+    let param = new Params();
+    dcc.params = param;
+    param.dccout = Editor.projectPath + '/dcctest/dccout5'
+    await dcc.genDCC(Editor.projectPath + '/dcctest/ver1');
+    
+    //应用
+    let dccurl = Editor.projectPath + '/dcctest/dccout5';
+    let client = new LayaDCCClient(dccurl);
+    let iniok = await client.init(dccurl + '/head.json', null);
+    await client.updateAll(null);
+    let packBuff = fs.readFileSync('d:/temp/ddd1.pack');
+    //await client.updateByZip(zipfile, window.conch?Zip_Native:Zip_Nodejs,null);
+    await client.updateByPack(packBuff.buffer.slice(packBuff.byteOffset,packBuff.byteLength));
+    await client.clean();    
+}
+
 async function ttt() {
     let testdir_ver1 = Editor.projectPath + '/dcctest/ver1'
     let dcc = new LayaDCC();
@@ -337,4 +365,47 @@ async function ttt() {
     //这个不应该再次下载index包
     let dcc2 = new LayaDCCClient(dccurl, DCCClientFS_NodeJS);
     dcc2.init(headFile, null);
+}
+
+async function testNoBlobs(){
+
+}
+
+async function testIgnore(){
+
+}
+
+async function testDiff(){
+    {
+    let testdir_ver = Editor.projectPath + '/dcctest/getdiff'
+    let dcc = new LayaDCC();
+    let param = new Params();
+    param.version = '2.0.0';
+    dcc.params = param;
+    param.dccout = Editor.projectPath + '/dcctest/dccout'
+    await dcc.genDCC(testdir_ver);
+    }
+    
+    {
+    let testdir_ver = Editor.projectPath + '/dcctest/getdiff1'
+    let dcc = new LayaDCC();
+    let param = new Params();
+    param.version = '3.0.0';
+    dcc.params = param;
+    param.dccout = Editor.projectPath + '/dcctest/dccout'
+    await dcc.genDCC(testdir_ver);    
+    }
+    let diff = await DccDiffer.getDiff(
+        Editor.projectPath + '/dcctest/dccout/version.2.0.0.json',
+        Editor.projectPath + '/dcctest/dccout/version.3.0.0.json'
+    );
+    verify(diff.add.length==3,'添加了3个对象');
+    verify(diff.add.some(v=>v.path=='dir/addfile.txt'),'addfile.txt是添加的文件');
+
+    verify(diff.del.length==4,'删除了4个对象');
+    verify(diff.del.indexOf("dir/dirindir/t1.txt")>=0,'删除了dir/dirindir/t1.txt');
+
+    verify(diff.rename.length==1,'重命名一个文件');
+    verify(diff.rename[0].old=='/txt.txt' && diff.rename[0].new=='/txt2.txt','txt.txt=>txt2.txt')
+
 }

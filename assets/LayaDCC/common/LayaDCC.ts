@@ -1,6 +1,6 @@
 import * as path from "path";
 import { DCCFS_NodeJS } from "./DCCFS_NodeJS";
-import { TreeNode } from "./gitfs/GitTree";
+import { TreeEntry, TreeNode } from "./gitfs/GitTree";
 import * as fs from 'fs'
 import { promisify } from "util";
 import { GitFS } from "./gitfs/GitFS";
@@ -20,6 +20,8 @@ export class Params {
     //用户需要指定版本号，这样可以精确控制。如果已经存在注意提醒
     version = '1.0.0';
     fast = true;
+    //不保存文件，只是用来比较差异
+    dontSaveBlobs=false;
     progressCB:(curfile:string,percent:number)=>void=null;
     /**
      * 混淆秘钥，注意这个只能用于本地资源，dcc服务器不要加混淆
@@ -184,11 +186,11 @@ export class LayaDCC {
         let blob_packs: string[] = [];
 
         //统计所有的treenode和blobnode,他们要分别打包
-        await gitfs.visitAll(rootNode, async (cnode) => {
+        await gitfs.visitAll(rootNode, async (cnode,entry) => {
             treeNodes.push(cnode.sha!);
         }, async (entry) => {
             blobNodes.push(toHex(entry.oid));
-        })
+        },null)
 
         //过滤重复文件。例如内容完全相同的两个目录，会记录多次
         if (treeNodes.length) treeNodes = [... new Set(treeNodes)];
@@ -256,6 +258,11 @@ export class LayaDCC {
             }
         }
 
+        node.entries.forEach(e=>{
+            //清理touch标记。如果后面设置1了，表示使用，那么是0的就是要删除的
+            e.touchFlag=0;
+        });
+
         for (const dirent of dirents) {
             let filename = dirent.name;
             const res = path.resolve(dir, filename);
@@ -292,7 +299,7 @@ export class LayaDCC {
                     }
                 }
 
-                entry.touchFlag = 0;
+                entry.touchFlag = 1;
                 let rets = await this.syncWithDir(res, entry.treeNode!, fast, []);
                 entry.oid = hashToArray(entry.treeNode.sha);
                 files = files.concat(rets);
@@ -312,10 +319,14 @@ export class LayaDCC {
                     entry = await this.gitfs.setFileAtNode(node, filename, value);
                     entry.fileMTime = fmtime;
                 }
-                entry!.touchFlag = 0;
+                entry.touchFlag = 1;
                 files.push(res);
             }
         }
+
+        //处理删除的
+        node.clearUntouched();
+
         let buff: Uint8Array = await node.toObject(this.frw);
         await this.gitfs.saveObject(node.sha!, buff.buffer);
         return files;
@@ -356,3 +367,175 @@ export class LayaDCC {
     }
 }
 
+/**
+ * 为了便于处理，把gitfs的节点转换成这个
+ */
+class RTNode{
+    id:string;
+    type:'dir'|'file';
+    name:string;
+    fullPath:string;
+    child:{[key:string]:RTNode}={};
+    parent:RTNode;
+    constructor(name:string,id:string,parent:RTNode,type:'dir'|'file'){
+        this.name=name;
+        this.id=id;
+        this.type=type;
+        this.parent=parent;
+        if(parent){
+            parent.child[name]=this;
+            this.fullPath = parent.fullPath+name +(type=='dir'?'/':'');
+        }else{
+            this.fullPath='/';
+        }
+    }
+}
+
+export async function getDiff(git1:GitFS, git2:GitFS){
+    let renames:{old:string,new:string}[]=[];
+    let modifies:{path:string, newfile:boolean}[]=[];
+    let deletes:string[]=[];
+    //添加的文件。如果是添加了引用。del, add, 是重命名， 然后添加引用 add
+    let addes:{path:string,newfile:boolean}[]=[];
+
+    //id到目录的映射，可能会一对多
+    let idMap:{[key:string]:{path:string,op:string}[]}={};
+    //老的idmap，用来判断是不是增加对象了
+    let idMapOld:{[key:string]:string}={}
+    function checkNodeDel(id:string, fullpath:string){
+        if(!idMap[id]) idMap[id]=[];
+        idMap[id].push({path:fullpath,op:'del'});
+    }
+
+    let root1 = git1.treeRoot.rtData = new RTNode('/',git1.treeRoot.sha,null,'dir');
+    await git1.visitAll(git1.treeRoot,async (node:TreeNode,entry:TreeEntry)=>{
+        checkNodeDel(node.sha,node.fullPath);
+        idMapOld[node.sha]='';
+        if(entry) node.rtData = new RTNode(entry.path, node.sha, entry.owner.rtData,'dir');
+    }, async (blobEntry)=>{
+        let id = toHex(blobEntry.oid);
+        let parpath = blobEntry.owner.fullPath;
+        if(parpath=='/') parpath='';
+        let path = parpath+'/'+ blobEntry.path;
+        checkNodeDel(id,path);
+        new RTNode(blobEntry.path,id,blobEntry.owner.rtData,'file');
+        idMapOld[id]='';
+    },null);
+
+    function checkNodeAdd(id:string, fullpath:string){
+        //这个表示原来有没有，如果有的话，再次add就是addref
+        let has=false;
+        if(!idMap[id]) idMap[id]=[];
+        else{
+            has=true;//即使抵消了，也表示原来是有的
+            let lastop = idMap[id];
+            for(let i=0,n=lastop.length; i<n; i++){
+                let info = lastop[i];
+                if(info.op=='del'){
+                    if(info.path!=fullpath){
+                        //改名，删掉
+                        renames.push({old:info.path,new:fullpath});
+                    }else{
+                        //没有改名，抵消
+                    }
+                    lastop.splice(i,1);//把del删除了
+                    //新的就不添加了，表示没有增加这个对象
+                    return;
+                }
+            }
+        }
+        idMap[id].push({path:fullpath,op:has?'addref':'add'});
+    }
+
+    let root2 = git2.treeRoot.rtData = new RTNode('/', git2.treeRoot.sha,null,'dir');
+    await git2.visitAll(git2.treeRoot,async (node:TreeNode,entry:TreeEntry)=>{
+        let id = node.sha;
+        checkNodeAdd(id,node.fullPath);
+        if(entry) node.rtData = new RTNode(entry.path, node.sha, entry.owner.rtData,'dir');
+    }, async (blobEntry)=>{
+        let id = toHex(blobEntry.oid);
+        let parpath = blobEntry.owner.fullPath;
+        if(parpath=='/') parpath='';
+        let path = parpath+'/'+ blobEntry.path;
+        checkNodeAdd(id,path);
+        new RTNode(blobEntry.path, id,blobEntry.owner.rtData,'file');
+    }, null);
+
+    //统计修改的文件
+    function _visitRTNode(node:RTNode,oldNode:RTNode){
+        if(oldNode){
+            if(node.id!=oldNode.id){
+                //id变了，应该是修改了
+                //是否是新的。如果这个id在idmap中则是新的
+                //改名的不在idmap中
+                modifies.push({path:node.fullPath,newfile:!idMapOld[node.id]})
+            }
+        }
+        if(node.type=='file')
+            return;
+        for(let c in node.child){
+            _visitRTNode(node.child[c], oldNode?oldNode.child[c]:null);
+        }
+    }
+    _visitRTNode(root2,root1);
+
+    //统计添加和删除的文件
+    for(let i in idMap){
+        let idInfo = idMap[i];
+        for(let ii=0, n=idInfo.length; ii<n; ii++){
+            let fileInfo = idInfo[ii];
+            switch(fileInfo.op){
+                case 'del':
+                    deletes.push(fileInfo.path);
+                    break;
+                case 'add':
+                    addes.push({path:fileInfo.path,newfile:true});
+                    break;
+                case 'addref':
+                    addes.push({path:fileInfo.path,newfile:false});
+                    break;
+            }
+        }
+    }
+
+    return {add:addes,del:deletes,modify:modifies,rename:renames};
+
+/*
+    modified:path,newfile?  没有的话，就是指向了别的文件
+    del:path,delobj?    没有的话，就是删除引用
+    add:path,newfile    没有的话，就是增加引用
+    rename:pathold, pathnew
+
+    都是文件，不是目录
+
+*/
+}
+
+/**
+ * 返回git2-git1的增加的对象列表
+ * @param git1 
+ * @param git2 
+ */
+async function getDiffObjects(git1:GitFS, git2:GitFS ){
+    let oldset = new Set();
+    let changed: string[] = [];
+
+    await git1.visitAll(git1.treeRoot,async (node:TreeNode,entry:TreeEntry)=>{
+        oldset.add(node.sha);
+    }, async (entry)=>{
+        oldset.add(toHex(entry.oid));
+    },null);
+
+    await git2.visitAll(git2.treeRoot,async (node:TreeNode,entry:TreeEntry)=>{
+        let id = node.sha;
+        if (!oldset.has(id))
+            changed.push(id);
+    }, async (entry)=>{
+        let id = toHex(entry.oid);
+        if (!oldset.has(id))
+            changed.push(id);
+    },null);
+
+    console.log('changed:',changed);
+
+}

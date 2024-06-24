@@ -357,7 +357,7 @@ export class LayaDCCClient {
         //遍历file
         let needUpdateFiles: string[] = [];
         //统计所有树上的
-        await gitfs.visitAll(gitfs.treeRoot, async (tree) => {
+        await gitfs.visitAll(gitfs.treeRoot, async (tree,entry) => {
             //下载
             if (!locals.has(tree.sha))
                 //理论上不应该走到这里，应为visitAll的时候都下载了
@@ -367,7 +367,7 @@ export class LayaDCCClient {
             if (!locals.has(id)) {
                 needUpdateFiles.push(id);
             }
-        })
+        },null)
         //
         this.log(`updateAll need update ${needUpdateFiles.length}`);
         //needUpdateFiles.forEach(id=>{console.log(id);});
@@ -456,11 +456,11 @@ export class LayaDCCClient {
         //遍历file
         let files: Set<string> = new Set()
         //统计所有树上的
-        await gitfs.visitAll(gitfs.treeRoot, async (tree) => {
+        await gitfs.visitAll(gitfs.treeRoot, async (tree,entry) => {
             files.add(tree.sha);
         }, async (blob) => {
             files.add(toHex(blob.oid));
-        })
+        },null)
         //统计所有的本地保存的
         //不在树上的全删掉
         let removed: string[] = [];
@@ -482,8 +482,8 @@ export class LayaDCCClient {
         await this._frw.write('downloaded_packs.json', '{}', true);
     }
 
-    async visitAll(treecb: (cnode: TreeNode) => Promise<void>, blobcb: (entry: TreeEntry) => Promise<void>) {
-        await this._gitfs.visitAll(this._gitfs.treeRoot, treecb, blobcb);
+    async visitAll(treecb: (cnode: TreeNode,entry:TreeEntry) => Promise<void>, blobcb: (entry: TreeEntry) => Promise<void>) {
+        await this._gitfs.visitAll(this._gitfs.treeRoot, treecb, blobcb,null);
     }
 
     private _downloader: DCCDownloader;
