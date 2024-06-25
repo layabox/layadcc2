@@ -488,9 +488,11 @@ export async function getDiff(git1: GitFS, git2: GitFS) {
                 //id变了，应该是修改了
                 //是否是新的。如果这个id在idmap中则是新的
                 //改名的不在idmap中
+                //注意，如果新的文件是新版的某个文件的引用，也算是newfile
                 modifies.push({ path: node.fullPath, newfile: !idMapOld[node.id] })
                 delInIdMap(oldNode.id,node.fullPath,'del');
                 delInIdMap(node.id,node.fullPath,'add');
+                delInIdMap(node.id,node.fullPath,'addref'); //添加的文件有可能是addref
             }
         }
         if (node.type == 'file')

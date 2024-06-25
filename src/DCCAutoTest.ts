@@ -415,6 +415,9 @@ async function testDiff(){
     verify(diff.del.length==2,'删除了2个对象,一个目录，一个文件');
     verify(diff.del.indexOf("/dir/dirindir/t1.txt")>=0,'删除了/dir/dirindir/t1.txt');
 
+    verify(diff.modify.length==4,'修改了2个文件，2个目录，共4个');
+    verify(diff.modify.some(v=>v.path=="/modify.txt"),'修改了/modify.txt');
+
     verify(diff.rename.length==1,'重命名一个文件');
     verify(diff.rename[0].old=='/txt.txt' && diff.rename[0].new=='/txt2.txt','txt.txt=>txt2.txt')
 }
@@ -456,6 +459,9 @@ async function testDiff1(){
 
     verify(diff.del.length==2,'删除了2个对象,一个目录，一个文件');
     verify(diff.del.indexOf("/dir/dirindir/t1.txt")>=0,'删除了/dir/dirindir/t1.txt');
+
+    verify(diff.modify.length==4,'修改了2个文件，2个目录，共4个');
+    verify(diff.modify.some(v=>v.path=="/modify.txt"),'修改了/modify.txt');
 
     verify(diff.rename.length==1,'重命名一个文件');
     verify(diff.rename[0].old=='/txt.txt' && diff.rename[0].new=='/txt2.txt','txt.txt=>txt2.txt')
