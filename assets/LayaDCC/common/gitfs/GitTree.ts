@@ -109,16 +109,18 @@ export class TreeNode {
     /**
      * 
      * @param node 要查询的节点
-     * @param path 
+     * @param path 在node的基础上附加的
      * @returns 
      */
     private _getFullPath(node: TreeNode, path: string | null): string {
-        let parent = this.getParentEntry(node);
-        if (parent) {
-            let strpath = path ? (parent.path + '/' + path) : parent.path;
-            return this._getFullPath(node.parent!, strpath);
+        let entry = this.getParentEntry(node);
+        if (entry) {
+            let nodePath = entry.path+(entry.isDir?'/':'');
+            let curPath = nodePath+(path?path:'');
+            return this._getFullPath(node.parent, curPath);
+        }else{
+            return '/'+(path?path:'');
         }
-        return path || '/';
     }
 
     get fullPath() {

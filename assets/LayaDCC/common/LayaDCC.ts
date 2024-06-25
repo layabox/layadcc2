@@ -41,6 +41,7 @@ export class LayaDCC {
     private gitfs: GitFS;
     private config = new Params();
     private dccout: string;
+    static VERSION = '1.1.0';
     constructor() {
     }
 
@@ -424,9 +425,7 @@ export async function getDiff(git1: GitFS, git2: GitFS) {
         if (entry) node.rtData = new RTNode(entry.path, node.sha, entry.owner.rtData, 'dir');
     }, async (blobEntry) => {
         let id = toHex(blobEntry.oid);
-        let parpath = blobEntry.owner.fullPath;
-        if (parpath == '/') parpath = '';
-        let path = parpath + '/' + blobEntry.path;
+        let path = blobEntry.owner.fullPath + blobEntry.path;
         checkNodeDel(id, path);
         new RTNode(blobEntry.path, id, blobEntry.owner.rtData, 'file');
         idMapOld[id] = '';
@@ -464,12 +463,23 @@ export async function getDiff(git1: GitFS, git2: GitFS) {
         if (entry) node.rtData = new RTNode(entry.path, node.sha, entry.owner.rtData, 'dir');
     }, async (blobEntry) => {
         let id = toHex(blobEntry.oid);
-        let parpath = blobEntry.owner.fullPath;
-        if (parpath == '/') parpath = '';
-        let path = parpath + '/' + blobEntry.path;
+        let path = blobEntry.owner.fullPath + blobEntry.path;
         checkNodeAdd(id, path);
         new RTNode(blobEntry.path, id, blobEntry.owner.rtData, 'file');
     }, null);
+
+    function delInIdMap(id:string, path:string, op:string){
+        let idinfo = idMap[id];
+        if(idinfo && idinfo.length){
+            for(let i=0; i<idinfo.length; i++){
+                let ops = idinfo[i];
+                if(ops.path==path && ops.op==op){
+                    idinfo.splice(i,1);
+                    i--;
+                }
+            }
+        }
+    }
 
     //统计修改的文件
     function _visitRTNode(node: RTNode, oldNode: RTNode) {
@@ -479,6 +489,8 @@ export async function getDiff(git1: GitFS, git2: GitFS) {
                 //是否是新的。如果这个id在idmap中则是新的
                 //改名的不在idmap中
                 modifies.push({ path: node.fullPath, newfile: !idMapOld[node.id] })
+                delInIdMap(oldNode.id,node.fullPath,'del');
+                delInIdMap(node.id,node.fullPath,'add');
             }
         }
         if (node.type == 'file')

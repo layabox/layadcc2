@@ -533,7 +533,9 @@ export class GitFS {
             entry = node.addEntry(name, false, oid);
         }
         //console.debug('[gitfs] 提交变化文件:', node.fullPath + '/' + name);
-        if (!await this.saveBlobNode(hash, buff, node.fullPath + '/' + name)) {
+        let p = node.fullPath;
+        if(!p.endsWith('/'))p+='/';
+        if (!await this.saveBlobNode(hash, buff, p + name)) {
             // 上传失败。设置一个无效的oid。避免形成永久性错误。
             entry.oid!.fill(0);
         }

@@ -409,11 +409,11 @@ async function testDiff(){
         Editor.projectPath + '/dcctest/dccout/version.2.0.0.json',
         Editor.projectPath + '/dcctest/dccout/version.3.0.0.json'
     );
-    verify(diff.add.length==3,'添加了3个对象');
-    verify(diff.add.some(v=>v.path=='dir/addfile.txt'),'addfile.txt是添加的文件');
+    verify(diff.add.length==1,'添加了1个对象');
+    verify(diff.add.some(v=>v.path=='/dir/addfile.txt'),'addfile.txt是添加的文件');
 
-    verify(diff.del.length==4,'删除了4个对象');
-    verify(diff.del.indexOf("dir/dirindir/t1.txt")>=0,'删除了dir/dirindir/t1.txt');
+    verify(diff.del.length==2,'删除了2个对象,一个目录，一个文件');
+    verify(diff.del.indexOf("/dir/dirindir/t1.txt")>=0,'删除了/dir/dirindir/t1.txt');
 
     verify(diff.rename.length==1,'重命名一个文件');
     verify(diff.rename[0].old=='/txt.txt' && diff.rename[0].new=='/txt2.txt','txt.txt=>txt2.txt')
@@ -451,11 +451,11 @@ async function testDiff1(){
         Editor.projectPath + '/dcctest/dccout/version.2.0.0.json',
         Editor.projectPath + '/dcctest/dccout/version.3.0.0.json'
     );
-    verify(diff.add.length==3,'添加了3个对象');
-    verify(diff.add.some(v=>v.path=='dir/addfile.txt'),'addfile.txt是添加的文件');
+    verify(diff.add.length==1,'添加了1个对象');
+    verify(diff.add.some(v=>v.path=='/dir/addfile.txt'),'addfile.txt是添加的文件');
 
-    verify(diff.del.length==4,'删除了4个对象');
-    verify(diff.del.indexOf("dir/dirindir/t1.txt")>=0,'删除了dir/dirindir/t1.txt');
+    verify(diff.del.length==2,'删除了2个对象,一个目录，一个文件');
+    verify(diff.del.indexOf("/dir/dirindir/t1.txt")>=0,'删除了/dir/dirindir/t1.txt');
 
     verify(diff.rename.length==1,'重命名一个文件');
     verify(diff.rename[0].old=='/txt.txt' && diff.rename[0].new=='/txt2.txt','txt.txt=>txt2.txt')
