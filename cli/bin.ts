@@ -40,7 +40,7 @@ program
     .version('0.1.0')
     .description('layadcc2命令工具')
     .argument('<dir>', '输入目录')
-    .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于输入目录', 'dccout')
+    .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于当前目录目录', 'dccout')
     .option('-m, --merge', '是否合并小文件')
     .option('-y, --overwrite', '是否覆盖输出目录（保留历史记录需要覆盖）')
     .action(genDCC)
@@ -88,7 +88,7 @@ async function genDCC(dir: string, options: { output?: string, overwrite?: boole
     }
     let output = options.output ?? path.join(dir, 'dccout');
     if (!path.isAbsolute(output)) {
-        output = path.join(dir, output);
+        output = path.join(curDir, output);
     }
     if (fs.existsSync(output) && !options.overwrite) {
         const rl = readline.createInterface({
@@ -116,10 +116,15 @@ already exists, do you want to continue? (y/n)`);
             curfile += '...';
         }
         //@ts-ignore
-        readline.clearLine(process.stdout, 0)
-        //@ts-ignore
-        redline.cursorTo(process.stdout,0);
-        process.stdout.write(`${n}:${curfile} `);
+        if(readline.clearLine){
+            //@ts-ignore
+            readline.clearLine && readline.clearLine(process.stdout, 0)
+            //@ts-ignore
+            readline.cursorTo && readline.cursorTo(process.stdout,0);
+            process.stdout.write(`${n}:${curfile} `);
+        }else{
+            process.stdout.write(`${n}:${curfile}\n `);
+        }
         n++;
     }
     dcc.params = param;
