@@ -115,8 +115,10 @@ already exists, do you want to continue? (y/n)`);
             curfile = curfile.substring(0, consoleW);
             curfile += '...';
         }
-        process.stdout.clearLine(0);
-        process.stdout.cursorTo(0);
+        //@ts-ignore
+        readline.clearLine(process.stdout, 0)
+        //@ts-ignore
+        redline.cursorTo(process.stdout,0);
         process.stdout.write(`${n}:${curfile} `);
         n++;
     }
