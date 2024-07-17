@@ -288,9 +288,10 @@ export class LayaDCCClient {
     }
 
     /**
-     *  读取缓存中的一个文件，url是相对地址
+     *  读取缓存中的一个文件，url是相对地址或者绝对地址
      * @param url 用户认识的地址。如果是绝对地址，并且设置是映射地址，则计算一个相对地址。如果是相对地址，则直接使用
      * @returns 
+     *  如果没有设置映射到dcc的地址，则直接取此文件的相对路径，如果设置了映射地址，则截掉映射地址
      */
     async readFile(url: string): Promise<ArrayBuffer | null> {
         let gitfs = this._gitfs;
@@ -308,6 +309,20 @@ export class LayaDCCClient {
         return buff;
     }
 
+    private _getRUrl(url:string){
+        let gitfs = this._gitfs;
+        if (!gitfs) throw 'dcc没有正确init';
+        if (url.startsWith('http:') || url.startsWith('https:') || url.startsWith('file:')) {//绝对路径
+            if (!this._pathMapToDCC) {
+                url = (new URL(url)).pathname;;
+            } else {
+                if (!url.startsWith(this._pathMapToDCC)) return null;
+                url = url.substring(this._pathMapToDCC.length);
+            }
+        }
+        return url;
+    }
+
     //获取某个对象（用hash表示的文件或者目录）在缓存中的地址
     async getObjectUrl(objid: string) {
         return this._gitfs.getObjUrl(objid)
@@ -315,12 +330,14 @@ export class LayaDCCClient {
 
     /**
      * 把一个原始地址转换成cache服务器对象地址
+     * 如果库中没有，则直接返回原来的url
      * @param url 原始资源地址
      * @returns 
      */
     async transUrl(url: string) {
+        let oriUrl = url;
         let gitfs = this._gitfs;
-        if (!gitfs) return url;
+        if (!gitfs) return oriUrl;
 
         if (!this._pathMapToDCC) {
             url = (new URL(url)).pathname;;
@@ -331,7 +348,7 @@ export class LayaDCCClient {
 
         let objpath = await gitfs.pathToObjPath(url);
         if (!objpath) {
-            return url;
+            return oriUrl;
         }
         return this._frw.repoPath + objpath;
     }
@@ -538,13 +555,32 @@ export class LayaDCCClient {
                     () => { })
             });
         } else {
-            this.readFile(url).then((buff: ArrayBuffer) => {
-                this.transUrl(url).then((svObjUrl: string) => {
-                    let rpath = svObjUrl.substring(this._dccServer.length);
-                    let localPath = conch.getCachePath() + '/' + rpath;
-                    cbObj.onDownloadEnd(buff, localPath);
-                });
-            });
+            (async ()=>{
+                //得到相对路径
+                let rUrl = this._getRUrl(url);
+                if(rUrl){
+                    //如果是归dcc管理
+                    let buff = await this.readFile(url);
+                    if(buff){
+                        let svObjUrl = await this.transUrl(url);
+                        let rpath = svObjUrl.substring(this._dccServer.length);
+                        let localPath = conch.getCachePath() + '/' + rpath;
+                        cbObj.onDownloadEnd(buff, localPath);
+                        return;
+                    }
+                }
+
+                //失败了,没有转换成功，或者dcc中没有这个文件，直接下载
+                this.log("直接下载:"+url);
+                //@ts-ignore
+                conch.downloadNoCache(url,
+                    () => { },
+                    (buff: ArrayBuffer, localip: string, svip: string) => {
+                        //下载完成
+                        cbObj.onDownloadEnd(buff, '');
+                    },
+                    () => { })                        
+            })();
         }
     }
 

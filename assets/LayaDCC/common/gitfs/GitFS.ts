@@ -363,6 +363,12 @@ export class GitFS {
         return null;
     }
 
+    /**
+     * 根据一个普通url加载文件内容
+     * @param file 相对路径，这里认为是相对于库的根目录，可以有/
+     * @param encode 
+     * @returns 
+     */
     async loadFileByPath(file: string, encode: 'utf8' | 'buffer') {
         let entries: TreeEntry[] = [];
         if (await this.pathToEntries(file, entries)) {

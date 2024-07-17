@@ -56,6 +56,9 @@ export class AllTest extends Laya.Script {
             case 'commondown':
                 await this.commonDown();
                 break;
+            case 'xhr':
+                await this.xhr();
+                break;
             case 'zipupdate':
                 await this.zipUpdate();
                 break;
@@ -104,6 +107,13 @@ export class AllTest extends Laya.Script {
     private async update1() {
         let r = new AppResReader_Native();
         let rtxt1 = await r.getRes('cache/dcc2.0/head.json', 'utf8');
+    }
+
+    private async xhr(){
+        let xhr = new Laya.HttpRequest();
+        xhr.send('http://10.10.20.26:9999/index2.js',null,'get','text');
+        xhr.once(Laya.Event.ERROR,null,()=>{debugger;console.log('oookkkk');});
+        xhr.once(Laya.Event.COMPLETE,null,(p:Event)=>{debugger;console.log('eeeeeee'+p)});
     }
 
     private async commonDown() {
