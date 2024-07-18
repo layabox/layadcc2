@@ -7,7 +7,7 @@ LayaDCC2.0是原来的DCC的更新版。主要特点：
 
 
 
-![xxx](./imgs/setting.png)
+![xxx](./img/setting.png)
 
 ## 基本用法
 生成dcc

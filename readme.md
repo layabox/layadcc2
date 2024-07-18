@@ -26,3 +26,6 @@ npm version patch
 layadcc2命令行的编译：
 tsc
 node add-js-extention.js        #这个是给js的import加.js扩展名。
+
+## 发布规则
+如果修改了client的兼容性，需要增加版本号，并且发布layadcc.js
