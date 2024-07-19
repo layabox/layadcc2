@@ -155,20 +155,16 @@ TODO：
 
 这样发布的app就能根据指定根文件进行资源热更。之前发布的app，如果指定的是同一个根文件，也会在启动后触发热更。
 
-注意：如果使用固定名称的根文件，可能会由于CDN缓存导致无法获取最新的文件内容。所以这时候可以给根文件一个非cdn地址，或者一个动态页面地址。但是这时候通常就不能把dcc服务器的地址设置为空了。
+注意：如果使用固定名称的根文件，可能会由于CDN缓存导致无法获取最新的文件内容,导致热更错误。解决方法一般是给根文件一个非cdn地址，或者给一个动态页面地址。这时候根文件通常与dcc服务器不在一起，就不能把dcc服务器的地址设置为空了。
 
-zip更新流程
-目录更新流程
-native导出对象
-普通更新流程
-
-
-## 内部解释
-打包资源与dcc的关系
-相同
 
 
 ## 通过代码的使用方法
+
+源码：
+https://github.com/layabox/layadcc2.git
+
+分支：dccplugin
 
 LayaDCCClient的接口定义：
 
@@ -196,6 +192,12 @@ export class LayaDCCClient{
      */
     async init(headfile:string|null,cachePath:string):Promise<boolean>;
     
+    /**
+     * 当前缓存中是否缓存了某个文件
+     *
+     */
+    async hasFile(url: string):Promise<boolean>;
+
     /**
      *  读取缓存中的一个文件，url是相对地址
      * @param url 用户认识的地址。如果是绝对地址，并且设置是映射地址，则计算一个相对地址。如果是相对地址，则直接使用
@@ -231,6 +233,19 @@ export class LayaDCCClient{
     async updateByZip(zipfile:string,zipClass:new()=>IZip, progress:(p:number)=>void);
 
     /**
+     * 利用一个pack文件更新，这个pack包含idx,文件内容。
+     * @param pack :一个url或者buffer
+     * @param unpacker :解包类。把包文件内容解开成一个列表
+     */
+    async updateByPack(pack: string | ArrayBuffer, unpacker?: new () => IDCCPackR);
+
+    /**
+     * 遍历所有的节点。
+     * 包括没有下载的
+     */
+    async visitAll(treecb: (cnode: TreeNode,entry:TreeEntry) => Promise<void>, blobcb: (entry: TreeEntry) => Promise<void>)；
+
+    /**
      * 清理缓存。
      * 根据根文件遍历所有本版本依赖的文件，删除不属于本版本的缓存文件
      */
@@ -243,7 +258,9 @@ export class LayaDCCClient{
 }
 ```
 
-生成DCC
+### 常见用法
+1. 生成DCC
+
 ```typescript
     let srcPath = '资源的绝对路径'
     let dcc = new LayaDCC();
@@ -256,30 +273,9 @@ export class LayaDCCClient{
     await dcc.genDCC(srcPath);
 ```
 
-生成版本之间的差异zip
-带root
-
-打包某个目录到一个zip
-不带root
-
-打包某个目录到一个pack文件
-带index
-
-根据文件列表生成pack包
-```typescript
-import {layadcctools} from './dist/layadcctools.js'
-const {LayaDCCTools,LayaDCC,Params,PackRaw} = layadcctools;
-
-layadcctools.LayaDCCTools.genPackByFileList( [
-    'D:/work/ideproj/DCCPlugin/release/web/internal/sky.jpg',
-    ],
-    'd:/temp/ddd1.pack', layadcctools.PackRaw)
-
-```
-
-根据版本号生成差异包
 
 2. 使用dcc
+
 对于使用dcc，基本流程是根据根文件初始化，然后插入laya引擎的downloader，之后下载就会被dcc接管
 ```typescript
 //创建DCC客户端，参数是DCC服务器地址
@@ -292,7 +288,9 @@ let initok = await dcc.init('http://localhost:7788/version.3.0.0.json',null);
 dcc.injectToLaya();
 ```
 
+
 3. native端使用dcc
+
 ```javascript
 var appUrl = "http://stand.alone.version/index.js";
 var dccHead = "http://10.10.20.26:6666/head.json";
@@ -314,8 +312,7 @@ dcc.init(dccHead, null).then((ok) => {
 现在native中已经包含这段代码（index.js中），可以通过layadcc访问dcc库导出的对象，通过dcc访问native创建的LayaDCCClient
 
 
-
-3. 集中更新所有资源，避免边运行边下载
+4. 集中更新所有资源，避免边运行边下载
 ```typescript
 let dcc = new DCCClient('http://localhost:7788/' );
 dcc.pathMapToDCC= 'http://localhost:8899/';
@@ -323,7 +320,7 @@ let initok = await dcc.init('http://localhost:7788/version.3.0.0.json',null);
 await dcc.updateAll((p)=>{/*进度提示*/})
 ```
 
-4. 使用zip更新
+5. 使用zip更新
 ```typescript
     async function downloadBigZip(url:string):Promise<string|null>{
         let cachePath = conch.getCachePath();
@@ -353,17 +350,51 @@ await dcc.updateAll((p)=>{/*进度提示*/})
 ```
 注意，zip是通过dcc插件生成的zip文件，有特定的文件组织形式。
 
-5. 清理本地缓存
+6. 清理本地缓存
 ```typescript
 let dcc = new DCCClient(null);
 await dcc.clean();
 ```
 
+
+7. 生成版本之间的差异zip
+
+```typescript
+    let zipfile = await LayaDCCTools.genZipByComparePath(老的dcc目录, 新的dcc目录, 输出目录);
+    //zipfile是返回的输出的zip文件路径
+
+```
+zip中包含根root，可以通过updateByZip更新。
+具体的LayaDCCTools的接口见源码。
+
+
+8. 根据文件列表生成pack包
+```typescript
+import {layadcctools} from './dist/layadcctools.js'
+const {LayaDCCTools,LayaDCC,Params,PackRaw} = layadcctools;
+
+layadcctools.LayaDCCTools.genPackByFileList( [
+    'D:/work/ideproj/DCCPlugin/release/web/internal/sky.jpg',
+    ],
+    'd:/temp/ddd1.pack', layadcctools.PackRaw)
+
+```
+这里的PackRaw是一个默认打包器，具体见源码。
+更新可以通过
+```typescript
+    dcc.updateByPack(buffer, DCCPackR);
+```
+这里的DCCPackR是PackRaw对应的解码器。
+
+
+
 ## 其他功能
 enableLog:boolean  是否打印日志，设置为true之后，会有更多打印信息，有助于调试。
+
 onlyTransUrl:boolean 只做地址转换功能，即把一个url请求转换成对缓存对象的请求，不会在本地存储这个对象。例如在网页端，只是希望保证文件资源是正确的，可以设置为这个true。
-高级用法
-1. 适配其他平台
+
+适配其他平台: 
+
 用户可以自己实现一个 IGitFSFileIO 接口，并传给DCCClient的构造函数，就可以支持新的平台，主要是提供本地文件的读写功能。
 
 ## 常见问题
@@ -373,11 +404,12 @@ onlyTransUrl:boolean 只做地址转换功能，即把一个url请求转换成�
 可以把layadcc项目包含到自己的项目中，或者加载layadcc.js，然后在网页中使用。
 网页使用会通过indexdb来缓存资源。缺点是只能接管laya的downloader，所以无法接管系统的xhr，且必须在laya初始化完成之后才能起作用。
 2. 是否支持微信小游戏
-这个可以通过自己扩展来实现，参见 高级用法
+这个可以通过自己扩展来实现，参见 适配其他平台
 3. 是否可以在以前版本的native中使用dcc2
-可以，但是由于老版本的native无法关掉老版本的缓存功能，因此可能会造成多余的空间占用。
+不可以，layadcc2依赖native的新的接口。
 4. 在网页端是否可以接管开始的js的下载？
 目前还不能，在网页端的dcc目前依赖laya引擎。native端可以不依赖。
 
 
 ## TODO
+根据版本号生成差异包
