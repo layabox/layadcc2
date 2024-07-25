@@ -40,7 +40,7 @@ program
     .version('0.1.0')
     .description('layadcc2命令工具')
     .argument('<dir>', '输入目录')
-    .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于当前目录目录', 'dccout')
+    .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于当前目录', 'dccout')
     .option('-m, --merge', '是否合并小文件')
     .option('-y, --overwrite', '是否覆盖输出目录（保留历史记录需要覆盖）')
     .action(genDCC)
