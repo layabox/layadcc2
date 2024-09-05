@@ -31,12 +31,15 @@ function customProgressBar(total) {
 }
 // 主命令配置
 program
-    .version('0.1.0')
+    .version('1.1.2')
     .description('layadcc2命令工具')
     .argument('<dir>', '输入目录')
-    .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于输入目录', 'dccout')
+    .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于当前目录')
     .option('-m, --merge', '是否合并小文件')
+    .option('--mergedir', '是否合并目录')
     .option('-y, --overwrite', '是否覆盖输出目录（保留历史记录需要覆盖）')
+    .option('--dccver <dccver>', 'dcc版本')
+    //.option('--nohistory','不保留历史记录')
     .action(genDCC);
 // 子命令：genpatch
 program
@@ -68,14 +71,16 @@ function main() {
 }
 main();
 async function genDCC(dir, options) {
-    var _a;
     console.log(`start generating dcc for ${dir}`);
     if (!path.isAbsolute(dir)) {
         dir = path.join(curDir, dir);
     }
-    let output = (_a = options.output) !== null && _a !== void 0 ? _a : path.join(dir, 'dccout');
+    let output = options.output;
+    //如果不存在就放到资源目录的.dcc下。否则放到命令执行时候的相对目录下
+    if (output == undefined)
+        output = path.join(dir, ".dcc");
     if (!path.isAbsolute(output)) {
-        output = path.join(dir, output);
+        output = path.join(curDir, output);
     }
     if (fs.existsSync(output) && !options.overwrite) {
         const rl = readline.createInterface({
@@ -84,7 +89,7 @@ async function genDCC(dir, options) {
         });
         let userR = await rl.question(`the dccout directory:
 ${output}
-already exists, do you want to continue? (y/n)`);
+Overwrite output dir ? (y/n)`);
         if (userR == 'y' || userR == 'yes') {
         }
         else {
@@ -96,6 +101,10 @@ already exists, do you want to continue? (y/n)`);
     console.log(`dccout dir:${output}`);
     let dcc = new LayaDCC();
     let param = new Params();
+    param.mergeDir = options.mergeDir;
+    if (options.dccver)
+        param.version = options.dccver;
+    //param.mergeFile = option
     let n = 0;
     let consoleW = process.stdout.columns - 10;
     param.progressCB = (curfile, percent) => {
@@ -103,9 +112,17 @@ already exists, do you want to continue? (y/n)`);
             curfile = curfile.substring(0, consoleW);
             curfile += '...';
         }
-        process.stdout.clearLine(0);
-        process.stdout.cursorTo(0);
-        process.stdout.write(`${n}:${curfile} `);
+        //@ts-ignore
+        if (readline.clearLine) {
+            //@ts-ignore
+            readline.clearLine && readline.clearLine(process.stdout, 0);
+            //@ts-ignore
+            readline.cursorTo && readline.cursorTo(process.stdout, 0);
+            process.stdout.write(`${n}:${curfile} `);
+        }
+        else {
+            process.stdout.write(`${n}:${curfile}\n `);
+        }
         n++;
     };
     dcc.params = param;

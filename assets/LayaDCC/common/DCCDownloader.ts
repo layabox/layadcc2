@@ -30,6 +30,8 @@ export class DCCDownloader {
 
     //取消对laya下载引擎的插入
     removeFromLaya() {
+        //这里有问题，如果已经形成链了，则不能直接这么做
+        //形成链就是有多个dccclient，每个负责一部分映射
         if (Laya.Loader.downloader == this.myDownloader) {
             Laya.Loader.downloader = this.originDownloader;
         }

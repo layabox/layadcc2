@@ -37,13 +37,14 @@ function customProgressBar(total: number) {
 
 // 主命令配置
 program
-    .version('0.1.0')
+    .version('1.1.2')
     .description('layadcc2命令工具')
     .argument('<dir>', '输入目录')
     .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于当前目录')
     .option('-m, --merge', '是否合并小文件')
-    .option('--mergeDir','是否合并目录')
+    .option('--mergedir','是否合并目录')
     .option('-y, --overwrite', '是否覆盖输出目录（保留历史记录需要覆盖）')
+    .option('--dccver <dccver>','dcc版本')
     //.option('--nohistory','不保留历史记录')
     .action(genDCC)
 
@@ -83,7 +84,12 @@ function main() {
 }
 main();
 
-async function genDCC(dir: string, options: { output?: string, overwrite?: boolean,mergeDir:boolean, nohistory:boolean}) {
+async function genDCC(dir: string, options: 
+    { output?: string, 
+        overwrite?: boolean,
+        mergeDir:boolean,
+        dccver:string, 
+        nohistory:boolean}) {
     console.log(`start generating dcc for ${dir}`)
     if (!path.isAbsolute(dir)) {
         dir = path.join(curDir, dir);
@@ -103,7 +109,7 @@ async function genDCC(dir: string, options: { output?: string, overwrite?: boole
         });
         let userR = await rl.question(`the dccout directory:
 ${output}
-already exists, do you want to continue? (y/n)`);
+Overwrite output dir ? (y/n)`);
         if (userR == 'y' || userR == 'yes') {
         } else {
             //直接退出
@@ -115,6 +121,7 @@ already exists, do you want to continue? (y/n)`);
     let dcc = new LayaDCC();
     let param = new Params();
     param.mergeDir = options.mergeDir;
+    if(options.dccver) param.version = options.dccver;
     //param.mergeFile = option
 
     let n = 0;
