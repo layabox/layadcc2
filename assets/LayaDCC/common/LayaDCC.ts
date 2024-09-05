@@ -11,6 +11,7 @@ import { DCCObjectWrapper } from "./DCCObjectWrapper";
 
 export class Params {
     mergeFile = false;
+    mergeDir = false;
     //小于这个文件的合并
     fileToMerge = 100 * 1024;
     //合并后的最大文件大小，不允许超过。
@@ -124,7 +125,7 @@ export class LayaDCC {
             }
         } catch (e) { }
 
-        let ignores = ['.git', '.gitignore', 'dccout'];
+        let ignores = ['.git', '.gitignore', 'dccout', '.dcc','.svn'];
         if (this.config.ignorePathes) {
             ignores.concat(this.config.ignorePathes);
         }
@@ -154,10 +155,9 @@ export class LayaDCC {
         //await this.frw.write(`${this.config.outfile}.json`,JSON.stringify(head),true);
 
         //合并文件
-        if (this.config.mergeFile) {
-            let merges = await this.mergeSmallFile(rootNode, false, false);
+        let merges = await this.mergeSmallFile(rootNode, false, false);
+        if(merges)
             head.treePackages = merges.tree_packs;
-        }
         //版本文件
         await this.frw.write('head.json', JSON.stringify(head), true);//这个要用固定名称，与配置无关
         await this.frw.write(`${this.config.outfile}.${this.config.version}.json`, JSON.stringify(head), true);
@@ -196,6 +196,9 @@ export class LayaDCC {
         let tree_packs: string[] = [];
         let blob_packs: string[] = [];
 
+        if(!this.config.mergeFile && !this.config.mergeDir)
+            return null;
+
         //统计所有的treenode和blobnode,他们要分别打包
         await gitfs.visitAll(rootNode, async (cnode, entry) => {
             treeNodes.push(cnode.sha!);
@@ -203,44 +206,47 @@ export class LayaDCC {
             blobNodes.push(toHex(entry.oid));
         }, null)
 
-        //过滤重复文件。例如内容完全相同的两个目录，会记录多次
-        if (treeNodes.length) treeNodes = [... new Set(treeNodes)];
-        if (blobNodes.length) blobNodes = [... new Set(blobNodes)];
+        if (this.config.mergeDir) {
+            //过滤重复文件。例如内容完全相同的两个目录，会记录多次
+            if (treeNodes.length) treeNodes = [... new Set(treeNodes)];
+            let treeSize = 0;
+            let reservBuff = new Uint8Array(this.config.mergedFileSize);
+            let objInPacks: { id: string, start: number, length: number }[] = [];
+            for (let i of treeNodes) {
+                let objFile = gitfs.getObjUrl(i);
+                let buff = await frw.read(objFile, 'buffer', true) as ArrayBuffer;
+                let size = buff.byteLength;
+                if (treeSize + size < this.config.mergedFileSize) {
+                    objInPacks.push({ id: i, start: treeSize, length: size });
+                    reservBuff.set(new Uint8Array(buff), treeSize);
+                    treeSize += size;
+                } else {
+                    tree_packs.push(await this.saveTreePack(reservBuff, treeSize, objInPacks));
+                    treeSize = 0;
+                    objInPacks.length = 0;
 
-        let treeSize = 0;
-        let reservBuff = new Uint8Array(this.config.mergedFileSize);
-        let objInPacks: { id: string, start: number, length: number }[] = [];
-        for (let i of treeNodes) {
-            let objFile = gitfs.getObjUrl(i);
-            let buff = await frw.read(objFile, 'buffer', true) as ArrayBuffer;
-            let size = buff.byteLength;
-            if (treeSize + size < this.config.mergedFileSize) {
-                objInPacks.push({ id: i, start: treeSize, length: size });
-                reservBuff.set(new Uint8Array(buff), treeSize);
-                treeSize += size;
-            } else {
-                tree_packs.push(await this.saveTreePack(reservBuff, treeSize, objInPacks));
-                treeSize = 0;
-                objInPacks.length = 0;
-
-                objInPacks.push({ id: i, start: treeSize, length: size });
-                reservBuff.set(new Uint8Array(buff), treeSize);
-                treeSize += size;
+                    objInPacks.push({ id: i, start: treeSize, length: size });
+                    reservBuff.set(new Uint8Array(buff), treeSize);
+                    treeSize += size;
+                }
+                if (rmMergedTreeNode) {
+                    //console.log('rm:', objFile)
+                    await this.frw.rm(objFile);
+                }
             }
-            if (rmMergedTreeNode) {
-                //console.log('rm:', objFile)
-                await this.frw.rm(objFile);
-            }
+            //剩下的写文件，计算hash
+            tree_packs.push(await this.saveTreePack(reservBuff, treeSize, objInPacks));
+            treeSize = 0;
+            objInPacks.length = 0;
         }
-        //剩下的写文件，计算hash
-        tree_packs.push(await this.saveTreePack(reservBuff, treeSize, objInPacks));
-        treeSize = 0;
-        objInPacks.length = 0;
 
-
-        //
-        //合并小文件
-        //直接遍历objects目录，顺序合并
+        if(this.config.mergeFile){
+            if (blobNodes.length) blobNodes = [... new Set(blobNodes)];
+    
+            //
+            //合并小文件
+            //直接遍历objects目录，顺序合并
+        }
         //结果记录下来即可
         return { tree_packs }
     }

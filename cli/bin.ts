@@ -40,9 +40,11 @@ program
     .version('0.1.0')
     .description('layadcc2命令工具')
     .argument('<dir>', '输入目录')
-    .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于当前目录', 'dccout')
+    .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于当前目录')
     .option('-m, --merge', '是否合并小文件')
+    .option('--mergeDir','是否合并目录')
     .option('-y, --overwrite', '是否覆盖输出目录（保留历史记录需要覆盖）')
+    //.option('--nohistory','不保留历史记录')
     .action(genDCC)
 
 // 子命令：genpatch
@@ -81,12 +83,16 @@ function main() {
 }
 main();
 
-async function genDCC(dir: string, options: { output?: string, overwrite?: boolean }) {
+async function genDCC(dir: string, options: { output?: string, overwrite?: boolean,mergeDir:boolean, nohistory:boolean}) {
     console.log(`start generating dcc for ${dir}`)
     if (!path.isAbsolute(dir)) {
         dir = path.join(curDir, dir);
     }
-    let output = options.output ?? path.join(dir, 'dccout');
+
+    let output = options.output;
+    //如果不存在就放到资源目录的.dcc下。否则放到命令执行时候的相对目录下
+    if(output==undefined)
+        output= path.join(dir,".dcc");
     if (!path.isAbsolute(output)) {
         output = path.join(curDir, output);
     }
@@ -108,6 +114,9 @@ already exists, do you want to continue? (y/n)`);
     console.log(`dccout dir:${output}`);
     let dcc = new LayaDCC();
     let param = new Params();
+    param.mergeDir = options.mergeDir;
+    //param.mergeFile = option
+
     let n = 0;
     let consoleW = process.stdout.columns - 10;
     param.progressCB = (curfile: string, percent: number) => {

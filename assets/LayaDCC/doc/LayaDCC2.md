@@ -413,3 +413,8 @@ onlyTransUrl:boolean 只做地址转换功能，即把一个url请求转换成�
 
 ## TODO
 根据版本号生成差异包
+
+## 反馈
+https://ilayabox.feishu.cn/docx/V1fIdE63oocAXbxinEgcreVcnVe
+
+可以到这里通过评论的方法反馈
