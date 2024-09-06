@@ -435,6 +435,8 @@ export class GitFS {
             if (path == '..') {
                 cNode = cNode.parent;
             }
+            if(!cNode)
+                return false;
             let entry = cNode.getEntry(path);
             if (!entry) {
                 return false;
