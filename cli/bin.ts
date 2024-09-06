@@ -87,7 +87,7 @@ main();
 async function genDCC(dir: string, options: 
     { output?: string, 
         overwrite?: boolean,
-        mergeDir:boolean,
+        mergedir:boolean,
         dccver:string, 
         nohistory:boolean}) {
     console.log(`start generating dcc for ${dir}`)
@@ -120,7 +120,7 @@ Overwrite output dir ? (y/n)`);
     console.log(`dccout dir:${output}`);
     let dcc = new LayaDCC();
     let param = new Params();
-    param.mergeDir = options.mergeDir;
+    param.mergeDir = options.mergedir;
     if(options.dccver) param.version = options.dccver;
     //param.mergeFile = option
 
