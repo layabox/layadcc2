@@ -3,7 +3,7 @@ import path from "path";
 import fs from 'fs'
 import { LayaDCC, Params } from "../assets/LayaDCC/common/LayaDCC";
 import { program } from 'commander'
-import * as readline from 'node:readline/promises';
+//import * as readline from 'node:readline/promises';
 import { LayaDCCTools } from "../assets/LayaDCC/ExpTools/LayaDCCTools";
 
 let curDir = process.cwd();
@@ -43,7 +43,7 @@ program
     .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于当前目录')
     .option('-m, --merge', '是否合并小文件')
     .option('--mergedir','是否合并目录')
-    .option('-y, --overwrite', '是否覆盖输出目录（保留历史记录需要覆盖）')
+    //.option('-y, --overwrite', '是否覆盖输出目录（保留历史记录需要覆盖）')
     .option('--dccver <dccver>','dcc版本')
     //.option('--nohistory','不保留历史记录')
     .action(genDCC)
@@ -102,21 +102,21 @@ async function genDCC(dir: string, options:
     if (!path.isAbsolute(output)) {
         output = path.join(curDir, output);
     }
-    if (fs.existsSync(output) && !options.overwrite) {
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
-        });
-        let userR = await rl.question(`the dccout directory:
-${output}
-Overwrite output dir ? (y/n)`);
-        if (userR == 'y' || userR == 'yes') {
-        } else {
-            //直接退出
-            process.exit(0);
-        }
-        rl.close();
-    }
+//     if (fs.existsSync(output) && !options.overwrite) {
+//         const rl = readline.createInterface({
+//             input: process.stdin,
+//             output: process.stdout
+//         });
+//         let userR = await rl.question(`the dccout directory:
+// ${output}
+// Overwrite output dir ? (y/n)`);
+//         if (userR == 'y' || userR == 'yes') {
+//         } else {
+//             //直接退出
+//             process.exit(0);
+//         }
+//         rl.close();
+//     }
     console.log(`dccout dir:${output}`);
     let dcc = new LayaDCC();
     let param = new Params();
@@ -132,15 +132,15 @@ Overwrite output dir ? (y/n)`);
             curfile += '...';
         }
         //@ts-ignore
-        if(readline.clearLine){
-            //@ts-ignore
-            readline.clearLine && readline.clearLine(process.stdout, 0)
-            //@ts-ignore
-            readline.cursorTo && readline.cursorTo(process.stdout,0);
-            process.stdout.write(`${n}:${curfile} `);
-        }else{
+        // if(readline.clearLine){
+        //     //@ts-ignore
+        //     readline.clearLine && readline.clearLine(process.stdout, 0)
+        //     //@ts-ignore
+        //     readline.cursorTo && readline.cursorTo(process.stdout,0);
+        //     process.stdout.write(`${n}:${curfile} `);
+        // }else{
             process.stdout.write(`${n}:${curfile}\n `);
-        }
+        //}
         n++;
     }
     dcc.params = param;

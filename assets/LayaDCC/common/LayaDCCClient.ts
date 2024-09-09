@@ -590,3 +590,25 @@ export class LayaDCCClient {
     }
 
 }
+
+function injectToLayaByInitCallback(){
+    Laya.addInitCallback( async ()=>{
+        let PlayerConfig:any = (Laya as any).PlayerConfig;
+        //window.dcc 如果是native则有全局的dcc对象
+        if(!(window as any).dcc && PlayerConfig && PlayerConfig.dcc && PlayerConfig.dcc.enable){
+            let dccConfig = PlayerConfig.dcc;
+            let dcc = new LayaDCCClient(Laya.URL.formatURL(dccConfig.DCCServer||".dcc"));
+            dcc.pathMapToDCC = Laya.URL.formatURL('');
+            let initok = await dcc.init(Laya.URL.formatURL(dccConfig.head||'.dcc/head.json'), null);
+            if(initok){
+                dcc.injectToLaya();
+            }
+        }
+    });
+}
+
+
+//如果是ide构建的项目，可以直接根据playerconfig来初始化dcc
+if((globalThis as any).Laya){
+    injectToLayaByInitCallback();
+}
