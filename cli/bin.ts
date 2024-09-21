@@ -5,6 +5,7 @@ import { LayaDCC, Params } from "../assets/LayaDCC/common/LayaDCC";
 import { program } from 'commander'
 //import * as readline from 'node:readline/promises';
 import { LayaDCCTools } from "../assets/LayaDCC/ExpTools/LayaDCCTools";
+import { compareDirs } from "./dirdiff";
 
 let curDir = process.cwd();
 
@@ -64,6 +65,14 @@ program
     .option('--head <headFile>','根文件,不指定则使用head.json','head.json')
     .option('-d, --outdir <outDir>', '输出目录', 'checkout')
     .action(checkout)
+
+program
+    .command('dirdiff')
+    .description('生成两个目录的差异 dir2 - dir1')
+    .argument('<dir1>','第一个目录')
+    .argument('<dir2>','第二个目录')
+    .argument('[outdir]','输出目录')
+    .action(dirDiff)
 
 
 
@@ -184,4 +193,22 @@ async function checkout(inputDir: string, options:{head?:string,outdir?:string})
     head = path.join(inputDir,head);
     await LayaDCCTools.checkout(head, outDir);    
     console.log('ok, checkedout to :',outDir)
+}
+
+async function dirDiff(dir1: string, dir2: string, outdir?: string) {
+    // 确保输入目录存在
+    if (!fs.existsSync(dir1) || !fs.existsSync(dir2)) {
+        console.log('Error: One or both input directories do not exist.');
+        process.exit(1);
+    }
+
+    if (!outdir) outdir = path.resolve('diffout');
+    // 确保输出目录存在
+    if (!fs.existsSync(outdir)) {
+        fs.mkdirSync(outdir, { recursive: true });
+    }
+
+    compareDirs(dir1,dir2,outdir);
+    console.log('Comparison completed.');
+    console.log(`Output directory: ${outdir}`);    
 }

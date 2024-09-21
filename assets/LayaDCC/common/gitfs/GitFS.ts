@@ -65,7 +65,6 @@ export interface IObjectEncrypt {
  */
 export class GitFS {
     static OBJSUBDIRNUM = 1;
-    static MAXFILESIZE = 32 * 1024 * 1024;
     static zip = false;
     //private userUrl:string; //保存head等用户信息的地方，可以通过filerw写。从uid开始的相对路径
     treeRoot = new TreeNode(null, null, null);
@@ -223,7 +222,8 @@ export class GitFS {
         try {
             buff = await this.frw.read(treepath, 'buffer', false) as ArrayBuffer;
         } catch (e) { }
-        if (!buff) {
+        //不知道为什么，有时候会返回长度为0的buffer，所以需要判断一下
+        if (!buff || buff.byteLength==0) {
             //从所有的包中查找
             for (let pack of this._objectPacks) {
                 if (!pack) continue;
@@ -387,10 +387,6 @@ export class GitFS {
         }
         */
 
-        if (content.byteLength > GitFS.MAXFILESIZE) {
-            alert('文件太大，无法上传：' + refname + '\n限制为：' + GitFS.MAXFILESIZE / 1024 / 1024 + 'M');
-            return false;
-        }
         if (this.saveBlob)
             await this.saveObject(objid, content);
         return true;
