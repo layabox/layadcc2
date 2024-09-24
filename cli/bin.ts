@@ -209,6 +209,9 @@ async function dirDiff(dir1: string, dir2: string, outdir?: string) {
     }
 
     compareDirs(dir1,dir2,outdir);
+    //拷贝head.json
+    fs.copyFileSync(path.join(dir2,'head.json'), path.join(outdir,'head.json'));
+
     console.log('Comparison completed.');
     console.log(`Output directory: ${outdir}`);    
 }
