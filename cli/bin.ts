@@ -38,7 +38,7 @@ function customProgressBar(total: number) {
 
 // 主命令配置
 program
-    .version('1.1.2')
+    .version('1.2.1')
     .description('layadcc2命令工具')
     .argument('<dir>', '输入目录')
     .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于当前目录')
