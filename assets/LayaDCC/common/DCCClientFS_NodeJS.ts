@@ -19,7 +19,7 @@ export class DCCClientFS_NodeJS implements IGitFSFileIO {
         await promisify(fs.mkdir)(path.join(this.cachePath, 'objects'), { recursive: true });
     }
 
-    async read(url: string, encode: "utf8" | "buffer", onlylocal: boolean): Promise<string | ArrayBuffer> {
+    async read(url: string, encode: "utf8" | "buffer", onlylocal: boolean, contentChecker:(buff:ArrayBuffer)=>Promise<boolean>): Promise<string | ArrayBuffer> {
         //先从本地读取，如果没有就从远程下载
         if (path.isAbsolute(url)) {
             throw 'DCCClientFS_NodeJS 只支持读取相对目录'
@@ -40,10 +40,14 @@ export class DCCClientFS_NodeJS implements IGitFSFileIO {
                 let resp = await this.fetch(this.repoPath + url);
                 if (encode == 'utf8') {
                     ret = await resp.text();
+                    await this.write(url, ret);
                 } else {
                     ret = await resp.arrayBuffer();
+                    let contOK = (!contentChecker) ||( await contentChecker(ret));
+                    if(contOK){
+                        await this.write(url, ret);
+                    }        
                 }
-                await this.write(url, ret);
             }
         }
         return ret;

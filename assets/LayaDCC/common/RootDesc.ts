@@ -12,4 +12,5 @@ export class RootDesc {
     version = '1.0.0';    //上一次的id
     parentVersion: string;
     desc: string;
+    dccVersion=1
 }

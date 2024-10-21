@@ -23,22 +23,41 @@ export class DCCClientFS_web implements IGitFSFileIO {
         return await fetch(url);
     }
 
-    async read(url: string, encode: "utf8" | "buffer", onlylocal: boolean): Promise<string | ArrayBuffer> {
+    async read(url: string, encode: "utf8" | "buffer", onlylocal: boolean, contentChecker:(buff:ArrayBuffer)=>Promise<boolean>): Promise<string | ArrayBuffer> {
         //先从本地读取，如果没有就从远程下载
         let ret: string | ArrayBuffer;
         try {
             ret = await this.dbfile.read(url, encode, true)
+            if(!ret){
+                console.error("从indexdb读取到了null", url);
+            }
         } catch (e: any) {
             if (onlylocal)
                 return null;
             if (this.repoPath) {
                 let resp = await fetch(this.repoPath + url);
+                if(!resp.ok){
+                    console.error('下载错误：',this.repoPath+url,resp.status,resp.statusText);
+                }
                 if (encode == 'utf8') {
                     ret = await resp.text();
-                    await this.dbfile.write(url, ret);
+                    try{
+                        await this.dbfile.write(url, ret);
+                    }catch(e){
+                        console.log('write db error:',url)
+                        return ret;
+                    }
                 } else {
                     ret = await resp.arrayBuffer();
-                    await this.dbfile.write(url, ret);
+                    try{
+                        let contOK = (!contentChecker) ||(await contentChecker(ret));
+                        if(contOK){
+                            await this.dbfile.write(url, ret);
+                        }
+                    }catch(e){
+                        console.error('write db error:',url)
+                        return ret;
+                    }
                 }
             }
         }

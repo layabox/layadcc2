@@ -56,6 +56,8 @@ export class LayaDCCClient {
     dccPathInAssets = 'cache/dcc2.0'
     //已经下载过的包，用来优化，避免重复下载，执行清理之后要清零
     private _loadedPacks: { [key: string]: number } = {}
+    //是否检查下载内容。
+    private _checkDownload=false;
 
 
     /**
@@ -196,6 +198,7 @@ export class LayaDCCClient {
             return false;
 
         let gitfs = this._gitfs = new GitFS(this._frw);
+        gitfs.checkDownload = this._checkDownload;
 
         //初始化apk包资源
         if (window.conch) {
@@ -259,6 +262,16 @@ export class LayaDCCClient {
     }
     get onlyTransUrl() {
         return this._onlyTransUrl;
+    }
+
+    set checkDownload(v:boolean){
+        this._checkDownload = v;
+        if(this._gitfs){
+            this._gitfs.checkDownload=v;
+        }
+    }
+    get checkDownload(){
+        return this._checkDownload;
     }
 
     async unpackBuffer(idxs: { id: string, start: number, length: number }[], buff: ArrayBuffer, offset: number = 0) {
@@ -592,7 +605,7 @@ export class LayaDCCClient {
 }
 
 function injectToLayaByInitCallback(){
-    Laya.addInitCallback( async ()=>{
+    Laya.addInitCallback && Laya.addInitCallback( async ()=>{
         let PlayerConfig:any = (Laya as any).PlayerConfig;
         //window.dcc 如果是native则有全局的dcc对象
         if(!(window as any).dcc && PlayerConfig && PlayerConfig.dcc && PlayerConfig.dcc.enable){

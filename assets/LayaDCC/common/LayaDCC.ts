@@ -146,6 +146,7 @@ export class LayaDCC {
         head.objPackages = [];
         head.time = new Date();
         head.version = this.config.version;
+        head.dccVersion=1;
         this.config.desc && (head.desc = this.config.desc);
 
         //

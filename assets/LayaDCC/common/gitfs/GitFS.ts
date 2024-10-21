@@ -30,7 +30,7 @@ export interface IGitFSFileIO {
     //远程下载。由于有的平台不支持，所以封装一下
     fetch(url: string): Promise<Response>;
     //主要是相对目录，此接口知道baseurl
-    read(url: string, encode: 'utf8' | 'buffer', onlylocal: boolean): Promise<string | ArrayBuffer>;
+    read(url: string, encode: 'utf8' | 'buffer', onlylocal: boolean, contentChecker?:(buff:ArrayBuffer)=>Promise<boolean>): Promise<string | ArrayBuffer>;
     write(url: string, content: string | ArrayBuffer, overwrite?: boolean): Promise<any>;
     isFileExist(url: string): Promise<boolean>;
     unzip(buff: ArrayBuffer): ArrayBuffer;
@@ -220,7 +220,13 @@ export class GitFS {
         let treepath = this.getObjUrl(objid);
         let buff: ArrayBuffer;
         try {
-            buff = await this.frw.read(treepath, 'buffer', false) as ArrayBuffer;
+            buff = await this.frw.read(treepath, 'buffer', false, this.checkDownload?async (buff)=>{
+                let sum = await shasum(new Uint8Array(buff), true);
+                if(sum==objid) 
+                    return true;
+                console.error(`下载内容检查错误,文件：${treepath}下载内容校验为:${sum}`);                
+                return false;
+            }:null) as ArrayBuffer;
         } catch (e) { }
         //不知道为什么，有时候会返回长度为0的buffer，所以需要判断一下
         if (!buff || buff.byteLength==0) {
@@ -262,7 +268,13 @@ export class GitFS {
         let objpath = this.getObjUrl(strid);
         let buff: ArrayBuffer | null = null;
         try {
-            let objbuff = await this.frw.read(objpath, 'buffer', false) as ArrayBuffer;
+            let objbuff = await this.frw.read(objpath, 'buffer', false, this.checkDownload?async (buff)=>{
+                let sum = await shasum(new Uint8Array(buff), true);
+                if(sum==objid) 
+                    return true;
+                console.error(`下载内容检查错误,文件：${objpath}下载内容校验为:${sum}`);                
+                return false;
+            }:null) as ArrayBuffer;
             if (objbuff) {
                 buff = GitFS.zip ? this.frw.unzip(objbuff) : objbuff;
             }
@@ -283,12 +295,13 @@ export class GitFS {
         }
 
         //下载文件最好不校验。影响速度。
-        if (this.checkDownload) {
-            let sum = await shasum(new Uint8Array(buff), true);
-            if (sum != strid) {
-                console.log('下载的文件校验错误:', strid, sum);
-            }
-        }
+        //校验写到下载过程中了，以保证写入缓存的是正确的
+        // if (this.checkDownload) {
+        //     let sum = await shasum(new Uint8Array(buff), true);
+        //     if (sum != strid) {
+        //         console.log('下载的文件校验错误:', strid, sum);
+        //     }
+        // }
 
         if (encode == 'utf8') {
             let str = readUTF8(buff);
