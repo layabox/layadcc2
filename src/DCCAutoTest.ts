@@ -285,7 +285,7 @@ async function testZip() {
     await client.clean();
     //let headAfterUpdate = await client.readFile('head.json');
     //head.json不是gitfs的，需要底层访问
-    let headAfterUpdate = await client.fileIO.read('head.json', 'utf8', true) as string;
+    let headAfterUpdate = await client.fileIO.read('head.json', 'utf8', true, null) as string;
     let headobj = JSON.parse(headAfterUpdate)
     verify(headobj.root == "00bda77c303e822e9501198a639ee3cab0da538f", 'updateByZip 要更新head.json');
 }

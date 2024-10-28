@@ -85,7 +85,7 @@ export class AllTest extends Laya.Script {
         let dcc = new UniDCCClient(null);
         let initok = await dcc.init(null, null);
         //读取缓存目录的head.json
-        let txt = await dcc.fileIO.read('head.json', 'utf8', true)
+        let txt = await dcc.fileIO.read('head.json', 'utf8', true, null)
         console.log('read head.json:' + txt);
 
         //用相对目录访问
@@ -197,7 +197,7 @@ export class AllTest extends Laya.Script {
         await client.clean();
         //let headAfterUpdate = await client.readFile('head.json');
         //head.json不是gitfs的，需要底层访问
-        let headAfterUpdate = await client.fileIO.read('head.json', 'utf8', true) as string;
+        let headAfterUpdate = await client.fileIO.read('head.json', 'utf8', true, null) as string;
         let headobj = JSON.parse(headAfterUpdate)
         let txtbuf = await client.readFile('txt.txt');
         let txt = Env.dcodeUtf8(txtbuf);
