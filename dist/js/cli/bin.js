@@ -3,8 +3,9 @@ import path from "path";
 import fs from 'fs';
 import { LayaDCC, Params } from '../assets/LayaDCC/common/LayaDCC.js';
 import { program } from 'commander';
-import * as readline from 'node:readline/promises';
+//import * as readline from 'node:readline/promises';
 import { LayaDCCTools } from '../assets/LayaDCC/ExpTools/LayaDCCTools.js';
+import { compareDirs } from './dirdiff.js';
 let curDir = process.cwd();
 function customProgressBar(total) {
     let current = 0;
@@ -31,13 +32,13 @@ function customProgressBar(total) {
 }
 // 主命令配置
 program
-    .version('1.1.2')
+    .version('1.2.1')
     .description('layadcc2命令工具')
     .argument('<dir>', '输入目录')
     .option('-o, --output <outDir>', '指定输出目录,如果是相对目录，则是相对于当前目录')
     .option('-m, --merge', '是否合并小文件')
     .option('--mergedir', '是否合并目录')
-    .option('-y, --overwrite', '是否覆盖输出目录（保留历史记录需要覆盖）')
+    //.option('-y, --overwrite', '是否覆盖输出目录（保留历史记录需要覆盖）')
     .option('--dccver <dccver>', 'dcc版本')
     //.option('--nohistory','不保留历史记录')
     .action(genDCC);
@@ -56,6 +57,13 @@ program
     .option('--head <headFile>', '根文件,不指定则使用head.json', 'head.json')
     .option('-d, --outdir <outDir>', '输出目录', 'checkout')
     .action(checkout);
+program
+    .command('dirdiff')
+    .description('生成两个目录的差异 dir2 - dir1')
+    .argument('<dir1>', '第一个目录')
+    .argument('<dir2>', '第二个目录')
+    .argument('[outdir]', '输出目录')
+    .action(dirDiff);
 function main() {
     // 如果没有提供任何参数，显示帮助信息
     if (!process.argv.slice(2).length) {
@@ -82,26 +90,25 @@ async function genDCC(dir, options) {
     if (!path.isAbsolute(output)) {
         output = path.join(curDir, output);
     }
-    if (fs.existsSync(output) && !options.overwrite) {
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
-        });
-        let userR = await rl.question(`the dccout directory:
-${output}
-Overwrite output dir ? (y/n)`);
-        if (userR == 'y' || userR == 'yes') {
-        }
-        else {
-            //直接退出
-            process.exit(0);
-        }
-        rl.close();
-    }
+    //     if (fs.existsSync(output) && !options.overwrite) {
+    //         const rl = readline.createInterface({
+    //             input: process.stdin,
+    //             output: process.stdout
+    //         });
+    //         let userR = await rl.question(`the dccout directory:
+    // ${output}
+    // Overwrite output dir ? (y/n)`);
+    //         if (userR == 'y' || userR == 'yes') {
+    //         } else {
+    //             //直接退出
+    //             process.exit(0);
+    //         }
+    //         rl.close();
+    //     }
     console.log(`dccout dir:${output}`);
     let dcc = new LayaDCC();
     let param = new Params();
-    param.mergeDir = options.mergeDir;
+    param.mergeDir = options.mergedir;
     if (options.dccver)
         param.version = options.dccver;
     //param.mergeFile = option
@@ -113,16 +120,15 @@ Overwrite output dir ? (y/n)`);
             curfile += '...';
         }
         //@ts-ignore
-        if (readline.clearLine) {
-            //@ts-ignore
-            readline.clearLine && readline.clearLine(process.stdout, 0);
-            //@ts-ignore
-            readline.cursorTo && readline.cursorTo(process.stdout, 0);
-            process.stdout.write(`${n}:${curfile} `);
-        }
-        else {
-            process.stdout.write(`${n}:${curfile}\n `);
-        }
+        // if(readline.clearLine){
+        //     //@ts-ignore
+        //     readline.clearLine && readline.clearLine(process.stdout, 0)
+        //     //@ts-ignore
+        //     readline.cursorTo && readline.cursorTo(process.stdout,0);
+        //     process.stdout.write(`${n}:${curfile} `);
+        // }else{
+        process.stdout.write(`${n}:${curfile}\n `);
+        //}
         n++;
     };
     dcc.params = param;
@@ -165,4 +171,22 @@ async function checkout(inputDir, options) {
     head = path.join(inputDir, head);
     await LayaDCCTools.checkout(head, outDir);
     console.log('ok, checkedout to :', outDir);
+}
+async function dirDiff(dir1, dir2, outdir) {
+    // 确保输入目录存在
+    if (!fs.existsSync(dir1) || !fs.existsSync(dir2)) {
+        console.log('Error: One or both input directories do not exist.');
+        process.exit(1);
+    }
+    if (!outdir)
+        outdir = path.resolve('diffout');
+    // 确保输出目录存在
+    if (!fs.existsSync(outdir)) {
+        fs.mkdirSync(outdir, { recursive: true });
+    }
+    compareDirs(dir1, dir2, outdir);
+    //拷贝head.json
+    fs.copyFileSync(path.join(dir2, 'head.json'), path.join(outdir, 'head.json'));
+    console.log('Comparison completed.');
+    console.log(`Output directory: ${outdir}`);
 }

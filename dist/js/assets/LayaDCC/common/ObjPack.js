@@ -14,7 +14,7 @@ export class ObjPack {
     }
     async init() {
         try {
-            this.idxInfo = JSON.parse(await this._frw.read(this._idxFile, 'utf8', true));
+            this.idxInfo = JSON.parse(await this._frw.read(this._idxFile, 'utf8', true, null));
         }
         catch (e) {
             throw 'open pack error';
@@ -36,7 +36,7 @@ export class ObjPack {
         return rawData;
     }
     async readPart(file, start, end) {
-        const rawData = await this._frw.read(file, 'buffer', true);
+        const rawData = await this._frw.read(file, 'buffer', true, null);
         return rawData.slice(start, end);
     }
 }

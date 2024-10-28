@@ -22,7 +22,6 @@ var PROJINFO = '.projinfo';
  * 可以与远端进行同步
  */
 class GitFS {
-    ;
     /**
      *
      * @param repoUrl git库所在目录
@@ -35,9 +34,10 @@ class GitFS {
         this.curCommit = new CommitInfo();
         // 当前的修改
         this.allchanges = [];
-        this.checkDownload = false;
+        this.checkDownload = true;
         this._objectPacks = [];
         this.objectEncrypter = null;
+        this.saveBlob = true;
         this.frw = filerw;
     }
     addObjectPack(pack, first = false) {
@@ -89,7 +89,7 @@ class GitFS {
         // return await this.initByCommitID(commitid);
     }
     async getCommitHead(url) {
-        let commit = await this.frw.read(url, 'utf8', false);
+        let commit = await this.frw.read(url, 'utf8', false, null);
         if (commit) {
             this.recentCommits = commit.split('\n');
             return this.recentCommits[0];
@@ -128,7 +128,7 @@ class GitFS {
     }
     async getCommit(objid) {
         let commitobjFile = this.getObjUrl(objid);
-        let buff = await this.frw.read(commitobjFile, 'buffer', false);
+        let buff = await this.frw.read(commitobjFile, 'buffer', false, null);
         let cc;
         if (buff) {
             cc = new GitCommit(this.frw.unzip(buff), objid);
@@ -158,10 +158,19 @@ class GitFS {
         let treepath = this.getObjUrl(objid);
         let buff;
         try {
-            buff = await this.frw.read(treepath, 'buffer', false);
+            buff = await this.frw.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
+                if (!buff || buff.byteLength <= 0)
+                    return false;
+                let sum = await shasum(new Uint8Array(buff), true);
+                if (sum == objid)
+                    return true;
+                console.error(`下载内容检查错误,文件：${treepath}下载内容校验为:${sum}`);
+                return false;
+            } : null);
         }
         catch (e) { }
-        if (!buff) {
+        //不知道为什么，有时候会返回长度为0的buffer，所以需要判断一下
+        if (!buff || buff.byteLength == 0) {
             //从所有的包中查找
             for (let pack of this._objectPacks) {
                 if (!pack)
@@ -200,7 +209,13 @@ class GitFS {
         let objpath = this.getObjUrl(strid);
         let buff = null;
         try {
-            let objbuff = await this.frw.read(objpath, 'buffer', false);
+            let objbuff = await this.frw.read(objpath, 'buffer', false, this.checkDownload ? async (buff) => {
+                let sum = await shasum(new Uint8Array(buff), true);
+                if (sum == objid)
+                    return true;
+                console.error(`下载内容检查错误,文件：${objpath}下载内容校验为:${sum}`);
+                return false;
+            } : null);
             if (objbuff) {
                 buff = GitFS.zip ? this.frw.unzip(objbuff) : objbuff;
             }
@@ -222,12 +237,13 @@ class GitFS {
             }
         }
         //下载文件最好不校验。影响速度。
-        if (this.checkDownload) {
-            let sum = await shasum(new Uint8Array(buff), true);
-            if (sum != strid) {
-                console.log('下载的文件校验错误:', strid, sum);
-            }
-        }
+        //校验写到下载过程中了，以保证写入缓存的是正确的
+        // if (this.checkDownload) {
+        //     let sum = await shasum(new Uint8Array(buff), true);
+        //     if (sum != strid) {
+        //         console.log('下载的文件校验错误:', strid, sum);
+        //     }
+        // }
         if (encode == 'utf8') {
             let str = readUTF8(buff);
             return str;
@@ -263,14 +279,14 @@ class GitFS {
             throw "open node error";
         }
     }
-    async visitAll(node, treecb, blobcb) {
-        await treecb(node);
+    async visitAll(node, treecb, blobcb, inEntry) {
+        await treecb(node, inEntry);
         for await (const entry of node.entries) {
             if (entry.isDir) {
                 try {
                     if (!entry.treeNode)
                         await this.openNode(entry);
-                    await this.visitAll(entry.treeNode, treecb, blobcb);
+                    await this.visitAll(entry.treeNode, treecb, blobcb, entry);
                 }
                 catch (e) {
                     //失败了可能是遍历本地目录，但是本地还没有下载，没有设置远程或者访问远程失败
@@ -303,6 +319,12 @@ class GitFS {
         }
         return null;
     }
+    /**
+     * 根据一个普通url加载文件内容
+     * @param file 相对路径，这里认为是相对于库的根目录，可以有/
+     * @param encode
+     * @returns
+     */
     async loadFileByPath(file, encode) {
         let entries = [];
         if (await this.pathToEntries(file, entries)) {
@@ -319,11 +341,8 @@ class GitFS {
             return ;
         }
         */
-        if (content.byteLength > GitFS.MAXFILESIZE) {
-            alert('文件太大，无法上传：' + refname + '\n限制为：' + GitFS.MAXFILESIZE / 1024 / 1024 + 'M');
-            return false;
-        }
-        await this.saveObject(objid, content);
+        if (this.saveBlob)
+            await this.saveObject(objid, content);
         return true;
     }
     async saveObject(objid, content) {
@@ -365,6 +384,8 @@ class GitFS {
             if (path == '..') {
                 cNode = cNode.parent;
             }
+            if (!cNode)
+                return false;
             let entry = cNode.getEntry(path);
             if (!entry) {
                 return false;
@@ -473,7 +494,10 @@ class GitFS {
             entry = node.addEntry(name, false, oid);
         }
         //console.debug('[gitfs] 提交变化文件:', node.fullPath + '/' + name);
-        if (!await this.saveBlobNode(hash, buff, node.fullPath + '/' + name)) {
+        let p = node.fullPath;
+        if (!p.endsWith('/'))
+            p += '/';
+        if (!await this.saveBlobNode(hash, buff, p + name)) {
             // 上传失败。设置一个无效的oid。避免形成永久性错误。
             entry.oid.fill(0);
         }
@@ -701,7 +725,6 @@ class GitFS {
     }
 }
 GitFS.OBJSUBDIRNUM = 1;
-GitFS.MAXFILESIZE = 32 * 1024 * 1024;
 GitFS.zip = false;
 GitFS.touchID = 0; // 更新标记
 export { GitFS };

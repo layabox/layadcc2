@@ -131,7 +131,7 @@ export class LayaDCCTools {
                 //由于打包了，dcc服务器目录可能缺少文件，所以在dcc客户端读取
                 let file = path.join(dccnew, await dccclientNew.getObjectUrl(objid));
                 console.log(file);
-                let buf = await dccclientNew.fileIO.read(await dccclientNew.getObjectUrl(objid), 'buffer', false);
+                let buf = await dccclientNew.fileIO.read(await dccclientNew.getObjectUrl(objid), 'buffer', false, null);
                 //zip.addFile(objid,Buffer.from(buf));
                 zip.addBuffer(objid, new Uint8Array(buf));
             }

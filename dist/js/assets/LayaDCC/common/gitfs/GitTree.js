@@ -52,6 +52,7 @@ export class TreeNode {
         this.parent = null;
         this.buff = null; // 计算sha需要先转成buff。由于计算sha和提交都需要这个buff，所以，每次计算sha都会更新并保存这个buff。 如果有zip的话，这个是zip之后的
         this.sha = null; // null或者'' 表示没有计算，或者原来的失效了，需要重新计算
+        this.rtData = null;
         this.parent = parent;
         if (entries) {
             if (entries instanceof Uint8Array) {
@@ -71,6 +72,16 @@ export class TreeNode {
             this._entries = [];
         return this._entries;
     }
+    clearUntouched() {
+        let lefted = [];
+        this.entries.forEach(e => {
+            //清理touch标记。如果后面设置1了，表示使用，那么是0的就是要删除的
+            if (e.touchFlag == 1) {
+                lefted.push(e);
+            }
+        });
+        this._entries = lefted;
+    }
     getParentEntry(node) {
         if (node.parent) {
             let es = node.parent.entries;
@@ -84,16 +95,19 @@ export class TreeNode {
     /**
      *
      * @param node 要查询的节点
-     * @param path
+     * @param path 在node的基础上附加的
      * @returns
      */
     _getFullPath(node, path) {
-        let parent = this.getParentEntry(node);
-        if (parent) {
-            let strpath = path ? (parent.path + '/' + path) : parent.path;
-            return this._getFullPath(node.parent, strpath);
+        let entry = this.getParentEntry(node);
+        if (entry) {
+            let nodePath = entry.path + (entry.isDir ? '/' : '');
+            let curPath = nodePath + (path ? path : '');
+            return this._getFullPath(node.parent, curPath);
         }
-        return path || '/';
+        else {
+            return '/' + (path ? path : '');
+        }
     }
     get fullPath() {
         return this._getFullPath(this, null);
@@ -283,8 +297,6 @@ export class TreeNode {
         cursor += 1;
         //对齐
         cursor = (cursor + 3) & ~3;
-        //为了去掉修改时间对sha的影响，计算sha的时候先不记录时间，计算完了再把时间加上
-        let mtimeRec = [];
         entries.map(entry => {
             var _a;
             let mode = entry.mode.replace(/^0/, '');
@@ -315,22 +327,14 @@ export class TreeNode {
             let high = Math.floor(mtime / 0x100000000); // 获取高32位
             let low = mtime & 0xFFFFFFFF; // 获取低32位		
             let timeArr = new Uint32Array(retbuf.buffer, cursor, 2);
-            //timeArr[0] = high;
-            //timeArr[1] = low;
-            mtimeRec.push(timeArr, high, low);
+            timeArr[0] = high;
+            timeArr[1] = low;
             cursor += 8;
         });
-        //sha的计算放到zip之前了，否则无法修改时间了
-        this.sha = await shasum(retbuf, true);
-        //计算完sha了,给时间填上正确的值。注意这个打破了sha就是buffer内容的规则
-        for (let i = 0; i < mtimeRec.length / 3; i++) {
-            let arr = mtimeRec[i * 3];
-            arr[0] = mtimeRec[i * 3 + 1]; //high
-            arr[1] = mtimeRec[i * 3 + 2]; //low
-        }
         if (frw && GitFS.zip) {
             retbuf = new Uint8Array(frw.zip(retbuf.buffer));
         }
+        this.sha = await shasum(retbuf, true);
         this.buff = retbuf;
         return retbuf;
     }

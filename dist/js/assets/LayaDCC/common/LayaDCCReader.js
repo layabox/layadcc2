@@ -6,7 +6,6 @@ import * as path from "path";
 import { toHex } from './gitfs/GitFSUtils.js';
 export class LayaDCCReader {
     async init(dirOrHead) {
-        let rootNode;
         let repoDir = dirOrHead;
         let head = 'head.json';
         if (dirOrHead.endsWith('.json')) {
@@ -16,7 +15,7 @@ export class LayaDCCReader {
         }
         this.frw = new DCCFS_NodeJS();
         await this.frw.init(repoDir, null);
-        this.gitfs = new GitFS(this.frw);
+        this._gitfs = new GitFS(this.frw);
         try {
             let headstr = await this.frw.read(head, 'utf8', true);
             let headobj = JSON.parse(headstr);
@@ -25,11 +24,11 @@ export class LayaDCCReader {
                 for (let packid of headobj.treePackages) {
                     let pack = new ObjPack('tree', this.frw, packid);
                     await pack.init();
-                    this.gitfs.addObjectPack(pack);
+                    this._gitfs.addObjectPack(pack);
                 }
             }
             //rootNode = await this.gitfs.getTreeNode(headobj.root, null);
-            let b = await this.gitfs.setRoot(headobj.root);
+            let b = await this._gitfs.setRoot(headobj.root);
         }
         catch (e) {
         }
@@ -37,7 +36,7 @@ export class LayaDCCReader {
     async checkout(outdir) {
         let frw = this.frw;
         //遍历节点，保存成文件
-        await this.gitfs.visitAll(this.gitfs.treeRoot, async (cnode) => {
+        await this._gitfs.visitAll(this._gitfs.treeRoot, async (cnode, entry) => {
             let cdir = path.join(outdir, cnode.fullPath);
             if (!fs.existsSync(cdir))
                 fs.mkdirSync(cdir);
@@ -45,12 +44,15 @@ export class LayaDCCReader {
             let id = toHex(entry.oid);
             if (entry.owner) {
                 let fpath = path.join(outdir, entry.owner.fullPath, entry.path);
-                let filebuff = await frw.read(await this.gitfs.getObjUrl(id), 'buffer', true);
+                let filebuff = await frw.read(await this._gitfs.getObjUrl(id), 'buffer', true);
                 fs.writeFileSync(fpath, Buffer.from(filebuff));
                 if (entry.fileMTime)
                     fs.utimesSync(fpath, entry.fileMTime, entry.fileMTime);
                 console.log('checkout file:', fpath);
             }
-        });
+        }, null);
+    }
+    get gitfs() {
+        return this._gitfs;
     }
 }

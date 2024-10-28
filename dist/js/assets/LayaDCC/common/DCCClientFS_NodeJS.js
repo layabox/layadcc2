@@ -17,7 +17,7 @@ export class DCCClientFS_NodeJS {
             this.cachePath = cachePath;
         await promisify(fs.mkdir)(path.join(this.cachePath, 'objects'), { recursive: true });
     }
-    async read(url, encode, onlylocal) {
+    async read(url, encode, onlylocal, contentChecker) {
         //先从本地读取，如果没有就从远程下载
         if (path.isAbsolute(url)) {
             throw 'DCCClientFS_NodeJS 只支持读取相对目录';
@@ -39,11 +39,15 @@ export class DCCClientFS_NodeJS {
                 let resp = await this.fetch(this.repoPath + url);
                 if (encode == 'utf8') {
                     ret = await resp.text();
+                    await this.write(url, ret);
                 }
                 else {
                     ret = await resp.arrayBuffer();
+                    let contOK = (!contentChecker) || (await contentChecker(ret));
+                    if (contOK) {
+                        await this.write(url, ret);
+                    }
                 }
-                await this.write(url, ret);
             }
         }
         return ret;
@@ -103,6 +107,9 @@ export class DCCClientFS_NodeJS {
     }
     async isFileExist(url) {
         try {
+            if (!path.isAbsolute(url)) {
+                url = path.join(this.cachePath, url);
+            }
             await promisify(fs.access)(url, fs.constants.F_OK);
             return true;
         }

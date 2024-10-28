@@ -31,6 +31,8 @@ class LayaDCCClient {
         this.dccPathInAssets = 'cache/dcc2.0';
         //已经下载过的包，用来优化，避免重复下载，执行清理之后要清零
         this._loadedPacks = {};
+        //是否检查下载内容。
+        this._checkDownload = true;
         if (dccurl && !dccurl.endsWith('/'))
             dccurl += '/';
         this._dccServer = dccurl;
@@ -126,7 +128,7 @@ class LayaDCCClient {
         let localRoot = null;
         try {
             //本地
-            let localHeadStr = await this._frw.read('head.json', 'utf8', true);
+            let localHeadStr = await this._frw.read('head.json', 'utf8', true, null);
             let localHead = JSON.parse(localHeadStr);
             localRoot = localHead.root;
             rootNode = localRoot;
@@ -135,7 +137,7 @@ class LayaDCCClient {
         //本地记录的下载包信息
         try {
             let loadedpacks = [];
-            let str1 = await this._frw.read('downloaded_packs.json', 'utf8', true);
+            let str1 = await this._frw.read('downloaded_packs.json', 'utf8', true, null);
             if (str1) {
                 loadedpacks = JSON.parse(str1);
                 if (loadedpacks && loadedpacks.length) {
@@ -173,6 +175,7 @@ class LayaDCCClient {
             //如果本地和远程都没有dcc数据，则返回，不做dcc相关设置
             return false;
         let gitfs = this._gitfs = new GitFS(this._frw);
+        gitfs.checkDownload = this._checkDownload;
         //初始化apk包资源
         if (window.conch) {
             let appResPack = new ObjPack_AppRes(this.dccPathInAssets);
@@ -234,6 +237,15 @@ class LayaDCCClient {
     get onlyTransUrl() {
         return this._onlyTransUrl;
     }
+    set checkDownload(v) {
+        this._checkDownload = v;
+        if (this._gitfs) {
+            this._gitfs.checkDownload = v;
+        }
+    }
+    get checkDownload() {
+        return this._checkDownload;
+    }
     async unpackBuffer(idxs, buff, offset = 0) {
         //把这些对象写到本地
         for (let nodeinfo of idxs) {
@@ -241,10 +253,31 @@ class LayaDCCClient {
             await this._gitfs.saveObject(nodeinfo.id, nodebuff);
         }
     }
+    async hasFile(url) {
+        let gitfs = this._gitfs;
+        if (!gitfs)
+            throw 'dcc没有正确init';
+        if (url.startsWith('http:') || url.startsWith('https:') || url.startsWith('file:')) { //绝对路径
+            if (!this._pathMapToDCC) {
+                url = (new URL(url)).pathname;
+                ;
+            }
+            else {
+                if (!url.startsWith(this._pathMapToDCC))
+                    return false;
+                url = url.substring(this._pathMapToDCC.length);
+            }
+        }
+        let objPath = await gitfs.pathToObjPath(url);
+        if (!objPath)
+            return false;
+        return await this._frw.isFileExist(objPath);
+    }
     /**
-     *  读取缓存中的一个文件，url是相对地址
+     *  读取缓存中的一个文件，url是相对地址或者绝对地址
      * @param url 用户认识的地址。如果是绝对地址，并且设置是映射地址，则计算一个相对地址。如果是相对地址，则直接使用
      * @returns
+     *  如果没有设置映射到dcc的地址，则直接取此文件的相对路径，如果设置了映射地址，则截掉映射地址
      */
     async readFile(url) {
         let gitfs = this._gitfs;
@@ -264,19 +297,38 @@ class LayaDCCClient {
         let buff = await gitfs.loadFileByPath(url, 'buffer');
         return buff;
     }
+    _getRUrl(url) {
+        let gitfs = this._gitfs;
+        if (!gitfs)
+            throw 'dcc没有正确init';
+        if (url.startsWith('http:') || url.startsWith('https:') || url.startsWith('file:')) { //绝对路径
+            if (!this._pathMapToDCC) {
+                url = (new URL(url)).pathname;
+                ;
+            }
+            else {
+                if (!url.startsWith(this._pathMapToDCC))
+                    return null;
+                url = url.substring(this._pathMapToDCC.length);
+            }
+        }
+        return url;
+    }
     //获取某个对象（用hash表示的文件或者目录）在缓存中的地址
     async getObjectUrl(objid) {
         return this._gitfs.getObjUrl(objid);
     }
     /**
      * 把一个原始地址转换成cache服务器对象地址
+     * 如果库中没有，则直接返回原来的url
      * @param url 原始资源地址
      * @returns
      */
     async transUrl(url) {
+        let oriUrl = url;
         let gitfs = this._gitfs;
         if (!gitfs)
-            return url;
+            return oriUrl;
         if (!this._pathMapToDCC) {
             url = (new URL(url)).pathname;
             ;
@@ -288,7 +340,7 @@ class LayaDCCClient {
         }
         let objpath = await gitfs.pathToObjPath(url);
         if (!objpath) {
-            return url;
+            return oriUrl;
         }
         return this._frw.repoPath + objpath;
     }
@@ -311,17 +363,17 @@ class LayaDCCClient {
         //遍历file
         let needUpdateFiles = [];
         //统计所有树上的
-        await gitfs.visitAll(gitfs.treeRoot, async (tree) => {
+        await gitfs.visitAll(gitfs.treeRoot, async (tree, entry) => {
             //下载
             if (!locals.has(tree.sha))
                 //理论上不应该走到这里，应为visitAll的时候都下载了
-                await this._frw.read(gitfs.getObjUrl(tree.sha), 'buffer', false);
+                await this._frw.read(gitfs.getObjUrl(tree.sha), 'buffer', false, null);
         }, async (blob) => {
             let id = toHex(blob.oid);
             if (!locals.has(id)) {
                 needUpdateFiles.push(id);
             }
-        });
+        }, null);
         //
         this.log(`updateAll need update ${needUpdateFiles.length}`);
         //needUpdateFiles.forEach(id=>{console.log(id);});
@@ -329,7 +381,7 @@ class LayaDCCClient {
         for (let i = 0, n = needUpdateFiles.length; i < n; i++) {
             let id = needUpdateFiles[i];
             //TODO 并发以提高效率
-            await this._frw.read(gitfs.getObjUrl(id), 'buffer', false);
+            await this._frw.read(gitfs.getObjUrl(id), 'buffer', false, null);
             this.log(`updateAll: update obj:${id}`);
             progress && progress(i / n);
         }
@@ -359,7 +411,7 @@ class LayaDCCClient {
             let buf = zip.getEntry('head.json');
             await this._frw.write('head.json', buf.getData().buffer, true);
             //更新自己的root
-            let localHeadStr = await this._frw.read('head.json', 'utf8', true);
+            let localHeadStr = await this._frw.read('head.json', 'utf8', true, null);
             let localHead = JSON.parse(localHeadStr);
             await this._gitfs.setRoot(localHead.root);
         }
@@ -381,7 +433,7 @@ class LayaDCCClient {
         else {
             throw "bad param";
         }
-        let packR = unpacker ? new DCCPackR() : new unpacker();
+        let packR = unpacker ? new unpacker() : new DCCPackR();
         const [ind, cont, error] = packR.split(packBuff);
         indices = ind;
         content = cont;
@@ -408,11 +460,11 @@ class LayaDCCClient {
         //遍历file
         let files = new Set();
         //统计所有树上的
-        await gitfs.visitAll(gitfs.treeRoot, async (tree) => {
+        await gitfs.visitAll(gitfs.treeRoot, async (tree, entry) => {
             files.add(tree.sha);
         }, async (blob) => {
             files.add(toHex(blob.oid));
-        });
+        }, null);
         //统计所有的本地保存的
         //不在树上的全删掉
         let removed = [];
@@ -434,7 +486,7 @@ class LayaDCCClient {
         await this._frw.write('downloaded_packs.json', '{}', true);
     }
     async visitAll(treecb, blobcb) {
-        await this._gitfs.visitAll(this._gitfs.treeRoot, treecb, blobcb);
+        await this._gitfs.visitAll(this._gitfs.treeRoot, treecb, blobcb, null);
     }
     //插入到laya引擎的下载流程，实现下载的接管
     injectToLaya() {
@@ -483,13 +535,28 @@ class LayaDCCClient {
             });
         }
         else {
-            this.readFile(url).then((buff) => {
-                this.transUrl(url).then((svObjUrl) => {
-                    let rpath = svObjUrl.substring(this._dccServer.length);
-                    let localPath = conch.getCachePath() + '/' + rpath;
-                    cbObj.onDownloadEnd(buff, localPath);
-                });
-            });
+            (async () => {
+                //得到相对路径
+                let rUrl = this._getRUrl(url);
+                if (rUrl) {
+                    //如果是归dcc管理
+                    let buff = await this.readFile(url);
+                    if (buff) {
+                        let svObjUrl = await this.transUrl(url);
+                        let rpath = svObjUrl.substring(this._dccServer.length);
+                        let localPath = conch.getCachePath() + '/' + rpath;
+                        cbObj.onDownloadEnd(buff, localPath);
+                        return;
+                    }
+                }
+                //失败了,没有转换成功，或者dcc中没有这个文件，直接下载
+                this.log("直接下载:" + url);
+                //@ts-ignore
+                conch.downloadNoCache(url, () => { }, (buff, localip, svip) => {
+                    //下载完成
+                    cbObj.onDownloadEnd(buff, '');
+                }, () => { });
+            })();
         }
     }
     injectToNative3() {
@@ -499,3 +566,22 @@ class LayaDCCClient {
 }
 LayaDCCClient.VERSION = '1.0.0';
 export { LayaDCCClient };
+function injectToLayaByInitCallback() {
+    Laya.addInitCallback && Laya.addInitCallback(async () => {
+        let PlayerConfig = Laya.PlayerConfig;
+        //window.dcc 如果是native则有全局的dcc对象
+        if (!window.dcc && PlayerConfig && PlayerConfig.dcc && PlayerConfig.dcc.enable) {
+            let dccConfig = PlayerConfig.dcc;
+            let dcc = new LayaDCCClient(Laya.URL.formatURL(dccConfig.DCCServer || ".dcc"));
+            dcc.pathMapToDCC = Laya.URL.formatURL('');
+            let initok = await dcc.init(Laya.URL.formatURL(dccConfig.head || '.dcc/head.json'), null);
+            if (initok) {
+                dcc.injectToLaya();
+            }
+        }
+    });
+}
+//如果是ide构建的项目，可以直接根据playerconfig来初始化dcc
+if (globalThis.Laya) {
+    injectToLayaByInitCallback();
+}

@@ -65,14 +65,19 @@ export class DCCClientFS_native {
     }
     //远程下载
     async fetch(url) {
-        let ret = await myFetch(url);
-        return {
-            ok: !!ret,
-            arrayBuffer: async () => { return ret; },
-            text: async () => { return Env.dcodeUtf8(ret); }
-        };
+        return new Promise((res, rej) => {
+            //@ts-ignore
+            conch.downloadNoCache(url, () => { }, (buff, localip, svip) => {
+                //下载完成
+                res({
+                    ok: !!buff,
+                    arrayBuffer: async () => { return buff; },
+                    text: async () => { return Env.dcodeUtf8(buff); }
+                });
+            }, () => { });
+        });
     }
-    async read(url, encode, onlylocal) {
+    async read(url, encode, onlylocal, contentChecker) {
         //先从本地读取，如果没有就从远程下载
         let ret;
         try {
@@ -90,11 +95,15 @@ export class DCCClientFS_native {
                 let resp = await this.fetch(this.repoPath + url);
                 if (encode == 'utf8') {
                     ret = await resp.text();
+                    await this.write(url, ret);
                 }
                 else {
                     ret = await resp.arrayBuffer();
+                    let contOK = (!contentChecker) || (await contentChecker(ret));
+                    if (contOK) {
+                        await this.write(url, ret);
+                    }
                 }
-                await this.write(url, ret);
             }
         }
         return ret;

@@ -1,4 +1,4 @@
 class DCCConfig {
 }
-DCCConfig.log = true;
+DCCConfig.log = false;
 export { DCCConfig };

@@ -1,5 +1,5 @@
-import { DCCDownloader } from "../assets/LayaDCC/common/DCCDownloader";
-import { LayaDCCClient as DCCClient } from "../assets/LayaDCC/common/LayaDCCClient";
+import { DCCDownloader } from '../assets/LayaDCC/common/DCCDownloader.js';
+import { LayaDCCClient as DCCClient } from '../assets/LayaDCC/common/LayaDCCClient.js';
 export class UniDCCClient extends DCCClient {
     constructor(dccurl) {
         super(dccurl, null);
