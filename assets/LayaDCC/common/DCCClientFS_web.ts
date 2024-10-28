@@ -19,8 +19,56 @@ export class DCCClientFS_web implements IGitFSFileIO {
         await this.dbfile.init('', '');
     }
 
-    async fetch(url: string): Promise<Response> {
-        return await fetch(url);
+    async xhrWithProgressTimeout(url:string, options:{method?:'GET'|'POST',headers?:any,body?:any} = {}, timeout = 15000):Promise<Response> {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            let timeoutId:any;
+
+            function resetTimeout() {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    xhr.abort();
+                    reject(new Error('Timeout: No data received for an extended period'));
+                }, timeout);
+            }
+
+            xhr.onprogress = (event) => {
+                if (event.loaded > 0) {
+                    resetTimeout();
+                }
+            };
+
+            xhr.onload = () => {
+                clearTimeout(timeoutId);
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve(xhr.response);
+                } else {
+                    reject(new Error(`HTTP error! status: ${xhr.status}`));
+                }
+            };
+
+            xhr.onerror = () => {
+                clearTimeout(timeoutId);
+                reject(new Error('Network error'));
+            };
+
+            xhr.open(options.method || 'GET', url);
+
+            if (options.headers) {
+                Object.keys(options.headers).forEach(key => {
+                    xhr.setRequestHeader(key, options.headers[key]);
+                });
+            }
+
+            // 设置初始超时
+            resetTimeout();
+            xhr.send(options.body);
+        });
+    }
+
+    async fetch(url: string,timeout=0): Promise<Response> {
+        return this.xhrWithProgressTimeout(url,{},timeout)
+        //return await fetch(url);
     }
 
     async read(url: string, encode: "utf8" | "buffer", onlylocal: boolean, contentChecker:(buff:ArrayBuffer)=>Promise<boolean>): Promise<string | ArrayBuffer> {

@@ -30,7 +30,7 @@ export interface IGitFSFileIO {
     //远程下载。由于有的平台不支持，所以封装一下
     fetch(url: string): Promise<Response>;
     //主要是相对目录，此接口知道baseurl
-    read(url: string, encode: 'utf8' | 'buffer', onlylocal: boolean, contentChecker?:(buff:ArrayBuffer)=>Promise<boolean>): Promise<string | ArrayBuffer>;
+    read(url: string, encode: 'utf8' | 'buffer', onlylocal: boolean, contentChecker: (buff: ArrayBuffer) => Promise<boolean>): Promise<string | ArrayBuffer>;
     write(url: string, content: string | ArrayBuffer, overwrite?: boolean): Promise<any>;
     isFileExist(url: string): Promise<boolean>;
     unzip(buff: ArrayBuffer): ArrayBuffer;
@@ -79,7 +79,7 @@ export class GitFS {
     static touchID = 0;   // 更新标记
     user: string;       // 用户名。提交用。
 
-    checkDownload = false;
+    checkDownload = true;
     private _objectPacks: IObjectPack[] = [];
     objectEncrypter: IObjectEncrypt | null = null;
 
@@ -147,7 +147,7 @@ export class GitFS {
     }
 
     async getCommitHead(url: string) {
-        let commit = await this.frw.read(url, 'utf8', false) as string;
+        let commit = await this.frw.read(url, 'utf8', false, null) as string;
         if (commit) {
             this.recentCommits = commit.split('\n');
             return this.recentCommits[0];
@@ -188,7 +188,7 @@ export class GitFS {
 
     async getCommit(objid: string) {
         let commitobjFile = this.getObjUrl(objid);
-        let buff = await this.frw.read(commitobjFile, 'buffer', false) as ArrayBuffer;
+        let buff = await this.frw.read(commitobjFile, 'buffer', false, null) as ArrayBuffer;
         let cc: GitCommit;
         if (buff) {
             cc = new GitCommit(this.frw.unzip(buff), objid);
@@ -220,16 +220,18 @@ export class GitFS {
         let treepath = this.getObjUrl(objid);
         let buff: ArrayBuffer;
         try {
-            buff = await this.frw.read(treepath, 'buffer', false, this.checkDownload?async (buff)=>{
+            buff = await this.frw.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
+                if (!buff || buff.byteLength <= 0)
+                    return false;
                 let sum = await shasum(new Uint8Array(buff), true);
-                if(sum==objid) 
+                if (sum == objid)
                     return true;
-                console.error(`下载内容检查错误,文件：${treepath}下载内容校验为:${sum}`);                
+                console.error(`下载内容检查错误,文件：${treepath}下载内容校验为:${sum}`);
                 return false;
-            }:null) as ArrayBuffer;
+            } : null) as ArrayBuffer;
         } catch (e) { }
         //不知道为什么，有时候会返回长度为0的buffer，所以需要判断一下
-        if (!buff || buff.byteLength==0) {
+        if (!buff || buff.byteLength == 0) {
             //从所有的包中查找
             for (let pack of this._objectPacks) {
                 if (!pack) continue;
@@ -268,13 +270,13 @@ export class GitFS {
         let objpath = this.getObjUrl(strid);
         let buff: ArrayBuffer | null = null;
         try {
-            let objbuff = await this.frw.read(objpath, 'buffer', false, this.checkDownload?async (buff)=>{
+            let objbuff = await this.frw.read(objpath, 'buffer', false, this.checkDownload ? async (buff) => {
                 let sum = await shasum(new Uint8Array(buff), true);
-                if(sum==objid) 
+                if (sum == objid)
                     return true;
-                console.error(`下载内容检查错误,文件：${objpath}下载内容校验为:${sum}`);                
+                console.error(`下载内容检查错误,文件：${objpath}下载内容校验为:${sum}`);
                 return false;
-            }:null) as ArrayBuffer;
+            } : null) as ArrayBuffer;
             if (objbuff) {
                 buff = GitFS.zip ? this.frw.unzip(objbuff) : objbuff;
             }
@@ -444,7 +446,7 @@ export class GitFS {
             if (path == '..') {
                 cNode = cNode.parent;
             }
-            if(!cNode)
+            if (!cNode)
                 return false;
             let entry = cNode.getEntry(path);
             if (!entry) {
@@ -551,7 +553,7 @@ export class GitFS {
         }
         //console.debug('[gitfs] 提交变化文件:', node.fullPath + '/' + name);
         let p = node.fullPath;
-        if(!p.endsWith('/'))p+='/';
+        if (!p.endsWith('/')) p += '/';
         if (!await this.saveBlobNode(hash, buff, p + name)) {
             // 上传失败。设置一个无效的oid。避免形成永久性错误。
             entry.oid!.fill(0);

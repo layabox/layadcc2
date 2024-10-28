@@ -125,7 +125,7 @@ export class LayaDCC {
             }
         } catch (e) { }
 
-        let ignores = ['.git', '.gitignore', 'dccout', '.dcc','.svn'];
+        let ignores = ['.git', '.gitignore', 'dccout', '.dcc', '.svn'];
         if (this.config.ignorePathes) {
             ignores.concat(this.config.ignorePathes);
         }
@@ -157,7 +157,7 @@ export class LayaDCC {
 
         //合并文件
         let merges = await this.mergeSmallFile(rootNode, false, false);
-        if(merges)
+        if (merges)
             head.treePackages = merges.tree_packs;
         //版本文件
         await this.frw.write('head.json', JSON.stringify(head), true);//这个要用固定名称，与配置无关
@@ -197,7 +197,7 @@ export class LayaDCC {
         let tree_packs: string[] = [];
         let blob_packs: string[] = [];
 
-        if(!this.config.mergeFile && !this.config.mergeDir)
+        if (!this.config.mergeFile && !this.config.mergeDir)
             return null;
 
         //统计所有的treenode和blobnode,他们要分别打包
@@ -241,9 +241,9 @@ export class LayaDCC {
             objInPacks.length = 0;
         }
 
-        if(this.config.mergeFile){
+        if (this.config.mergeFile) {
             if (blobNodes.length) blobNodes = [... new Set(blobNodes)];
-    
+
             //
             //合并小文件
             //直接遍历objects目录，顺序合并
@@ -325,17 +325,17 @@ export class LayaDCC {
                 let check = true;
                 let stat = fs.statSync(res);
                 let fmtime = stat.mtime;
-                if (entry) {
-                    if (fast) {
-                        if (stat.mtime <= entry.fileMTime) {
-                            check = false;
-                        }
-                    }
-                }
+                // if (entry) {
+                //     if (fast) {
+                //         if (stat.mtime <= entry.fileMTime) {
+                //             check = false;
+                //         }
+                //     }
+                // }
                 if (check) {
                     let value = await this.frw.read(res, 'buffer', true) as ArrayBuffer;
                     entry = await this.gitfs.setFileAtNode(node, filename, value);
-                    entry.fileMTime = fmtime;
+                    entry.fileMTime = new Date(0);// fmtime;    不保存时间了，只要内容
                 }
                 entry.touchFlag = 1;
                 files.push(res);
@@ -497,9 +497,9 @@ export async function getDiff(git1: GitFS, git2: GitFS) {
                 //改名的不在idmap中
                 //注意，如果新的文件是新版的某个文件的引用，也算是newfile
                 modifies.push({ path: node.fullPath, newfile: !idMapOld[node.id] })
-                delInIdMap(oldNode.id,node.fullPath,'del');
-                delInIdMap(node.id,node.fullPath,'add');
-                delInIdMap(node.id,node.fullPath,'addref'); //添加的文件有可能是addref
+                delInIdMap(oldNode.id, node.fullPath, 'del');
+                delInIdMap(node.id, node.fullPath, 'add');
+                delInIdMap(node.id, node.fullPath, 'addref'); //添加的文件有可能是addref
             }
         }
         if (node.type == 'file')

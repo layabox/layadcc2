@@ -111,7 +111,7 @@ export class AllTest extends Laya.Script {
 
     private async xhr(){
         let xhr = new Laya.HttpRequest();
-        xhr.send('http://10.10.20.26:9999/index2.js',null,'get','text');
+        xhr.send('http://10.10.20.26:9999/index3.js',null,'get','text');
         xhr.once(Laya.Event.ERROR,null,()=>{debugger;console.log('oookkkk');});
         xhr.once(Laya.Event.COMPLETE,null,(p:Event)=>{debugger;console.log('eeeeeee'+p)});
     }

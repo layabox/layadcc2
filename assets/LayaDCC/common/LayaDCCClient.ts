@@ -57,7 +57,7 @@ export class LayaDCCClient {
     //已经下载过的包，用来优化，避免重复下载，执行清理之后要清零
     private _loadedPacks: { [key: string]: number } = {}
     //是否检查下载内容。
-    private _checkDownload=false;
+    private _checkDownload=true;
 
 
     /**
@@ -150,7 +150,7 @@ export class LayaDCCClient {
         let localRoot: string = null;
         try {
             //本地
-            let localHeadStr = await this._frw.read('head.json', 'utf8', true) as string;
+            let localHeadStr = await this._frw.read('head.json', 'utf8', true,null) as string;
             let localHead = JSON.parse(localHeadStr) as RootDesc;
             localRoot = localHead.root;
             rootNode = localRoot;
@@ -159,7 +159,7 @@ export class LayaDCCClient {
         //本地记录的下载包信息
         try {
             let loadedpacks: string[] = [];
-            let str1 = await this._frw.read('downloaded_packs.json', 'utf8', true) as string;
+            let str1 = await this._frw.read('downloaded_packs.json', 'utf8', true,null) as string;
             if (str1) {
                 loadedpacks = JSON.parse(str1);
                 if (loadedpacks && loadedpacks.length) {
@@ -391,7 +391,7 @@ export class LayaDCCClient {
             //下载
             if (!locals.has(tree.sha))
                 //理论上不应该走到这里，应为visitAll的时候都下载了
-                await this._frw.read(gitfs.getObjUrl(tree.sha), 'buffer', false);
+                await this._frw.read(gitfs.getObjUrl(tree.sha), 'buffer', false,null);
         }, async (blob) => {
             let id = toHex(blob.oid);
             if (!locals.has(id)) {
@@ -405,7 +405,7 @@ export class LayaDCCClient {
         for (let i = 0, n = needUpdateFiles.length; i < n; i++) {
             let id = needUpdateFiles[i];
             //TODO 并发以提高效率
-            await this._frw.read(gitfs.getObjUrl(id), 'buffer', false);
+            await this._frw.read(gitfs.getObjUrl(id), 'buffer', false, null);
             this.log(`updateAll: update obj:${id}`);
             progress && progress(i / n);
         }
@@ -435,7 +435,7 @@ export class LayaDCCClient {
             let buf = zip.getEntry('head.json');
             await this._frw.write('head.json', buf.getData().buffer, true);
             //更新自己的root
-            let localHeadStr = await this._frw.read('head.json', 'utf8', true) as string;
+            let localHeadStr = await this._frw.read('head.json', 'utf8', true, null) as string;
             let localHead = JSON.parse(localHeadStr) as RootDesc;
             await this._gitfs.setRoot(localHead.root);
         } catch (e) {

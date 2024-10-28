@@ -115,11 +115,11 @@ export class TreeNode {
     private _getFullPath(node: TreeNode, path: string | null): string {
         let entry = this.getParentEntry(node);
         if (entry) {
-            let nodePath = entry.path+(entry.isDir?'/':'');
-            let curPath = nodePath+(path?path:'');
+            let nodePath = entry.path + (entry.isDir ? '/' : '');
+            let curPath = nodePath + (path ? path : '');
             return this._getFullPath(node.parent, curPath);
-        }else{
-            return '/'+(path?path:'');
+        } else {
+            return '/' + (path ? path : '');
         }
     }
 
@@ -324,7 +324,7 @@ export class TreeNode {
         cursor += writeUTF8(retbuf, entrylen.toString(), cursor);
         retbuf[cursor] = 0; cursor += 1;
         //对齐
-        cursor = (cursor + 3) & ~3
+        cursor = (cursor + 3) & ~3;
         entries.map(entry => {
             let mode = entry.mode.replace(/^0/, '');
             cursor += writeUTF8(retbuf, mode, cursor);
