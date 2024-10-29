@@ -67,8 +67,8 @@ export class DCCClientFS_web implements IGitFSFileIO {
     }
 
     async fetch(url: string,timeout=0): Promise<Response> {
-        return this.xhrWithProgressTimeout(url,{},timeout)
-        //return await fetch(url);
+        //return this.xhrWithProgressTimeout(url,{},timeout)
+        return await fetch(url);
     }
 
     async read(url: string, encode: "utf8" | "buffer", onlylocal: boolean, contentChecker:(buff:ArrayBuffer)=>Promise<boolean>): Promise<string | ArrayBuffer> {
