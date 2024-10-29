@@ -241,32 +241,34 @@ export class GitFS {
         }
         let treepath = this.getObjUrl(objid);
         let buff: ArrayBuffer;
+
+        //先从包中查找。反正不存在新旧问题，先找包逻辑简单，因为frw.read会有下载过程，如果先frw.read会导致即使包里有也会下载
+        for (let pack of this._objectPacks) {
+            if (!pack) continue;
+            if (await pack.has(objid)) {
+                buff = await pack.get(objid)
+            }
+            if (buff)
+                break;
+        }
+
         try {
-            //buff = await this.frw.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
-            buff = await this.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
-                if (!buff || buff.byteLength <= 0)
+            if(!buff){
+                //buff = await this.frw.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
+                buff = await this.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
+                    if (!buff || buff.byteLength <= 0)
+                        return false;
+                    let sum = await shasum(new Uint8Array(buff), true);
+                    if (sum == objid)
+                        return true;
+                    console.error(`下载内容检查错误,文件：${treepath}下载内容校验为:${sum}`);
                     return false;
-                let sum = await shasum(new Uint8Array(buff), true);
-                if (sum == objid)
-                    return true;
-                console.error(`下载内容检查错误,文件：${treepath}下载内容校验为:${sum}`);
-                return false;
-            } : null) as ArrayBuffer;
+                } : null) as ArrayBuffer;
+            }
         } catch (e) { }
         //不知道为什么，有时候会返回长度为0的buffer，所以需要判断一下
         if (!buff || buff.byteLength == 0) {
-            //从所有的包中查找
-            for (let pack of this._objectPacks) {
-                if (!pack) continue;
-                if (await pack.has(objid)) {
-                    buff = await pack.get(objid)
-                }
-                if (buff)
-                    break;
-            }
-
-            if (!buff)
-                throw "no treepath";
+            throw "no treepath";
         }
         let treebuff = new Uint8Array(buff);
         let ret = treeNode;
@@ -292,31 +294,32 @@ export class GitFS {
         }
         let objpath = this.getObjUrl(strid);
         let buff: ArrayBuffer | null = null;
+        for (let pack of this._objectPacks) {
+            if (!pack) continue;
+            if (await pack.has(strid)) {
+                buff = await pack.get(strid)
+            }
+            if (buff)
+                break;
+        }
+
         try {
-            let objbuff = await this.read(objpath, 'buffer', false, this.checkDownload ? async (buff) => {
-                let sum = await shasum(new Uint8Array(buff), true);
-                if (sum == objid)
-                    return true;
-                console.error(`下载内容检查错误,文件：${objpath}下载内容校验为:${sum}`);
-                return false;
-            } : null) as ArrayBuffer;
-            if (objbuff) {
-                buff = GitFS.zip ? this.frw.unzip(objbuff) : objbuff;
+            if(!buff){
+                let objbuff = await this.read(objpath, 'buffer', false, this.checkDownload ? async (buff) => {
+                    let sum = await shasum(new Uint8Array(buff), true);
+                    if (sum == objid)
+                        return true;
+                    console.error(`下载内容检查错误,文件：${objpath}下载内容校验为:${sum}`);
+                    return false;
+                } : null) as ArrayBuffer;
+                if (objbuff) {
+                    buff = GitFS.zip ? this.frw.unzip(objbuff) : objbuff;
+                }
             }
         } catch (e) {
         }
         if (!buff) {
-            for (let pack of this._objectPacks) {
-                if (!pack) continue;
-                if (await pack.has(strid)) {
-                    buff = await pack.get(strid)
-                }
-                if (buff)
-                    break;
-            }
-            if (!buff) {
-                throw new Error('download error:' + strid);
-            }
+            throw new Error('download error:' + strid);
         }
 
         //下载文件最好不校验。影响速度。
