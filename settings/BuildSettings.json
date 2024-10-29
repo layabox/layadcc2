@@ -1,9 +1,36 @@
 {
   "name": "DCCPlugin",
+  "useCompressedEngine": false,
   "startupScene": "res://9b931ecf-fde9-44dd-acf3-15f8dc807965",
+  "alwaysIncluded": [
+    "mtls"
+  ],
   "copyBinFiles": false,
   "android": {
-    "version": "release-v3.1.2",
-    "packResources": false
+    "encryptDCC": true,
+    "targetArchitectures": {
+      "_$type": true,
+      "ARMv7": true,
+      "ARM64": false,
+      "x86": false,
+      "x86-64": false
+    },
+    "exportFormat": "APK",
+    "exportProject": true
+  },
+  "ios": {
+    "encryptDCC": true,
+    "teamID": "sdfsdffs",
+    "exportProject": true
+  },
+  "windows": {
+    "url": "http://10.10.20.26:7777/index.js",
+    "dcc": {
+      "head": "http://10.10.20.26:6666/head.json",
+      "DCCServer": "http://10.10.20.26:6666",
+      "generate": true,
+      "version": "1.0.3"
+    },
+    "exportProject": true
   }
 }

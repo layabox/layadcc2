@@ -1,4 +1,6 @@
 {
   "enable": true,
-  "version": "3.0.0"
+  "buildCache": true,
+  "targetPath": "D:\\work\\ideproj\\DCCPlugin\\release\\android\\resource",
+  "outputPath": "D:\\work\\ideproj\\DCCPlugin\\release\\android\\dccout"
 }

@@ -28,16 +28,11 @@
       "_reflectionsIblSamples": 1024,
       "fogStart": 0,
       "fogEnd": 300,
-      "fogDensity": 0.01,
       "fogColor": {
         "_$type": "Color",
         "r": 0.5,
         "g": 0.5,
         "b": 0.5
-      },
-      "lightmaps": [],
-      "componentElementDatasMap": {
-        "_$type": "Record"
       },
       "_$child": [
         {
@@ -51,8 +46,6 @@
               "z": 5
             }
           },
-          "orthographicVerticalSize": 10,
-          "fieldOfView": 60,
           "nearPlane": 0.3,
           "farPlane": 1000,
           "clearFlag": 1,
@@ -61,12 +54,6 @@
             "r": 0.3921,
             "g": 0.5843,
             "b": 0.9294
-          },
-          "cullingMask": 2147483647,
-          "normalizedViewport": {
-            "_$type": "Viewport",
-            "width": 1,
-            "height": 1
           },
           "depthTextureFormat": 35
         },
@@ -98,13 +85,6 @@
                 "g": 0.6,
                 "b": 0.6
               },
-              "intensity": 1,
-              "lightmapBakedType": 1,
-              "shadowStrength": 1,
-              "shadowDistance": 50,
-              "shadowDepthBias": 1,
-              "shadowNormalBias": 1,
-              "shadowNearPlane": 0.1,
               "strength": 1,
               "angle": 0.526,
               "maxBounces": 1024
@@ -186,17 +166,6 @@
           "cmd": "clean"
         }
       ]
-    },
-    {
-      "_$id": "hb1lpycm",
-      "_$type": "Image",
-      "name": "Image",
-      "x": 410,
-      "y": 108,
-      "width": 221,
-      "height": 10,
-      "skin": "res://0180cc61-a417-48e3-b42d-fe3d024d7469",
-      "color": "#ffffff"
     },
     {
       "_$id": "k06a10xc",
@@ -452,6 +421,28 @@
           "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
           "scriptPath": "../src/AllTest.ts",
           "cmd": "packupdate"
+        }
+      ]
+    },
+    {
+      "_$id": "n399vzp7",
+      "_$type": "Button",
+      "name": "Button(9)",
+      "x": 269,
+      "y": 62,
+      "width": 120,
+      "height": 40,
+      "_mouseState": 2,
+      "skin": "res://d4cfd6a8-0d0a-475b-ac93-d85eaa646936",
+      "label": "xhr",
+      "labelSize": 20,
+      "labelAlign": "center",
+      "labelVAlign": "middle",
+      "_$comp": [
+        {
+          "_$type": "c81b2735-df3c-458e-9f39-988e90e2ebdc",
+          "scriptPath": "../src/AllTest.ts",
+          "cmd": "xhr"
         }
       ]
     }
