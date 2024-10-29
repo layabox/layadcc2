@@ -85,6 +85,10 @@ export class GitFS {
 
     saveBlob = true;
 
+    //读的防抖
+    private _pending = new Map();
+
+
     /**
      * 
      * @param repoUrl git库所在目录
@@ -92,6 +96,24 @@ export class GitFS {
      */
     constructor(filerw: IGitFSFileIO) {
         this.frw = filerw;
+    }
+
+    async read(path: string, type: 'utf8' | 'buffer', onlylocal: boolean, contentChecker: (buff: ArrayBuffer) => Promise<boolean>) {
+        const key = `${path}-${type}`;
+
+        // 如果已经有相同的请求在进行中，等待它完成
+        if (this._pending.has(key)) {
+            return this._pending.get(key);
+        }
+
+        try {
+            const promise = this.frw.read(path, type, onlylocal, contentChecker);
+            this._pending.set(key, promise);
+            const result = await promise;
+            return result;
+        } finally {
+            this._pending.delete(key);
+        }
     }
 
     addObjectPack(pack: IObjectPack, first = false) {
@@ -220,7 +242,8 @@ export class GitFS {
         let treepath = this.getObjUrl(objid);
         let buff: ArrayBuffer;
         try {
-            buff = await this.frw.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
+            //buff = await this.frw.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
+            buff = await this.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
                 if (!buff || buff.byteLength <= 0)
                     return false;
                 let sum = await shasum(new Uint8Array(buff), true);
@@ -270,7 +293,7 @@ export class GitFS {
         let objpath = this.getObjUrl(strid);
         let buff: ArrayBuffer | null = null;
         try {
-            let objbuff = await this.frw.read(objpath, 'buffer', false, this.checkDownload ? async (buff) => {
+            let objbuff = await this.read(objpath, 'buffer', false, this.checkDownload ? async (buff) => {
                 let sum = await shasum(new Uint8Array(buff), true);
                 if (sum == objid)
                     return true;
