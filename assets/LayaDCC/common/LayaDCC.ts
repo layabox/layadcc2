@@ -323,8 +323,8 @@ export class LayaDCC {
                 files = files.concat(rets);
             } else {
                 let check = true;
-                let stat = fs.statSync(res);
-                let fmtime = stat.mtime;
+                //let stat = fs.statSync(res);
+                //let fmtime = stat.mtime;
                 // if (entry) {
                 //     if (fast) {
                 //         if (stat.mtime <= entry.fileMTime) {
