@@ -53,8 +53,8 @@ export class DCCClientFS_web {
         });
     }
     async fetch(url, timeout = 0) {
-        return this.xhrWithProgressTimeout(url, {}, timeout);
-        //return await fetch(url);
+        //return this.xhrWithProgressTimeout(url,{},timeout)
+        return await fetch(url);
     }
     async read(url, encode, onlylocal, contentChecker) {
         //先从本地读取，如果没有就从远程下载
