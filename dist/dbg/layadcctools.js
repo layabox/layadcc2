@@ -1606,14 +1606,15 @@ class GitFS {
             throw "open node error";
         }
     }
-    async visitAll(node, treecb, blobcb, inEntry) {
+    async visitAll(node, treecb, blobcb, inEntry, openNode = true) {
         await treecb(node, inEntry);
         for await (const entry of node.entries) {
             if (entry.isDir) {
                 try {
-                    if (!entry.treeNode)
+                    if (!entry.treeNode && openNode)
                         await this.openNode(entry);
-                    await this.visitAll(entry.treeNode, treecb, blobcb, entry);
+                    if (entry.treeNode)
+                        await this.visitAll(entry.treeNode, treecb, blobcb, entry, openNode);
                 }
                 catch (e) {
                     //失败了可能是遍历本地目录，但是本地还没有下载，没有设置远程或者访问远程失败
@@ -3047,6 +3048,12 @@ class LayaDCCClient {
             await this._gitfs.saveObject(nodeinfo.id, nodebuff);
         }
     }
+    /**
+     * 本地是否缓存了某个文件
+     * 注意这个会引起下载路径节点
+     * @param url
+     * @returns
+     */
     async hasFile(url) {
         let gitfs = this._gitfs;
         if (!gitfs)
@@ -3258,7 +3265,7 @@ class LayaDCCClient {
             files.add(tree.sha);
         }, async (blob) => {
             files.add((0,_gitfs_GitFSUtils__WEBPACK_IMPORTED_MODULE_8__.toHex)(blob.oid));
-        }, null);
+        }, null, false);
         //统计所有的本地保存的
         //不在树上的全删掉
         let removed = [];

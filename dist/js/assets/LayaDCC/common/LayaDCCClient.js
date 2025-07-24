@@ -253,6 +253,12 @@ class LayaDCCClient {
             await this._gitfs.saveObject(nodeinfo.id, nodebuff);
         }
     }
+    /**
+     * 本地是否缓存了某个文件
+     * 注意这个会引起下载路径节点
+     * @param url
+     * @returns
+     */
     async hasFile(url) {
         let gitfs = this._gitfs;
         if (!gitfs)
@@ -464,7 +470,7 @@ class LayaDCCClient {
             files.add(tree.sha);
         }, async (blob) => {
             files.add(toHex(blob.oid));
-        }, null);
+        }, null, false);
         //统计所有的本地保存的
         //不在树上的全删掉
         let removed = [];

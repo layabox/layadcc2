@@ -299,14 +299,15 @@ class GitFS {
             throw "open node error";
         }
     }
-    async visitAll(node, treecb, blobcb, inEntry) {
+    async visitAll(node, treecb, blobcb, inEntry, openNode = true) {
         await treecb(node, inEntry);
         for await (const entry of node.entries) {
             if (entry.isDir) {
                 try {
-                    if (!entry.treeNode)
+                    if (!entry.treeNode && openNode)
                         await this.openNode(entry);
-                    await this.visitAll(entry.treeNode, treecb, blobcb, entry);
+                    if (entry.treeNode)
+                        await this.visitAll(entry.treeNode, treecb, blobcb, entry, openNode);
                 }
                 catch (e) {
                     //失败了可能是遍历本地目录，但是本地还没有下载，没有设置远程或者访问远程失败
