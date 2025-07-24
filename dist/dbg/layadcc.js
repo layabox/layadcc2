@@ -215,7 +215,7 @@ class LayaDCCClient {
         }
         if (!localRoot || (remoteHead && localRoot != remoteHead.root)) { //本地不等于远端
             //处理打包
-            if (remoteHead.treePackages && remoteHead.treePackages.length) {
+            if (LayaDCCClient.enableMergeDir && remoteHead.treePackages && remoteHead.treePackages.length) {
                 this.log('需要下载treenode');
                 for (let packid of remoteHead.treePackages) {
                     if (this._loadedPacks[packid]) {
@@ -602,6 +602,7 @@ class LayaDCCClient {
     }
 }
 LayaDCCClient.VERSION = '1.0.0';
+LayaDCCClient.enableMergeDir = true;
 function injectToLayaByInitCallback() {
     Laya.addInitCallback && Laya.addInitCallback(async () => {
         let PlayerConfig = Laya.PlayerConfig;

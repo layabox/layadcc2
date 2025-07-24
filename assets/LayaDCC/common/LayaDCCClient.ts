@@ -43,6 +43,7 @@ let DCCClientFS = {
 
 export class LayaDCCClient {
     static VERSION = '1.0.0';
+    static enableMergeDir=true;
     //针对cache目录的操作
     protected _frw: IGitFSFileIO;
     //是否只把请求的url转换成hash
@@ -209,7 +210,7 @@ export class LayaDCCClient {
 
         if (!localRoot || (remoteHead && localRoot != remoteHead.root)) {//本地不等于远端
             //处理打包
-            if (remoteHead.treePackages && remoteHead.treePackages.length) {
+            if (LayaDCCClient.enableMergeDir && remoteHead.treePackages && remoteHead.treePackages.length) {
                 this.log('需要下载treenode')
                 for (let packid of remoteHead.treePackages) {
                     if (this._loadedPacks[packid]) {
