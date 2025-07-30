@@ -7,6 +7,7 @@ import * as path from "path";
 import { toHex } from "./gitfs/GitFSUtils";
 import { TreeNode } from "./gitfs/GitTree";
 
+//不是dccclient，更简单，只是读取本地的dcc缓存。
 export class LayaDCCReader {
     private frw: DCCFS_NodeJS;
     private _gitfs: GitFS;
@@ -29,14 +30,19 @@ export class LayaDCCReader {
             //打包文件
             if (headobj.treePackages) {
                 for (let packid of headobj.treePackages) {
+                    try{
                     let pack = new ObjPack('tree', this.frw, packid);
                     await pack.init();
                     this._gitfs.addObjectPack(pack);
+                    }catch(e){
+                        console.log('add pack error:'+packid)
+                    }
                 }
             }
             //rootNode = await this.gitfs.getTreeNode(headobj.root, null);
             let b = await this._gitfs.setRoot(headobj.root);
         } catch (e: any) {
+            console.error('Error '+e)
         }
     }
 

@@ -41,6 +41,14 @@ let DCCClientFS = {
     "node": null,    //web不能包含node相关
 }[Env.runtimeName];
 
+if(typeof globalThis==='undefined'){
+    (window as any).globalThis=window;
+}else{
+    if(typeof window==='undefined'){
+        (globalThis as any).window=globalThis;
+    }
+}
+
 export class LayaDCCClient {
     static VERSION = '1.0.0';
     static enableMergeDir=true;
@@ -192,7 +200,9 @@ export class LayaDCCClient {
                 remoteHead = JSON.parse(remoteHeadStr);
                 rootNode = remoteHead.root;
             }
-        } catch (e) { }
+        } catch (e) { 
+            console.error('Error '+e)
+        }
 
         if (!remoteHead && !localRoot)
             //如果本地和远程都没有dcc数据，则返回，不做dcc相关设置
@@ -409,13 +419,34 @@ export class LayaDCCClient {
         this.log(`updateAll need update ${needUpdateFiles.length}`);
         //needUpdateFiles.forEach(id=>{console.log(id);});
         progress && progress(0);
-        for (let i = 0, n = needUpdateFiles.length; i < n; i++) {
-            let id = needUpdateFiles[i];
-            //TODO 并发以提高效率
+        // 设置最大并发数，可根据需要调整
+        const maxConcurrent = 6;
+        let completed = 0;
+        const total = needUpdateFiles.length;
+
+        // 并发控制函数
+        const asyncPool = async (poolLimit:number, array:string[], iteratorFn:(id:string)=>void) => {
+            const results:Promise<any>[] = [];
+            const executing:Promise<any>[] = [];
+            for (const item of array) {
+                const p = Promise.resolve().then(() => iteratorFn(item));
+                results.push(p);
+                //e完成后从executing中删除
+                const e:Promise<any> = p.then(() => executing.splice(executing.indexOf(e), 1));
+                executing.push(e);
+                if (executing.length >= poolLimit) {
+                    await Promise.race(executing);
+                }
+            }
+            return Promise.all(results);
+        };
+
+        await asyncPool(maxConcurrent, needUpdateFiles, async (id) => {
             await this._frw.read(gitfs.getObjUrl(id), 'buffer', false, null);
             this.log(`updateAll: update obj:${id}`);
-            progress && progress(i / n);
-        }
+            completed++;
+            progress && progress(completed / total);
+        });
         progress && progress(1);
     }
 

@@ -27,3 +27,7 @@ node add-js-extention.js        #这个是给js的import加.js扩展名。
 
 ## 发布规则
 如果修改了client的兼容性，需要增加版本号，并且发布layadcc.js
+
+## vscode中直接调试
+先ctrl+shift+b 编译
+然后F5, 从 node_index.ts开始

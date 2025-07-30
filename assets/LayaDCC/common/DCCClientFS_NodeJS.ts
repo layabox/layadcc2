@@ -1,8 +1,46 @@
 import { promisify } from 'util'
 import * as fs from 'fs'
 import * as path from "path";
+import * as https from 'https'
 import { IGitFSFileIO } from "./gitfs/GitFS";
 import { Env } from './Env';
+
+function downloadFile(url:string, dest:string) {
+    const file = fs.createWriteStream(dest);
+    
+    https.get(url, (response) => {
+        response.pipe(file);
+        
+        file.on('finish', () => {
+            file.close();
+            console.log('下载完成');
+        });
+    }).on('error', (err) => {
+        fs.unlinkSync(dest); // 删除文件
+        console.error('下载失败:', err.message);
+    });
+}
+
+function downloadToBuffer(url:string):Promise<Buffer|null> {
+    return new Promise((resolve, reject) => {
+        https.get(url, (response) => {
+            const chunks:Buffer[] = [];
+            
+            response.on('data', (chunk) => {
+                chunks.push(chunk);
+            });
+            
+            response.on('end', () => {
+                const buffer = Buffer.concat(chunks);
+                resolve(buffer);
+            });
+            
+        }).on('error', (err) => {
+            reject(err);
+        });
+    });
+}
+
 
 /**
  * 客户端使用的基于nodejs的文件接口
@@ -57,6 +95,21 @@ export class DCCClientFS_NodeJS implements IGitFSFileIO {
         //测试用：只是本地
         if (url.startsWith('file:///')) {
             url = url.replace('file:///', '');
+        }else if(url.startsWith('http://')||url.startsWith('https://')){
+            let buff = await downloadToBuffer(url);
+            if (!buff) {
+                return {
+                    ok: false,
+                    arrayBuffer: null,
+                    text: null
+                } as unknown as Response;
+
+            }
+            return {
+                ok: true,
+                arrayBuffer: async () => { return buff.buffer.slice(buff.byteOffset, buff.byteOffset + buff.byteLength); },
+                text: async () => { return (new TextDecoder()).decode(buff); }
+            } as unknown as Response;
         }
         if (path.isAbsolute(url)) {
             let buf = fs.readFileSync(url);

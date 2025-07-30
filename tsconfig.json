@@ -6,14 +6,11 @@
     "outDir": "./dist/js/",
     "strictNullChecks": false,
     "noEmitHelpers": true,
-    "sourceMap": false,
+    "sourceMap": true,
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "rootDirs": [
-      "@xai"
-    ]
   },
   "include": [
     "./assets",

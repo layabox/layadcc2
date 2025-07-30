@@ -5,6 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "node",
+            "program": "${workspaceFolder}/dist/js/src/node_index.js",
+            "request": "launch",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "runtimeArgs": ["--experimental-specifier-resolution=node"] //允许import没有扩展名的文件
+        },
+        {
             "type": "chrome",
             "request": "launch",
             "name": "LayaAir Debug",
