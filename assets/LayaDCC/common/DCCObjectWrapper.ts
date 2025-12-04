@@ -25,6 +25,7 @@ export class DCCObjectWrapper {
     }
 
     static unwrapObject(buff: ArrayBuffer, head: DCCObjectWrapper) {
+        try{
         let flags = new Uint8Array(buff, 0, 8);
         let isDCC = true;
         for (let i = 0; i < 8; i++) {
@@ -63,6 +64,10 @@ export class DCCObjectWrapper {
                 throw 'unmatched size'
             }
             return retBuff;
+        }
+        }catch(e){
+            //如果因为buff长度等问题异常了，表示不是layadcc文件
+            return null;
         }
     }
 
