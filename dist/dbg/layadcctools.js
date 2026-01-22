@@ -22,7 +22,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _common_DCCClientFS_NodeJS__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(27);
 /* harmony import */ var _common_gitfs_GitFSUtils__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(11);
 /* harmony import */ var _common_DCCFS_NodeJS__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(4);
-/* harmony import */ var _common_LayaDCCReader__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(28);
+/* harmony import */ var _common_LayaDCCReader__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(29);
 
 
 
@@ -1591,19 +1591,30 @@ class GitFS {
         if (!(node instanceof _GitTree__WEBPACK_IMPORTED_MODULE_2__.TreeEntry)) {
             console.error('openNode param error!');
         }
+        // 防止并发重复请求
+        const key = `openNode-${node.idstring}`;
+        if (this._pending.has(key)) {
+            return this._pending.get(key);
+        }
         // 没有treeNode表示还没有下载。下载构造新的node
         try {
             if (node.isDir) {
-                let ret = await this.getTreeNode(node.idstring, null);
-                node.treeNode = ret;
-                ret.parent = node.owner;
-                return ret;
+                const promise = this.getTreeNode(node.idstring, null).then(ret => {
+                    node.treeNode = ret;
+                    ret.parent = node.owner;
+                    return ret;
+                });
+                this._pending.set(key, promise);
+                return await promise;
             }
             else
                 return null;
         }
         catch (e) {
             throw "open node error";
+        }
+        finally {
+            this._pending.delete(key);
         }
     }
     async visitAll(node, treecb, blobcb, inEntry, openNode = true) {
@@ -2713,44 +2724,50 @@ class DCCObjectWrapper {
         return retBuff;
     }
     static unwrapObject(buff, head) {
-        let flags = new Uint8Array(buff, 0, 8);
-        let isDCC = true;
-        for (let i = 0; i < 8; i++) {
-            if (flags[i] != DCCObjectWrapper.FLAG[i]) {
-                isDCC = false;
-                break;
+        try {
+            let flags = new Uint8Array(buff, 0, 8);
+            let isDCC = true;
+            for (let i = 0; i < 8; i++) {
+                if (flags[i] != DCCObjectWrapper.FLAG[i]) {
+                    isDCC = false;
+                    break;
+                }
+            }
+            if (!isDCC) {
+                //console.log('unwrapObject error: not a layadcc file');
+                return null;
+            }
+            let bufw = new DataView(buff);
+            let version = head.version = bufw.getUint32(8, true);
+            switch (version) {
+                //todo
+            }
+            let key = new Uint8Array(buff, 12, 8);
+            let dataLen = bufw.getUint32(20, true);
+            let encrypted = false;
+            for (let i = 0; i < key.length; i++) {
+                if (key[i] != 0) {
+                    encrypted = true;
+                    break;
+                }
+            }
+            if (encrypted) {
+                head.xorKey = key;
+                let retBuff = DCCObjectWrapper.xorEncryptArrayBuffer(buff, 24, key, null, 0).buffer;
+                return retBuff;
+            }
+            else {
+                head.xorKey = null;
+                let retBuff = buff.slice(24);
+                if (retBuff.byteLength != dataLen) {
+                    throw 'unmatched size';
+                }
+                return retBuff;
             }
         }
-        if (!isDCC) {
-            //console.log('unwrapObject error: not a layadcc file');
+        catch (e) {
+            //如果因为buff长度等问题异常了，表示不是layadcc文件
             return null;
-        }
-        let bufw = new DataView(buff);
-        let version = head.version = bufw.getUint32(8, true);
-        switch (version) {
-            //todo
-        }
-        let key = new Uint8Array(buff, 12, 8);
-        let dataLen = bufw.getUint32(20, true);
-        let encrypted = false;
-        for (let i = 0; i < key.length; i++) {
-            if (key[i] != 0) {
-                encrypted = true;
-                break;
-            }
-        }
-        if (encrypted) {
-            head.xorKey = key;
-            let retBuff = DCCObjectWrapper.xorEncryptArrayBuffer(buff, 24, key, null, 0).buffer;
-            return retBuff;
-        }
-        else {
-            head.xorKey = null;
-            let retBuff = buff.slice(24);
-            if (retBuff.byteLength != dataLen) {
-                throw 'unmatched size';
-            }
-            return retBuff;
         }
     }
     static xorEncryptArrayBuffer(inputBuffer, inputBufferOff, key, outbuff, outbuffOff) {
@@ -2811,6 +2828,14 @@ let DCCClientFS = {
     "web": _DCCClientFS_web__WEBPACK_IMPORTED_MODULE_3__.DCCClientFS_web,
     "node": null, //web不能包含node相关
 }[_Env__WEBPACK_IMPORTED_MODULE_5__.Env.runtimeName];
+if (typeof globalThis === 'undefined') {
+    window.globalThis = window;
+}
+else {
+    if (typeof window === 'undefined') {
+        globalThis.window = globalThis;
+    }
+}
 class LayaDCCClient {
     /**
      *
@@ -2965,7 +2990,9 @@ class LayaDCCClient {
                 rootNode = remoteHead.root;
             }
         }
-        catch (e) { }
+        catch (e) {
+            console.error('Error ' + e);
+        }
         if (!remoteHead && !localRoot)
             //如果本地和远程都没有dcc数据，则返回，不做dcc相关设置
             return false;
@@ -3179,13 +3206,32 @@ class LayaDCCClient {
         this.log(`updateAll need update ${needUpdateFiles.length}`);
         //needUpdateFiles.forEach(id=>{console.log(id);});
         progress && progress(0);
-        for (let i = 0, n = needUpdateFiles.length; i < n; i++) {
-            let id = needUpdateFiles[i];
-            //TODO 并发以提高效率
+        // 设置最大并发数，可根据需要调整
+        const maxConcurrent = 6;
+        let completed = 0;
+        const total = needUpdateFiles.length;
+        // 并发控制函数
+        const asyncPool = async (poolLimit, array, iteratorFn) => {
+            const results = [];
+            const executing = [];
+            for (const item of array) {
+                const p = Promise.resolve().then(() => iteratorFn(item));
+                results.push(p);
+                //e完成后从executing中删除
+                const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+                executing.push(e);
+                if (executing.length >= poolLimit) {
+                    await Promise.race(executing);
+                }
+            }
+            return Promise.all(results);
+        };
+        await asyncPool(maxConcurrent, needUpdateFiles, async (id) => {
             await this._frw.read(gitfs.getObjUrl(id), 'buffer', false, null);
             this.log(`updateAll: update obj:${id}`);
-            progress && progress(i / n);
-        }
+            completed++;
+            progress && progress(completed / total);
+        });
         progress && progress(1);
     }
     /**
@@ -4395,11 +4441,43 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var fs__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(fs__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var path__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3);
 /* harmony import */ var path__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(path__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _Env__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(12);
+/* harmony import */ var https__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(28);
+/* harmony import */ var https__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(https__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var _Env__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(12);
 
 
 
 
+
+function downloadFile(url, dest) {
+    const file = fs__WEBPACK_IMPORTED_MODULE_1__.createWriteStream(dest);
+    https__WEBPACK_IMPORTED_MODULE_3__.get(url, (response) => {
+        response.pipe(file);
+        file.on('finish', () => {
+            file.close();
+            console.log('下载完成');
+        });
+    }).on('error', (err) => {
+        fs__WEBPACK_IMPORTED_MODULE_1__.unlinkSync(dest); // 删除文件
+        console.error('下载失败:', err.message);
+    });
+}
+function downloadToBuffer(url) {
+    return new Promise((resolve, reject) => {
+        https__WEBPACK_IMPORTED_MODULE_3__.get(url, (response) => {
+            const chunks = [];
+            response.on('data', (chunk) => {
+                chunks.push(chunk);
+            });
+            response.on('end', () => {
+                const buffer = Buffer.concat(chunks);
+                resolve(buffer);
+            });
+        }).on('error', (err) => {
+            reject(err);
+        });
+    });
+}
 /**
  * 客户端使用的基于nodejs的文件接口
  * 主要是封装了一个缓存目录
@@ -4425,7 +4503,7 @@ class DCCClientFS_NodeJS {
         try {
             ret = await (0,util__WEBPACK_IMPORTED_MODULE_0__.promisify)(fs__WEBPACK_IMPORTED_MODULE_1__.readFile)(absLocal);
             if (encode == 'utf8') {
-                ret = _Env__WEBPACK_IMPORTED_MODULE_3__.Env.dcodeUtf8(ret);
+                ret = _Env__WEBPACK_IMPORTED_MODULE_4__.Env.dcodeUtf8(ret);
             }
         }
         catch (e) {
@@ -4454,6 +4532,21 @@ class DCCClientFS_NodeJS {
         //测试用：只是本地
         if (url.startsWith('file:///')) {
             url = url.replace('file:///', '');
+        }
+        else if (url.startsWith('http://') || url.startsWith('https://')) {
+            let buff = await downloadToBuffer(url);
+            if (!buff) {
+                return {
+                    ok: false,
+                    arrayBuffer: null,
+                    text: null
+                };
+            }
+            return {
+                ok: true,
+                arrayBuffer: async () => { return buff.buffer.slice(buff.byteOffset, buff.byteOffset + buff.byteLength); },
+                text: async () => { return (new TextDecoder()).decode(buff); }
+            };
         }
         if (path__WEBPACK_IMPORTED_MODULE_2__.isAbsolute(url)) {
             let buf = fs__WEBPACK_IMPORTED_MODULE_1__.readFileSync(url);
@@ -4538,6 +4631,12 @@ class DCCClientFS_NodeJS {
 
 /***/ }),
 /* 28 */
+/***/ ((module) => {
+
+module.exports = require("https");
+
+/***/ }),
+/* 29 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -4558,6 +4657,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+//不是dccclient，更简单，只是读取本地的dcc缓存。
 class LayaDCCReader {
     async init(dirOrHead) {
         let repoDir = dirOrHead;
@@ -4576,15 +4676,21 @@ class LayaDCCReader {
             //打包文件
             if (headobj.treePackages) {
                 for (let packid of headobj.treePackages) {
-                    let pack = new _ObjPack__WEBPACK_IMPORTED_MODULE_1__.ObjPack('tree', this.frw, packid);
-                    await pack.init();
-                    this._gitfs.addObjectPack(pack);
+                    try {
+                        let pack = new _ObjPack__WEBPACK_IMPORTED_MODULE_1__.ObjPack('tree', this.frw, packid);
+                        await pack.init();
+                        this._gitfs.addObjectPack(pack);
+                    }
+                    catch (e) {
+                        console.log('add pack error:' + packid);
+                    }
                 }
             }
             //rootNode = await this.gitfs.getTreeNode(headobj.root, null);
             let b = await this._gitfs.setRoot(headobj.root);
         }
         catch (e) {
+            console.error('Error ' + e);
         }
     }
     async checkout(outdir) {
@@ -4613,7 +4719,7 @@ class LayaDCCReader {
 
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -4733,7 +4839,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ });
 /* harmony import */ var _ExpTools_LayaDCCTools__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
 /* harmony import */ var _LayaDCC__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(2);
-/* harmony import */ var _ExpTools_DCCPackWriters__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(29);
+/* harmony import */ var _ExpTools_DCCPackWriters__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(30);
 
 
 

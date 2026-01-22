@@ -47,6 +47,14 @@ let DCCClientFS = {
     "web": _DCCClientFS_web__WEBPACK_IMPORTED_MODULE_3__.DCCClientFS_web,
     "node": null, //web不能包含node相关
 }[_Env__WEBPACK_IMPORTED_MODULE_5__.Env.runtimeName];
+if (typeof globalThis === 'undefined') {
+    window.globalThis = window;
+}
+else {
+    if (typeof window === 'undefined') {
+        globalThis.window = globalThis;
+    }
+}
 class LayaDCCClient {
     /**
      *
@@ -201,7 +209,9 @@ class LayaDCCClient {
                 rootNode = remoteHead.root;
             }
         }
-        catch (e) { }
+        catch (e) {
+            console.error('Error ' + e);
+        }
         if (!remoteHead && !localRoot)
             //如果本地和远程都没有dcc数据，则返回，不做dcc相关设置
             return false;
@@ -415,13 +425,32 @@ class LayaDCCClient {
         this.log(`updateAll need update ${needUpdateFiles.length}`);
         //needUpdateFiles.forEach(id=>{console.log(id);});
         progress && progress(0);
-        for (let i = 0, n = needUpdateFiles.length; i < n; i++) {
-            let id = needUpdateFiles[i];
-            //TODO 并发以提高效率
+        // 设置最大并发数，可根据需要调整
+        const maxConcurrent = 6;
+        let completed = 0;
+        const total = needUpdateFiles.length;
+        // 并发控制函数
+        const asyncPool = async (poolLimit, array, iteratorFn) => {
+            const results = [];
+            const executing = [];
+            for (const item of array) {
+                const p = Promise.resolve().then(() => iteratorFn(item));
+                results.push(p);
+                //e完成后从executing中删除
+                const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+                executing.push(e);
+                if (executing.length >= poolLimit) {
+                    await Promise.race(executing);
+                }
+            }
+            return Promise.all(results);
+        };
+        await asyncPool(maxConcurrent, needUpdateFiles, async (id) => {
             await this._frw.read(gitfs.getObjUrl(id), 'buffer', false, null);
             this.log(`updateAll: update obj:${id}`);
-            progress && progress(i / n);
-        }
+            completed++;
+            progress && progress(completed / total);
+        });
         progress && progress(1);
     }
     /**
@@ -1631,44 +1660,50 @@ class DCCObjectWrapper {
         return retBuff;
     }
     static unwrapObject(buff, head) {
-        let flags = new Uint8Array(buff, 0, 8);
-        let isDCC = true;
-        for (let i = 0; i < 8; i++) {
-            if (flags[i] != DCCObjectWrapper.FLAG[i]) {
-                isDCC = false;
-                break;
+        try {
+            let flags = new Uint8Array(buff, 0, 8);
+            let isDCC = true;
+            for (let i = 0; i < 8; i++) {
+                if (flags[i] != DCCObjectWrapper.FLAG[i]) {
+                    isDCC = false;
+                    break;
+                }
+            }
+            if (!isDCC) {
+                //console.log('unwrapObject error: not a layadcc file');
+                return null;
+            }
+            let bufw = new DataView(buff);
+            let version = head.version = bufw.getUint32(8, true);
+            switch (version) {
+                //todo
+            }
+            let key = new Uint8Array(buff, 12, 8);
+            let dataLen = bufw.getUint32(20, true);
+            let encrypted = false;
+            for (let i = 0; i < key.length; i++) {
+                if (key[i] != 0) {
+                    encrypted = true;
+                    break;
+                }
+            }
+            if (encrypted) {
+                head.xorKey = key;
+                let retBuff = DCCObjectWrapper.xorEncryptArrayBuffer(buff, 24, key, null, 0).buffer;
+                return retBuff;
+            }
+            else {
+                head.xorKey = null;
+                let retBuff = buff.slice(24);
+                if (retBuff.byteLength != dataLen) {
+                    throw 'unmatched size';
+                }
+                return retBuff;
             }
         }
-        if (!isDCC) {
-            //console.log('unwrapObject error: not a layadcc file');
+        catch (e) {
+            //如果因为buff长度等问题异常了，表示不是layadcc文件
             return null;
-        }
-        let bufw = new DataView(buff);
-        let version = head.version = bufw.getUint32(8, true);
-        switch (version) {
-            //todo
-        }
-        let key = new Uint8Array(buff, 12, 8);
-        let dataLen = bufw.getUint32(20, true);
-        let encrypted = false;
-        for (let i = 0; i < key.length; i++) {
-            if (key[i] != 0) {
-                encrypted = true;
-                break;
-            }
-        }
-        if (encrypted) {
-            head.xorKey = key;
-            let retBuff = DCCObjectWrapper.xorEncryptArrayBuffer(buff, 24, key, null, 0).buffer;
-            return retBuff;
-        }
-        else {
-            head.xorKey = null;
-            let retBuff = buff.slice(24);
-            if (retBuff.byteLength != dataLen) {
-                throw 'unmatched size';
-            }
-            return retBuff;
         }
     }
     static xorEncryptArrayBuffer(inputBuffer, inputBufferOff, key, outbuff, outbuffOff) {
@@ -2037,19 +2072,30 @@ class GitFS {
         if (!(node instanceof _GitTree__WEBPACK_IMPORTED_MODULE_2__.TreeEntry)) {
             console.error('openNode param error!');
         }
+        // 防止并发重复请求
+        const key = `openNode-${node.idstring}`;
+        if (this._pending.has(key)) {
+            return this._pending.get(key);
+        }
         // 没有treeNode表示还没有下载。下载构造新的node
         try {
             if (node.isDir) {
-                let ret = await this.getTreeNode(node.idstring, null);
-                node.treeNode = ret;
-                ret.parent = node.owner;
-                return ret;
+                const promise = this.getTreeNode(node.idstring, null).then(ret => {
+                    node.treeNode = ret;
+                    ret.parent = node.owner;
+                    return ret;
+                });
+                this._pending.set(key, promise);
+                return await promise;
             }
             else
                 return null;
         }
         catch (e) {
             throw "open node error";
+        }
+        finally {
+            this._pending.delete(key);
         }
     }
     async visitAll(node, treecb, blobcb, inEntry, openNode = true) {
