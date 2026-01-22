@@ -15,6 +15,8 @@ export class ObjPack_AppRes implements IObjectPack {
     private resReader = new AppResReader_Native();
     private treePacks: ObjPack[] = [];
     private blobPacks: ObjPack[] = [];
+    // 静态，所有实例共享
+    private static _pending = new Map<string, Promise<ArrayBuffer>>();
     //path是相对于资源根目录的路径
     constructor(path = 'cache') {
         if (path.startsWith('/')) path = path.substring(1);
@@ -81,6 +83,21 @@ export class ObjPack_AppRes implements IObjectPack {
     }
 
     async _get(oid: string): Promise<ArrayBuffer> {
+        // 防止并发重复请求
+        if (ObjPack_AppRes._pending.has(oid)) {
+            return ObjPack_AppRes._pending.get(oid)!;
+        }
+
+        const promise = this._doGet(oid);
+        ObjPack_AppRes._pending.set(oid, promise);
+        try {
+            return await promise;
+        } finally {
+            ObjPack_AppRes._pending.delete(oid);
+        }
+    }
+
+    private async _doGet(oid: string): Promise<ArrayBuffer> {
         let path = this.cachePath + '/objects/' + oid.substring(0, 2) + '/' + oid.substring(2);
         //先判断包中有没有
         let buff: ArrayBuffer;
@@ -105,7 +122,6 @@ export class ObjPack_AppRes implements IObjectPack {
                 return buff;
             }
         }
-
         return await this.resReader.getRes(path, 'buffer') as ArrayBuffer
     }
 }

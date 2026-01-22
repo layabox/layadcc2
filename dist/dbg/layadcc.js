@@ -1594,6 +1594,20 @@ class ObjPack_AppRes {
         return decryptBuff;
     }
     async _get(oid) {
+        // 防止并发重复请求
+        if (ObjPack_AppRes._pending.has(oid)) {
+            return ObjPack_AppRes._pending.get(oid);
+        }
+        const promise = this._doGet(oid);
+        ObjPack_AppRes._pending.set(oid, promise);
+        try {
+            return await promise;
+        }
+        finally {
+            ObjPack_AppRes._pending.delete(oid);
+        }
+    }
+    async _doGet(oid) {
         let path = this.cachePath + '/objects/' + oid.substring(0, 2) + '/' + oid.substring(2);
         //先判断包中有没有
         let buff;
@@ -1622,6 +1636,8 @@ class ObjPack_AppRes {
         return await this.resReader.getRes(path, 'buffer');
     }
 }
+// 静态，所有实例共享
+ObjPack_AppRes._pending = new Map();
 function DCCLog(msg) {
     if (_Config__WEBPACK_IMPORTED_MODULE_1__.DCCConfig.log) {
         console.log(msg);
@@ -1826,24 +1842,22 @@ class GitFS {
         this._objectPacks = [];
         this.objectEncrypter = null;
         this.saveBlob = true;
-        //读的防抖
-        this._pending = new Map();
         this.frw = filerw;
     }
     async read(path, type, onlylocal, contentChecker) {
         const key = `${path}-${type}`;
         // 如果已经有相同的请求在进行中，等待它完成
-        if (this._pending.has(key)) {
-            return this._pending.get(key);
+        if (GitFS._pending.has(key)) {
+            return GitFS._pending.get(key);
         }
         try {
             const promise = this.frw.read(path, type, onlylocal, contentChecker);
-            this._pending.set(key, promise);
+            GitFS._pending.set(key, promise);
             const result = await promise;
             return result;
         }
         finally {
-            this._pending.delete(key);
+            GitFS._pending.delete(key);
         }
     }
     addObjectPack(pack, first = false) {
@@ -1961,21 +1975,35 @@ class GitFS {
             // 创建空的
             return new _GitTree__WEBPACK_IMPORTED_MODULE_2__.TreeNode(null, null, this.frw);
         }
-        let treepath = this.getObjUrl(objid);
-        let buff;
-        //先从包中查找。反正不存在新旧问题，先找包逻辑简单，因为frw.read会有下载过程，如果先frw.read会导致即使包里有也会下载
-        for (let pack of this._objectPacks) {
-            if (!pack)
-                continue;
-            if (await pack.has(objid)) {
-                buff = await pack.get(objid);
-            }
-            if (buff)
-                break;
+        // 防止并发重复请求（仅当创建新节点时）
+        const key = treeNode ? null : `getTreeNode-${objid}`;
+        if (key && GitFS._pending.has(key)) {
+            return GitFS._pending.get(key);
+        }
+        // 如果需要缓存，先设置 _pending
+        let resolveFunc;
+        let rejectFunc;
+        if (key) {
+            const pendingPromise = new Promise((resolve, reject) => {
+                resolveFunc = resolve;
+                rejectFunc = reject;
+            });
+            GitFS._pending.set(key, pendingPromise);
         }
         try {
+            let treepath = this.getObjUrl(objid);
+            let buff;
+            //先从包中查找。反正不存在新旧问题，先找包逻辑简单，因为frw.read会有下载过程，如果先frw.read会导致即使包里有也会下载
+            for (let pack of this._objectPacks) {
+                if (!pack)
+                    continue;
+                if (await pack.has(objid)) {
+                    buff = await pack.get(objid);
+                }
+                if (buff)
+                    break;
+            }
             if (!buff) {
-                //buff = await this.frw.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
                 buff = await this.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
                     if (!buff || buff.byteLength <= 0)
                         return false;
@@ -1986,22 +2014,35 @@ class GitFS {
                     return false;
                 } : null);
             }
+            //不知道为什么，有时候会返回长度为0的buffer，所以需要判断一下
+            if (!buff || buff.byteLength == 0) {
+                throw "no treepath";
+            }
+            let treebuff = new Uint8Array(buff);
+            let ret = treeNode;
+            if (!ret) {
+                ret = new _GitTree__WEBPACK_IMPORTED_MODULE_2__.TreeNode(treebuff, null, this.frw);
+            }
+            else {
+                ret.parseBuffer(treebuff, this.frw);
+            }
+            ret.sha = objid;
+            if (key) {
+                resolveFunc(ret);
+            }
+            return ret;
         }
-        catch (e) { }
-        //不知道为什么，有时候会返回长度为0的buffer，所以需要判断一下
-        if (!buff || buff.byteLength == 0) {
-            throw "no treepath";
+        catch (e) {
+            if (key) {
+                rejectFunc(e);
+            }
+            throw e;
         }
-        let treebuff = new Uint8Array(buff);
-        let ret = treeNode;
-        if (!ret) {
-            ret = new _GitTree__WEBPACK_IMPORTED_MODULE_2__.TreeNode(treebuff, null, this.frw);
+        finally {
+            if (key) {
+                GitFS._pending.delete(key);
+            }
         }
-        else {
-            ret.parseBuffer(treebuff, this.frw);
-        }
-        ret.sha = objid;
-        return ret;
     }
     /**
      * 根据sha id得到文件内容。
@@ -2014,18 +2055,36 @@ class GitFS {
         if (typeof (objid) != 'string') {
             strid = (0,_GitFSUtils__WEBPACK_IMPORTED_MODULE_1__.toHex)(objid);
         }
-        let objpath = this.getObjUrl(strid);
-        let buff = null;
-        for (let pack of this._objectPacks) {
-            if (!pack)
-                continue;
-            if (await pack.has(strid)) {
-                buff = await pack.get(strid);
+        // 防止并发重复请求
+        const key = `getBlobNode-${strid}`;
+        if (GitFS._pending.has(key)) {
+            const cachedBuff = await GitFS._pending.get(key);
+            if (encode == 'utf8') {
+                return (0,_GitFSUtils__WEBPACK_IMPORTED_MODULE_1__.readUTF8)(cachedBuff);
             }
-            if (buff)
-                break;
+            return cachedBuff;
         }
+        // 先创建 Promise 并设置到 _pending，确保后续调用能命中缓存
+        let resolveFunc;
+        let rejectFunc;
+        const pendingPromise = new Promise((resolve, reject) => {
+            resolveFunc = resolve;
+            rejectFunc = reject;
+        });
+        GitFS._pending.set(key, pendingPromise);
         try {
+            // 实际获取数据
+            let objpath = this.getObjUrl(strid);
+            let buff = null;
+            for (let pack of this._objectPacks) {
+                if (!pack)
+                    continue;
+                if (await pack.has(strid)) {
+                    buff = await pack.get(strid);
+                }
+                if (buff)
+                    break;
+            }
             if (!buff) {
                 let objbuff = await this.read(objpath, 'buffer', false, this.checkDownload ? async (buff) => {
                     let sum = await (0,_GitFSUtils__WEBPACK_IMPORTED_MODULE_1__.shasum)(new Uint8Array(buff), true);
@@ -2038,26 +2097,23 @@ class GitFS {
                     buff = GitFS.zip ? this.frw.unzip(objbuff) : objbuff;
                 }
             }
+            if (!buff) {
+                throw new Error('download error:' + strid);
+            }
+            resolveFunc(buff);
+            if (encode == 'utf8') {
+                return (0,_GitFSUtils__WEBPACK_IMPORTED_MODULE_1__.readUTF8)(buff);
+            }
+            else {
+                return buff;
+            }
         }
         catch (e) {
+            rejectFunc(e);
+            throw e;
         }
-        if (!buff) {
-            throw new Error('download error:' + strid);
-        }
-        //下载文件最好不校验。影响速度。
-        //校验写到下载过程中了，以保证写入缓存的是正确的
-        // if (this.checkDownload) {
-        //     let sum = await shasum(new Uint8Array(buff), true);
-        //     if (sum != strid) {
-        //         console.log('下载的文件校验错误:', strid, sum);
-        //     }
-        // }
-        if (encode == 'utf8') {
-            let str = (0,_GitFSUtils__WEBPACK_IMPORTED_MODULE_1__.readUTF8)(buff);
-            return str;
-        }
-        else {
-            return buff;
+        finally {
+            GitFS._pending.delete(key);
         }
     }
     /**
@@ -2074,8 +2130,8 @@ class GitFS {
         }
         // 防止并发重复请求
         const key = `openNode-${node.idstring}`;
-        if (this._pending.has(key)) {
-            return this._pending.get(key);
+        if (GitFS._pending.has(key)) {
+            return GitFS._pending.get(key);
         }
         // 没有treeNode表示还没有下载。下载构造新的node
         try {
@@ -2085,7 +2141,7 @@ class GitFS {
                     ret.parent = node.owner;
                     return ret;
                 });
-                this._pending.set(key, promise);
+                GitFS._pending.set(key, promise);
                 return await promise;
             }
             else
@@ -2095,7 +2151,7 @@ class GitFS {
             throw "open node error";
         }
         finally {
-            this._pending.delete(key);
+            GitFS._pending.delete(key);
         }
     }
     async visitAll(node, treecb, blobcb, inEntry, openNode = true) {
@@ -2547,6 +2603,8 @@ class GitFS {
 GitFS.OBJSUBDIRNUM = 1;
 GitFS.zip = false;
 GitFS.touchID = 0; // 更新标记
+//读的防抖（静态，所有实例共享）
+GitFS._pending = new Map();
 
 
 /***/ }),

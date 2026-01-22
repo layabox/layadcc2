@@ -85,8 +85,8 @@ export class GitFS {
 
     saveBlob = true;
 
-    //读的防抖
-    private _pending = new Map();
+    //读的防抖（静态，所有实例共享）
+    private static _pending = new Map();
 
 
     /**
@@ -102,17 +102,17 @@ export class GitFS {
         const key = `${path}-${type}`;
 
         // 如果已经有相同的请求在进行中，等待它完成
-        if (this._pending.has(key)) {
-            return this._pending.get(key);
+        if (GitFS._pending.has(key)) {
+            return GitFS._pending.get(key);
         }
 
         try {
             const promise = this.frw.read(path, type, onlylocal, contentChecker);
-            this._pending.set(key, promise);
+            GitFS._pending.set(key, promise);
             const result = await promise;
             return result;
         } finally {
-            this._pending.delete(key);
+            GitFS._pending.delete(key);
         }
     }
 
@@ -239,22 +239,39 @@ export class GitFS {
             // 创建空的
             return new TreeNode(null, null, this.frw);
         }
-        let treepath = this.getObjUrl(objid);
-        let buff: ArrayBuffer;
+        
+        // 防止并发重复请求（仅当创建新节点时）
+        const key = treeNode ? null : `getTreeNode-${objid}`;
+        if (key && GitFS._pending.has(key)) {
+            return GitFS._pending.get(key);
+        }
 
-        //先从包中查找。反正不存在新旧问题，先找包逻辑简单，因为frw.read会有下载过程，如果先frw.read会导致即使包里有也会下载
-        for (let pack of this._objectPacks) {
-            if (!pack) continue;
-            if (await pack.has(objid)) {
-                buff = await pack.get(objid)
-            }
-            if (buff)
-                break;
+        // 如果需要缓存，先设置 _pending
+        let resolveFunc!: (value: TreeNode) => void;
+        let rejectFunc!: (reason?: any) => void;
+        if (key) {
+            const pendingPromise = new Promise<TreeNode>((resolve, reject) => {
+                resolveFunc = resolve;
+                rejectFunc = reject;
+            });
+            GitFS._pending.set(key, pendingPromise);
         }
 
         try {
+            let treepath = this.getObjUrl(objid);
+            let buff: ArrayBuffer;
+
+            //先从包中查找。反正不存在新旧问题，先找包逻辑简单，因为frw.read会有下载过程，如果先frw.read会导致即使包里有也会下载
+            for (let pack of this._objectPacks) {
+                if (!pack) continue;
+                if (await pack.has(objid)) {
+                    buff = await pack.get(objid)
+                }
+                if (buff)
+                    break;
+            }
+
             if(!buff){
-                //buff = await this.frw.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
                 buff = await this.read(treepath, 'buffer', false, this.checkDownload ? async (buff) => {
                     if (!buff || buff.byteLength <= 0)
                         return false;
@@ -265,20 +282,34 @@ export class GitFS {
                     return false;
                 } : null) as ArrayBuffer;
             }
-        } catch (e) { }
-        //不知道为什么，有时候会返回长度为0的buffer，所以需要判断一下
-        if (!buff || buff.byteLength == 0) {
-            throw "no treepath";
+
+            //不知道为什么，有时候会返回长度为0的buffer，所以需要判断一下
+            if (!buff || buff.byteLength == 0) {
+                throw "no treepath";
+            }
+            let treebuff = new Uint8Array(buff);
+            let ret = treeNode;
+            if (!ret) {
+                ret = new TreeNode(treebuff, null, this.frw);
+            } else {
+                ret.parseBuffer(treebuff, this.frw);
+            }
+            ret.sha = objid;
+
+            if (key) {
+                resolveFunc(ret);
+            }
+            return ret;
+        } catch (e) {
+            if (key) {
+                rejectFunc(e);
+            }
+            throw e;
+        } finally {
+            if (key) {
+                GitFS._pending.delete(key);
+            }
         }
-        let treebuff = new Uint8Array(buff);
-        let ret = treeNode;
-        if (!ret) {
-            ret = new TreeNode(treebuff, null, this.frw);
-        } else {
-            ret.parseBuffer(treebuff, this.frw);
-        }
-        ret.sha = objid;
-        return ret!;
     }
 
     /**
@@ -292,18 +323,39 @@ export class GitFS {
         if (typeof (objid) != 'string') {
             strid = toHex(objid);
         }
-        let objpath = this.getObjUrl(strid);
-        let buff: ArrayBuffer | null = null;
-        for (let pack of this._objectPacks) {
-            if (!pack) continue;
-            if (await pack.has(strid)) {
-                buff = await pack.get(strid)
+        
+        // 防止并发重复请求
+        const key = `getBlobNode-${strid}`;
+        if (GitFS._pending.has(key)) {
+            const cachedBuff = await GitFS._pending.get(key) as ArrayBuffer;
+            if (encode == 'utf8') {
+                return readUTF8(cachedBuff);
             }
-            if (buff)
-                break;
+            return cachedBuff;
         }
 
+        // 先创建 Promise 并设置到 _pending，确保后续调用能命中缓存
+        let resolveFunc!: (value: ArrayBuffer) => void;
+        let rejectFunc!: (reason?: any) => void;
+        const pendingPromise = new Promise<ArrayBuffer>((resolve, reject) => {
+            resolveFunc = resolve;
+            rejectFunc = reject;
+        });
+        GitFS._pending.set(key, pendingPromise);
+
         try {
+            // 实际获取数据
+            let objpath = this.getObjUrl(strid);
+            let buff: ArrayBuffer | null = null;
+            for (let pack of this._objectPacks) {
+                if (!pack) continue;
+                if (await pack.has(strid)) {
+                    buff = await pack.get(strid)
+                }
+                if (buff)
+                    break;
+            }
+
             if(!buff){
                 let objbuff = await this.read(objpath, 'buffer', false, this.checkDownload ? async (buff) => {
                     let sum = await shasum(new Uint8Array(buff), true);
@@ -316,26 +368,22 @@ export class GitFS {
                     buff = GitFS.zip ? this.frw.unzip(objbuff) : objbuff;
                 }
             }
+
+            if (!buff) {
+                throw new Error('download error:' + strid);
+            }
+
+            resolveFunc(buff);
+            if (encode == 'utf8') {
+                return readUTF8(buff);
+            } else {
+                return buff;
+            }
         } catch (e) {
-        }
-        if (!buff) {
-            throw new Error('download error:' + strid);
-        }
-
-        //下载文件最好不校验。影响速度。
-        //校验写到下载过程中了，以保证写入缓存的是正确的
-        // if (this.checkDownload) {
-        //     let sum = await shasum(new Uint8Array(buff), true);
-        //     if (sum != strid) {
-        //         console.log('下载的文件校验错误:', strid, sum);
-        //     }
-        // }
-
-        if (encode == 'utf8') {
-            let str = readUTF8(buff);
-            return str;
-        } else {
-            return buff;
+            rejectFunc(e);
+            throw e;
+        } finally {
+            GitFS._pending.delete(key);
         }
     }
 
@@ -353,8 +401,8 @@ export class GitFS {
         
         // 防止并发重复请求
         const key = `openNode-${node.idstring}`;
-        if (this._pending.has(key)) {
-            return this._pending.get(key);
+        if (GitFS._pending.has(key)) {
+            return GitFS._pending.get(key);
         }
 
         // 没有treeNode表示还没有下载。下载构造新的node
@@ -365,7 +413,7 @@ export class GitFS {
                     ret.parent = node.owner;
                     return ret;
                 });
-                this._pending.set(key, promise);
+                GitFS._pending.set(key, promise);
                 return await promise;
             }
             else
@@ -373,7 +421,7 @@ export class GitFS {
         } catch (e) {
             throw "open node error"
         } finally {
-            this._pending.delete(key);
+            GitFS._pending.delete(key);
         }
     }
 
