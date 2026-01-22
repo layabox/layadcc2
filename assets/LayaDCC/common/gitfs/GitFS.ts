@@ -350,18 +350,30 @@ export class GitFS {
         if (!(node instanceof TreeEntry)) {
             console.error('openNode param error!')
         }
+        
+        // 防止并发重复请求
+        const key = `openNode-${node.idstring}`;
+        if (this._pending.has(key)) {
+            return this._pending.get(key);
+        }
+
         // 没有treeNode表示还没有下载。下载构造新的node
         try {
             if (node.isDir) {
-                let ret = await this.getTreeNode(node.idstring, null);
-                node.treeNode = ret;
-                ret.parent = node.owner;
-                return ret;
+                const promise = this.getTreeNode(node.idstring, null).then(ret => {
+                    node.treeNode = ret;
+                    ret.parent = node.owner;
+                    return ret;
+                });
+                this._pending.set(key, promise);
+                return await promise;
             }
             else
                 return null;
         } catch (e) {
             throw "open node error"
+        } finally {
+            this._pending.delete(key);
         }
     }
 
