@@ -284,15 +284,16 @@ export class LayaDCC {
         for (const dirent of dirents) {
             let filename = dirent.name;
             const res = path.resolve(dir, filename);
-            if (this.config.progressCB) {
-                this.config.progressCB(res, 0);
-            }
-            let entry = node.getEntry(filename);
 
             // 如果路径符合忽略模式，则跳过此路径
             if (ignorePatterns && ignorePatterns.some(pattern => filename == pattern)) {
                 continue;
             }
+
+            if (this.config.progressCB) {
+                this.config.progressCB(res, 0);
+            }
+            let entry = node.getEntry(filename);
 
             if (dirent.isDirectory()) {
                 if (!entry) {
