@@ -13,7 +13,8 @@ module.exports = {
         use: {
           loader:'ts-loader',
           options: {
-            configFile: 'tsconfig.dcctools.json' 
+            configFile: 'tsconfig.dcctools.json',
+            transpileOnly: true,
           }
         }
       },
