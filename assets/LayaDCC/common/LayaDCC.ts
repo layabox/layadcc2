@@ -127,7 +127,7 @@ export class LayaDCC {
 
         let ignores = ['.git', '.gitignore', 'dccout', '.dcc', '.svn'];
         if (this.config.ignorePathes) {
-            ignores.concat(this.config.ignorePathes);
+            ignores = ignores.concat(this.config.ignorePathes);
         }
         let files = await this.syncWithDir(p, rootNode, this.config.fast, ignores);
         //console.log(files.length)
