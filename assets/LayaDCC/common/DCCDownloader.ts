@@ -1,3 +1,4 @@
+import { dccLog } from "./Config";
 import { Env } from "./Env";
 import { ICheckLog, LayaDCCClient } from "./LayaDCCClient";
 
@@ -84,6 +85,7 @@ export class DCCDownloader {
 
     common(owner: any, url: string, originalUrl: string, contentType: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void {
         this._logger && this._logger.checkLog(`download:common:${originalUrl}`);
+        dccLog('拦截下载: ' + originalUrl);
         let promise: Promise<string>;
         if (this.dcc.onlyTransUrl) {
             promise = this.dcc.transUrl(url);
@@ -124,6 +126,7 @@ export class DCCDownloader {
     }
 
     image(owner: any, url: string, originalUrl: string, onProgress: (progress: number) => void, onComplete: (data: any, error?: string) => void): void {
+        dccLog('拦截下载(image): ' + originalUrl);
         let promise: Promise<string>;
         if (this.dcc.onlyTransUrl) {
             promise = this.dcc.transUrl(url);

@@ -1,5 +1,5 @@
 import { AppResReader_Native } from "./AppResReader_Native";
-import { DCCConfig } from "./Config";
+import { DCCConfig, dccLog } from "./Config";
 import { DCCClientFS_native } from "./DCCClientFS_native";
 import { DCCClientFS_web } from "./DCCClientFS_web";
 import { DCCDownloader } from "./DCCDownloader";
@@ -326,6 +326,7 @@ export class LayaDCCClient {
     async readFile(url: string): Promise<ArrayBuffer | null> {
         let gitfs = this._gitfs;
         if (!gitfs) throw 'dcc没有正确init';
+        let oriUrl = url;
         if (url.startsWith('http:') || url.startsWith('https:') || url.startsWith('file:')) {//绝对路径
             if (!this._pathMapToDCC) {
                 url = (new URL(url)).pathname;;
@@ -335,6 +336,12 @@ export class LayaDCCClient {
             }
         }
 
+        let objPath = await gitfs.pathToObjPath(url);
+        if (objPath) {
+            dccLog('readFile: ' + oriUrl + ' -> hash: ' + objPath);
+        } else {
+            dccLog('readFile: ' + oriUrl + ' (DCC中不存在)');
+        }
         let buff = await gitfs.loadFileByPath(url, 'buffer') as ArrayBuffer;
         return buff;
     }
@@ -378,9 +385,12 @@ export class LayaDCCClient {
 
         let objpath = await gitfs.pathToObjPath(url);
         if (!objpath) {
+            dccLog('transUrl: ' + oriUrl + ' (DCC中不存在，使用原始URL)');
             return oriUrl;
         }
-        return this._frw.repoPath + objpath;
+        let result = this._frw.repoPath + objpath;
+        dccLog('transUrl: ' + oriUrl + ' -> ' + result);
+        return result;
     }
 
     /**

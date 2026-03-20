@@ -1,5 +1,5 @@
 import { AppResReader_Native, FileIO_AppRes } from "./AppResReader_Native";
-import { DCCConfig } from "./Config";
+import { dccLog } from "./Config";
 import { DCCObjectWrapper } from "./DCCObjectWrapper";
 import { ObjPack } from "./ObjPack";
 import { IObjectPack } from "./gitfs/GitFS";
@@ -107,7 +107,7 @@ export class ObjPack_AppRes implements IObjectPack {
                 buff = await pack.get(oid)
             }
             if (buff) {
-                DCCLog(`Get Object from TreePack:${oid}`);
+                dccLog('从包内加载(treePack): ' + oid);
                 return buff;
             }
         }
@@ -118,16 +118,14 @@ export class ObjPack_AppRes implements IObjectPack {
                 buff = await pack.get(oid)
             }
             if (buff) {
-                DCCLog(`Get Object from TreePack:${oid}`);
+                dccLog('从包内加载(treePack): ' + oid);
                 return buff;
             }
         }
-        return await this.resReader.getRes(path, 'buffer') as ArrayBuffer
-    }
-}
-
-function DCCLog(msg: string) {
-    if (DCCConfig.log) {
-        console.log(msg)
+        let result = await this.resReader.getRes(path, 'buffer') as ArrayBuffer;
+        if (result) {
+            dccLog('从包内加载(loose): ' + oid);
+        }
+        return result
     }
 }

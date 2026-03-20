@@ -3,7 +3,7 @@
  * 
  */
 
-import { DCCConfig } from "./Config";
+import { DCCConfig, dccLog } from "./Config";
 import { Env } from "./Env";
 import { IGitFSFileIO } from "./gitfs/GitFS";
 
@@ -99,21 +99,27 @@ export class DCCClientFS_native implements IGitFSFileIO {
             if (ret && encode == 'utf8') {
                 ret = Env.dcodeUtf8(ret);
             }
+            if (ret) {
+                dccLog('从缓存加载: ' + url);
+            }
         } catch (e: any) {
         }
         if (!ret) {
             if (onlylocal)
                 return null;
             if (this.repoPath) {
+                dccLog('从网络下载: ' + this.repoPath + url);
                 let resp = await this.fetch(this.repoPath + url);
                 if (encode == 'utf8') {
                     ret = await resp.text();
                     await this.write(url, ret);
+                    dccLog('已写入缓存: ' + url);
                 } else {
                     ret = await resp.arrayBuffer();
                     let contOK = (!contentChecker) ||(await contentChecker(ret));
                     if(contOK){
                         await this.write(url, ret);
+                        dccLog('已写入缓存: ' + url);
                     }
                 }
             }

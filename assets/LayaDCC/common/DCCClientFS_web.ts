@@ -3,6 +3,7 @@
  * 
  */
 
+import { dccLog } from "./Config";
 import { IndexDBFileRW } from "./IndexDBFileRW";
 import { IGitFSFileIO } from "./gitfs/GitFS";
 
@@ -78,11 +79,14 @@ export class DCCClientFS_web implements IGitFSFileIO {
             ret = await this.dbfile.read(url, encode, true)
             if(!ret){
                 console.error("从indexdb读取到了null", url);
+            } else {
+                dccLog('从IndexDB加载: ' + url);
             }
         } catch (e: any) {
             if (onlylocal)
                 return null;
             if (this.repoPath) {
+                dccLog('从网络下载: ' + this.repoPath + url);
                 let resp = await fetch(this.repoPath + url);
                 if(!resp.ok){
                     console.error('下载错误：',this.repoPath+url,resp.status,resp.statusText);
@@ -91,6 +95,7 @@ export class DCCClientFS_web implements IGitFSFileIO {
                     ret = await resp.text();
                     try{
                         await this.dbfile.write(url, ret);
+                        dccLog('已写入IndexDB: ' + url);
                     }catch(e){
                         console.log('write db error:',url)
                         return ret;
@@ -101,6 +106,7 @@ export class DCCClientFS_web implements IGitFSFileIO {
                         let contOK = (!contentChecker) ||(await contentChecker(ret));
                         if(contOK){
                             await this.dbfile.write(url, ret);
+                            dccLog('已写入IndexDB: ' + url);
                         }
                     }catch(e){
                         console.error('write db error:',url)
