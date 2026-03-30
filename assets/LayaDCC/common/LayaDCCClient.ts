@@ -137,16 +137,27 @@ export class LayaDCCClient {
         }
         await this._frw.init(this._dccServer, cachePath);
 
-        //判断是不是新的安装
+        //判断是不是新的安装或app升级
         if (window.conch) {
-            //如果是的话，拷贝出apk中的head
             let appres = new AppResReader_Native();
-            //规则：如果第一次安装，直接使用apk内的，如果是覆盖安装，则比较时间差。比较的作用是防止万一没有网络的情况下，apk内的资源比较旧..
             try {
                 let apphead = await appres.getRes(this.dccPathInAssets + '/head.json', 'buffer') as ArrayBuffer;
                 if (apphead) {
-                    //暂时直接拷贝覆盖，应该也是正确的
-                    await this._frw.write('head.json', apphead, true);
+                    //解析包内head的root，与上次记录的包内root比较，判断是否app升级
+                    let appHeadStr = Env.dcodeUtf8(apphead);
+                    let appHeadObj = JSON.parse(appHeadStr) as RootDesc;
+                    let appRoot = appHeadObj.root;
+                    let lastAppRoot: string = null;
+                    try {
+                        lastAppRoot = await this._frw.read('app_head_root', 'utf8', true, null) as string;
+                    } catch (e) { }
+                    if (appRoot !== lastAppRoot) {
+                        //首次安装或app升级，用包内head覆盖缓存
+                        dccLog('app升级或首次安装，使用包内head.json');
+                        await this._frw.write('head.json', apphead, true);
+                        await this._frw.write('app_head_root', appRoot, true);
+                    }
+                    //否则保留本地DCC热更的缓存，不覆盖
                 }
             } catch (e) {
                 DCCConfig.log && console.log('LayaDCCClient init error: no head.json in package')
