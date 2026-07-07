@@ -322,6 +322,7 @@ export class LayaDCCClient {
             }
         }
 
+        url = this._stripQuery(url);
         let objPath = await gitfs.pathToObjPath(url);
         if(!objPath)
             return false;
@@ -347,6 +348,7 @@ export class LayaDCCClient {
             }
         }
 
+        url = this._stripQuery(url);
         let objPath = await gitfs.pathToObjPath(url);
         if (objPath) {
             dccLog('readFile: ' + oriUrl + ' -> hash: ' + objPath);
@@ -355,6 +357,12 @@ export class LayaDCCClient {
         }
         let buff = await gitfs.loadFileByPath(url, 'buffer') as ArrayBuffer;
         return buff;
+    }
+
+    //去掉url中的查询参数（例如版本管理添加的 ?v=xxx），带查询参数无法在DCC目录树中匹配到文件
+    private _stripQuery(url: string) {
+        let i = url.indexOf('?');
+        return i > 0 ? url.substring(0, i) : url;
     }
 
     private _getRUrl(url:string){
@@ -368,7 +376,7 @@ export class LayaDCCClient {
                 url = url.substring(this._pathMapToDCC.length);
             }
         }
-        return url;
+        return this._stripQuery(url);
     }
 
     //获取某个对象（用hash表示的文件或者目录）在缓存中的地址
@@ -394,6 +402,7 @@ export class LayaDCCClient {
             url = url.substring(this._pathMapToDCC.length);
         }
 
+        url = this._stripQuery(url);
         let objpath = await gitfs.pathToObjPath(url);
         if (!objpath) {
             dccLog('transUrl: ' + oriUrl + ' (DCC中不存在，使用原始URL)');
